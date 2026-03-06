@@ -11,16 +11,22 @@
 		"db:generate": "drizzle-kit generate"
 	},
 	"dependencies": {
+		"@dnd-kit/dom": "^0.1.21",
+		"@dnd-kit/helpers": "^0.1.21",
+		"@dnd-kit/react": "^0.1.21",
+		"@radix-ui/react-slot": "^1.2.4",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"drizzle-orm": "^0.39.0",
 		"electrobun": "1.15.1",
+		"lucide-react": "^0.577.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
-		"drizzle-orm": "^0.39.0",
-		"@dnd-kit/react": "^0.1.21",
-		"@dnd-kit/helpers": "^0.1.21",
-		"@dnd-kit/dom": "^0.1.21"
+		"tailwind-merge": "^3.5.0"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/node": "^25.3.5",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",
 		"@vitejs/plugin-react": "^4.3.4",
