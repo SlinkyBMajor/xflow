@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import type { Ticket } from "../../../shared/types";
+import { Badge } from "../ui/badge";
 
 interface TicketCardProps {
 	ticket: Ticket;
@@ -41,12 +42,7 @@ export function TicketCard({ ticket, index, laneId, onClick }: TicketCardProps) 
 			{ticket.tags.length > 0 && (
 				<div className="mt-2 flex flex-wrap gap-1">
 					{ticket.tags.map((tag) => (
-						<span
-							key={tag}
-							className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-700/50 text-zinc-400 border border-zinc-700/30"
-						>
-							{tag}
-						</span>
+						<Badge key={tag}>{tag}</Badge>
 					))}
 				</div>
 			)}

@@ -1,4 +1,5 @@
 import type { RecentProject } from "../../../shared/types";
+import { Button } from "../ui/button";
 import { RecentProjectList } from "./RecentProjectList";
 
 interface WelcomeScreenProps {
@@ -69,9 +70,9 @@ export function WelcomeScreen({
 				</div>
 
 				{/* Open Project Button */}
-				<button
+				<Button
 					onClick={onOpenProject}
-					className="w-full group relative flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-all duration-150 shadow-lg shadow-violet-900/30 hover:shadow-violet-800/40"
+					className="w-full gap-2.5 py-3 h-auto bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/30 hover:shadow-violet-800/40"
 				>
 					<svg
 						width="16"
@@ -88,7 +89,7 @@ export function WelcomeScreen({
 						/>
 					</svg>
 					Open Project
-				</button>
+				</Button>
 
 				{/* Recent Projects */}
 				{recentProjects.length > 0 && (

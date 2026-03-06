@@ -1,6 +1,16 @@
 import { useState } from "react";
 import type { Lane } from "../../../shared/types";
-import { Modal } from "../shared/Modal";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+	DialogDescription,
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 
 interface LaneSettingsModalProps {
 	open: boolean;
@@ -31,76 +41,68 @@ export function LaneSettingsModal({ open, lane, onClose, onSave }: LaneSettingsM
 	};
 
 	return (
-		<Modal open={open} onClose={onClose}>
-			<div className="p-5">
-				<h3 className="text-sm font-semibold text-zinc-200 mb-4">Lane Settings</h3>
+		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+			<DialogContent>
+				<div className="p-5">
+					<DialogHeader className="mb-4">
+						<DialogTitle>Lane Settings</DialogTitle>
+						<DialogDescription className="sr-only">
+							Edit lane name, color, and WIP limit
+						</DialogDescription>
+					</DialogHeader>
 
-				<div className="space-y-4">
-					{/* Name */}
-					<div>
-						<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-							Name
-						</label>
-						<input
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 outline-none focus:border-violet-500/50"
-						/>
-					</div>
+					<div className="space-y-4">
+						<div>
+							<Label htmlFor="lane-name" className="mb-1.5">Name</Label>
+							<Input
+								id="lane-name"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+							/>
+						</div>
 
-					{/* Color */}
-					<div>
-						<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
-							Color
-						</label>
-						<div className="flex gap-2">
-							{COLOR_OPTIONS.map((c) => (
-								<button
-									key={c}
-									onClick={() => setColor(c)}
-									className={`w-6 h-6 rounded-full border-2 transition-all ${
-										color === c
-											? "border-white scale-110"
-											: "border-transparent hover:border-zinc-600"
-									}`}
-									style={{ backgroundColor: c }}
-								/>
-							))}
+						<div>
+							<Label className="mb-2">Color</Label>
+							<div className="flex gap-2">
+								{COLOR_OPTIONS.map((c) => (
+									<button
+										key={c}
+										onClick={() => setColor(c)}
+										className={`w-6 h-6 rounded-full border-2 transition-all ${
+											color === c
+												? "border-white scale-110"
+												: "border-transparent hover:border-zinc-600"
+										}`}
+										style={{ backgroundColor: c }}
+									/>
+								))}
+							</div>
+						</div>
+
+						<div>
+							<Label htmlFor="wip-limit" className="mb-1.5">WIP Limit</Label>
+							<Input
+								id="wip-limit"
+								type="number"
+								min="0"
+								value={wipLimit}
+								onChange={(e) => setWipLimit(e.target.value)}
+								placeholder="No limit"
+								className="w-24"
+							/>
 						</div>
 					</div>
 
-					{/* WIP Limit */}
-					<div>
-						<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-							WIP Limit
-						</label>
-						<input
-							type="number"
-							min="0"
-							value={wipLimit}
-							onChange={(e) => setWipLimit(e.target.value)}
-							placeholder="No limit"
-							className="w-24 text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/50"
-						/>
-					</div>
+					<DialogFooter className="mt-6">
+						<Button variant="ghost" size="sm" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button size="sm" onClick={handleSubmit} className="bg-violet-600 hover:bg-violet-500 text-white">
+							Save
+						</Button>
+					</DialogFooter>
 				</div>
-
-				{/* Actions */}
-				<div className="flex justify-end gap-2 mt-6">
-					<button
-						onClick={onClose}
-						className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 rounded-md hover:bg-zinc-800 transition-colors"
-					>
-						Cancel
-					</button>
-					<button
-						onClick={handleSubmit}
-						className="px-4 py-1.5 text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white rounded-md transition-colors"
-					>
-						Save
-					</button>
-				</div>
-			</div>
-		</Modal>
+			</DialogContent>
+		</Dialog>
 	);
 }

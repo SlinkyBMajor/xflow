@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
+import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 
 interface TicketFormProps {
 	initialTitle: string;
@@ -23,61 +27,50 @@ export function TicketForm({ initialTitle, initialBody, initialTags, onSave, onC
 
 	return (
 		<div className="space-y-4">
-			{/* Title */}
 			<div>
-				<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-					Title
-				</label>
-				<input
+				<Label htmlFor="ticket-title" className="mb-1.5">Title</Label>
+				<Input
+					id="ticket-title"
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
-					className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/50"
 					placeholder="Ticket title"
 				/>
 			</div>
 
-			{/* Body */}
 			<div>
-				<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-					Description
-				</label>
-				<textarea
+				<Label htmlFor="ticket-body" className="mb-1.5">Description</Label>
+				<Textarea
+					id="ticket-body"
 					value={body}
 					onChange={(e) => setBody(e.target.value)}
 					rows={6}
-					className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/50 resize-none font-mono text-[13px] leading-relaxed"
+					className="font-mono text-[13px] leading-relaxed"
 					placeholder="Markdown supported..."
 				/>
 			</div>
 
-			{/* Tags */}
 			<div>
-				<label className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-					Tags
-				</label>
-				<input
+				<Label htmlFor="ticket-tags" className="mb-1.5">Tags</Label>
+				<Input
+					id="ticket-tags"
 					value={tagInput}
 					onChange={(e) => setTagInput(e.target.value)}
-					className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/50"
 					placeholder="Comma-separated tags..."
 				/>
 			</div>
 
-			{/* Actions */}
 			<div className="flex justify-end gap-2 pt-2">
-				<button
-					onClick={onCancel}
-					className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 rounded-md hover:bg-zinc-800 transition-colors"
-				>
+				<Button variant="ghost" size="sm" onClick={onCancel}>
 					Cancel
-				</button>
-				<button
+				</Button>
+				<Button
+					size="sm"
 					onClick={handleSubmit}
 					disabled={!title.trim()}
-					className="px-4 py-1.5 text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+					className="bg-violet-600 hover:bg-violet-500 text-white"
 				>
 					Save
-				</button>
+				</Button>
 			</div>
 		</div>
 	);

@@ -1,4 +1,5 @@
 import type { RecentProject } from "../../../shared/types";
+import { Button } from "../ui/button";
 
 interface RecentProjectListProps {
 	projects: RecentProject[];
@@ -53,8 +54,10 @@ export function RecentProjectList({ projects, onSelect, onRemove }: RecentProjec
 					<span className="text-[11px] text-zinc-600 flex-shrink-0 group-hover:hidden">
 						{formatDate(project.lastOpened)}
 					</span>
-					<button
-						className="hidden group-hover:flex items-center justify-center w-6 h-6 rounded-md hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
+					<Button
+						variant="ghost"
+						size="icon"
+						className="hidden group-hover:flex h-6 w-6 text-zinc-500 hover:text-zinc-300"
 						onClick={(e) => {
 							e.stopPropagation();
 							onRemove(project.path);
@@ -63,7 +66,7 @@ export function RecentProjectList({ projects, onSelect, onRemove }: RecentProjec
 						<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
 							<path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
 						</svg>
-					</button>
+					</Button>
 				</div>
 			))}
 		</div>

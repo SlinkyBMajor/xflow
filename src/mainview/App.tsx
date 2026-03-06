@@ -1,6 +1,7 @@
 import { useProject } from "./hooks/useProject";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 import { BoardView } from "./components/board/BoardView";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 export default function App() {
 	const {
@@ -16,24 +17,28 @@ export default function App() {
 
 	if (!project || !boardData) {
 		return (
-			<WelcomeScreen
-				recentProjects={recentProjects}
-				onOpenProject={openProjectPicker}
-				onSelectRecent={openProject}
-				onRemoveRecent={removeRecentProject}
-			/>
+			<TooltipProvider>
+				<WelcomeScreen
+					recentProjects={recentProjects}
+					onOpenProject={openProjectPicker}
+					onSelectRecent={openProject}
+					onRemoveRecent={removeRecentProject}
+				/>
+			</TooltipProvider>
 		);
 	}
 
 	return (
-		<BoardView
-			boardData={boardData}
-			setBoardData={setBoardData}
-			projectName={project.name}
-			recentProjects={recentProjects}
-			onSwitchProject={openProject}
-			onOpenProjectPicker={openProjectPicker}
-			onCloseProject={closeProject}
-		/>
+		<TooltipProvider>
+			<BoardView
+				boardData={boardData}
+				setBoardData={setBoardData}
+				projectName={project.name}
+				recentProjects={recentProjects}
+				onSwitchProject={openProject}
+				onOpenProjectPicker={openProjectPicker}
+				onCloseProject={closeProject}
+			/>
+		</TooltipProvider>
 	);
 }

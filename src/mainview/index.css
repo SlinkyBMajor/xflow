@@ -4,19 +4,43 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-surface-0: #09090b;
-  --color-surface-1: #18181b;
-  --color-surface-2: #27272a;
-  --color-surface-3: #3f3f46;
-  --color-border: #27272a;
-  --color-border-hover: #3f3f46;
-  --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-  --color-accent: #a78bfa;
-  --font-display: 'JetBrains Mono', monospace;
-  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+@layer base {
+  :root {
+    --color-surface-0: #09090b;
+    --color-surface-1: #18181b;
+    --color-surface-2: #27272a;
+    --color-surface-3: #3f3f46;
+    --color-border: #27272a;
+    --color-border-hover: #3f3f46;
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #a1a1aa;
+    --color-text-muted: #71717a;
+    --color-accent: #a78bfa;
+    --font-display: 'JetBrains Mono', monospace;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    /* shadcn CSS variables - dark theme */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 263 70% 50%;
+    --radius: 0.5rem;
+  }
 }
 
 * {

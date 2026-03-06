@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Input } from "../ui/input";
 
 interface AddLaneButtonProps {
 	onAdd: (name: string, color?: string) => void;
@@ -41,7 +42,7 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 
 	return (
 		<div className="w-72 flex-shrink-0 bg-zinc-900/50 rounded-xl border border-zinc-700 p-3 animate-scale-in">
-			<input
+			<Input
 				ref={inputRef}
 				value={name}
 				onChange={(e) => setName(e.target.value)}
@@ -54,7 +55,6 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 				}}
 				onBlur={handleSubmit}
 				placeholder="Lane name..."
-				className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 placeholder-zinc-600 outline-none focus:border-violet-500/50"
 			/>
 		</div>
 	);
