@@ -7,7 +7,7 @@ export default {
 		version: "0.1.0",
 	},
 	runtime: {
-		exitOnLastWindowClosed: false,
+		exitOnLastWindowClosed: true,
 	},
 	build: {
 		copy: {

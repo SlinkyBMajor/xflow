@@ -36,6 +36,12 @@ export function useProject() {
 		setRecentProjects((prev) => prev.filter((r) => r.path !== path));
 	}, []);
 
+	const closeProject = useCallback(() => {
+		setProject(null);
+		setBoardData(null);
+		rpc.request.getRecentProjects({}).then(setRecentProjects).catch(console.error);
+	}, []);
+
 	return {
 		project,
 		boardData,
@@ -43,6 +49,7 @@ export function useProject() {
 		recentProjects,
 		openProjectPicker,
 		openProject,
+		closeProject,
 		removeRecentProject,
 	};
 }

@@ -1,4 +1,4 @@
-import type { BoardWithLanesAndTickets } from "../../../shared/types";
+import type { BoardWithLanesAndTickets, RecentProject } from "../../../shared/types";
 import { useBoard } from "../../hooks/useBoard";
 import { useLanes } from "../../hooks/useLanes";
 import { useTickets } from "../../hooks/useTickets";
@@ -9,9 +9,21 @@ interface BoardViewProps {
 	boardData: BoardWithLanesAndTickets;
 	setBoardData: (data: BoardWithLanesAndTickets) => void;
 	projectName: string;
+	recentProjects: RecentProject[];
+	onSwitchProject: (path: string) => void;
+	onOpenProjectPicker: () => void;
+	onCloseProject: () => void;
 }
 
-export function BoardView({ boardData, setBoardData, projectName }: BoardViewProps) {
+export function BoardView({
+	boardData,
+	setBoardData,
+	projectName,
+	recentProjects,
+	onSwitchProject,
+	onOpenProjectPicker,
+	onCloseProject,
+}: BoardViewProps) {
 	const { refreshBoard, updateBoardName } = useBoard(boardData, setBoardData);
 	const lanes = useLanes(refreshBoard);
 	const tickets = useTickets(refreshBoard);
@@ -21,7 +33,11 @@ export function BoardView({ boardData, setBoardData, projectName }: BoardViewPro
 			<BoardHeader
 				board={boardData.board}
 				projectName={projectName}
+				recentProjects={recentProjects}
 				onUpdateName={updateBoardName}
+				onSwitchProject={onSwitchProject}
+				onOpenProjectPicker={onOpenProjectPicker}
+				onCloseProject={onCloseProject}
 			/>
 			<KanbanBoard
 				boardData={boardData}

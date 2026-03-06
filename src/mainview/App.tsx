@@ -10,6 +10,7 @@ export default function App() {
 		recentProjects,
 		openProjectPicker,
 		openProject,
+		closeProject,
 		removeRecentProject,
 	} = useProject();
 
@@ -29,6 +30,10 @@ export default function App() {
 			boardData={boardData}
 			setBoardData={setBoardData}
 			projectName={project.name}
+			recentProjects={recentProjects}
+			onSwitchProject={openProject}
+			onOpenProjectPicker={openProjectPicker}
+			onCloseProject={closeProject}
 		/>
 	);
 }
