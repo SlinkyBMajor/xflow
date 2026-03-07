@@ -1,4 +1,4 @@
-import { setup, assign, type AnyStateMachine } from "xstate";
+import { setup, assign, fromPromise, type AnyStateMachine } from "xstate";
 import type { DB } from "../db/connection";
 import type {
 	WorkflowIR,
@@ -27,6 +27,7 @@ export function compileWorkflow(
 	initialNodeId?: string,
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
+	notifyBoardChanged?: () => void,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
@@ -53,6 +54,7 @@ export function compileWorkflow(
 			notifyFrontend,
 			projectPath,
 			notifyEvent,
+			notifyBoardChanged,
 		});
 	}
 
@@ -86,6 +88,7 @@ function buildState(
 		notifyFrontend: () => void;
 		projectPath?: string;
 		notifyEvent?: (event: RunEvent) => void;
+		notifyBoardChanged?: () => void;
 	},
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
@@ -146,10 +149,10 @@ function buildState(
 			const config = node.config as MoveToLaneConfig & { type: "moveToLane" };
 			return {
 				invoke: {
-					src: () => {
+					src: fromPromise(async () => {
 						executeMoveToLane(ctx.db, ctx.ticket.id, config.laneId);
-						return Promise.resolve();
-					},
+						ctx.notifyBoardChanged?.();
+					}),
 					onDone: targets.length > 0 ? { target: targets[0] } : undefined,
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
 				},
@@ -208,14 +211,14 @@ function buildState(
 			const config = node.config as ClaudeAgentConfig & { type: "claudeAgent" };
 			return {
 				invoke: {
-					src: ({ context }: { context: WorkflowContext }) => {
+					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
 						return executeClaudeAgent({
 							runId: ctx.runId,
 							nodeId: node.id,
 							prompt: config.prompt,
 							timeoutMs: config.timeoutMs,
 							ticket: ctx.ticket,
-							context,
+							context: input.context,
 							db: ctx.db,
 							projectPath: ctx.projectPath,
 							onEvent: (event: RunEvent) => {
@@ -223,7 +226,8 @@ function buildState(
 								ctx.notifyFrontend();
 							},
 						});
-					},
+					}),
+					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
 						actions: assign({
@@ -242,7 +246,7 @@ function buildState(
 			const config = node.config as CustomScriptConfig & { type: "customScript" };
 			return {
 				invoke: {
-					src: ({ context }: { context: WorkflowContext }) => {
+					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
 						return executeCustomScript({
 							runId: ctx.runId,
 							nodeId: node.id,
@@ -250,7 +254,7 @@ function buildState(
 							interpreter: config.interpreter,
 							timeoutMs: config.timeoutMs,
 							ticket: ctx.ticket,
-							context,
+							context: input.context,
 							db: ctx.db,
 							projectPath: ctx.projectPath,
 							onEvent: (event: RunEvent) => {
@@ -258,7 +262,8 @@ function buildState(
 								ctx.notifyFrontend();
 							},
 						});
-					},
+					}),
+					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
 						actions: assign({

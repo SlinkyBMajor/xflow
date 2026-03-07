@@ -130,6 +130,8 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
 				}, activeProjectPath ?? undefined, (event) => {
 					mainWindow?.webview.rpc.send.runEventAdded(event);
+				}, () => {
+					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
 				});
 			},
 
@@ -256,6 +258,8 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
 				}, activeProjectPath ?? undefined, (event) => {
 					mainWindow?.webview.rpc.send.runEventAdded(event);
+				}, () => {
+					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
 				});
 			},
 

@@ -18,6 +18,7 @@ export function startRun(
 	notifyFrontend: (run: WorkflowRun) => void,
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
+	notifyBoardChanged?: () => void,
 ): string {
 	const runId = crypto.randomUUID();
 	const now = new Date().toISOString();
@@ -37,7 +38,7 @@ export function startRun(
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
-	}, undefined, projectPath, notifyEvent);
+	}, undefined, projectPath, notifyEvent, notifyBoardChanged);
 
 	const actor = createActor(machine);
 
@@ -99,6 +100,7 @@ export function resumeRun(
 	notifyFrontend: (run: WorkflowRun) => void,
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
+	notifyBoardChanged?: () => void,
 ): WorkflowRun {
 	const run = runQueries.getRunById(db, runId);
 	if (!run) throw new Error(`Run ${runId} not found`);
@@ -121,6 +123,7 @@ export function resumeRun(
 		run.currentNodeId ?? undefined,
 		projectPath,
 		notifyEvent,
+		notifyBoardChanged,
 	);
 
 	const actor = createActor(machine);

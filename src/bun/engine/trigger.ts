@@ -14,6 +14,7 @@ export function triggerWorkflowIfAttached(
 	notifyFrontend: (run: WorkflowRun) => void,
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
+	notifyBoardChanged?: () => void,
 ): void {
 	const lane = db.select().from(lanes).where(eq(lanes.id, targetLaneId)).get();
 	if (!lane?.workflowId) return;
@@ -32,5 +33,5 @@ export function triggerWorkflowIfAttached(
 	const ticket = ticketQueries.getTicket(db, ticketId);
 	if (!ticket) return;
 
-	startRun(db, ticket, workflow.id, workflow.definition, notifyFrontend, projectPath, notifyEvent);
+	startRun(db, ticket, workflow.id, workflow.definition, notifyFrontend, projectPath, notifyEvent, notifyBoardChanged);
 }
