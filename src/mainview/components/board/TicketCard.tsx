@@ -27,7 +27,7 @@ export function TicketCard({ ticket, index, laneId, onClick }: TicketCardProps) 
 			ref={ref}
 			data-dragging={isDragging}
 			onClick={onClick}
-			className="group bg-zinc-800/50 hover:bg-zinc-800/80 border border-zinc-700/40 hover:border-zinc-600/50 rounded-lg px-3 py-2.5 cursor-pointer transition-all duration-100 select-none"
+			className="group bg-zinc-900/80 hover:bg-zinc-800/60 border border-zinc-800/60 hover:border-zinc-700/50 rounded-lg px-3 py-2.5 cursor-pointer transition-colors duration-100 select-none"
 		>
 			<div className="text-[13px] font-medium text-zinc-200 leading-snug">
 				{ticket.title}

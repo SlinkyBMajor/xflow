@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useProject } from "./hooks/useProject";
 import { useWorkflow } from "./hooks/useWorkflow";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
@@ -21,6 +21,22 @@ export default function App() {
 
 	const { createWorkflow, attachWorkflowToLane } = useWorkflow();
 	const [activeTab, setActiveTab] = useState<"board" | "workflows">("board");
+
+	// Global keyboard shortcuts: ⌘1 → Board, ⌘2 → Workflows
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (!e.metaKey && !e.ctrlKey) return;
+			if (e.key === "1") {
+				e.preventDefault();
+				setActiveTab("board");
+			} else if (e.key === "2") {
+				e.preventDefault();
+				setActiveTab("workflows");
+			}
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, []);
 
 	const handleEditWorkflowFromLane = (_laneId: string, _laneName: string, _workflowId: string) => {
 		setActiveTab("workflows");

@@ -198,7 +198,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	return (
 		<div className="flex-1 flex flex-col bg-zinc-950">
 			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/40 bg-zinc-900/30">
+			<div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/40 bg-zinc-950/60">
 				<div className="flex items-center gap-2">
 					{editingName ? (
 						<input

@@ -57,9 +57,9 @@ export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewPr
 	return (
 		<div className="flex-1 flex overflow-hidden">
 			{/* Sidebar */}
-			<div className="w-64 flex-shrink-0 border-r border-zinc-800/60 flex flex-col bg-zinc-950">
+			<div className="w-60 flex-shrink-0 border-r border-zinc-800/50 flex flex-col bg-zinc-900/20">
 				{/* Sidebar header */}
-				<div className="flex items-center justify-between px-3 py-2.5 border-b border-zinc-800/40">
+				<div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/40">
 					<span className="text-[10px] text-zinc-600 font-mono tracking-widest uppercase">Workflows</span>
 					<Button
 						size="sm"
@@ -103,10 +103,10 @@ export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewPr
 								<button
 									key={wf.id}
 									onClick={() => setSelectedId(wf.id)}
-									className={`group w-full text-left px-3 py-2.5 transition-colors border-l-2 ${
+									className={`group w-full text-left px-3 py-2.5 transition-all duration-100 border-l-2 ${
 										isSelected
-											? "bg-zinc-900/80 border-l-violet-500"
-											: "border-l-transparent hover:bg-zinc-900/40"
+											? "bg-zinc-800/50 border-l-violet-500"
+											: "border-l-transparent hover:bg-zinc-800/30"
 									}`}
 								>
 									<div className="flex items-center justify-between gap-1">

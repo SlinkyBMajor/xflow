@@ -30,10 +30,10 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 		return (
 			<button
 				onClick={() => setActive(true)}
-				className="flex items-center gap-2 w-72 flex-shrink-0 px-4 py-3 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-600 hover:text-zinc-400 text-sm transition-colors"
+				className="flex items-center gap-2 w-72 flex-shrink-0 px-1 py-1.5 text-zinc-600 hover:text-zinc-400 text-[12px] font-medium transition-colors"
 			>
-				<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-					<path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+				<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+					<path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
 				</svg>
 				Add lane
 			</button>
@@ -41,7 +41,7 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 	}
 
 	return (
-		<div className="w-72 flex-shrink-0 bg-zinc-900/50 rounded-xl border border-zinc-700 p-3 animate-scale-in">
+		<div className="w-72 flex-shrink-0 animate-scale-in">
 			<Input
 				ref={inputRef}
 				value={name}

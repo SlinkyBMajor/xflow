@@ -29,12 +29,12 @@ export function AddTicketButton({ onAdd }: AddTicketButtonProps) {
 			<Button
 				variant="ghost"
 				onClick={() => setActive(true)}
-				className="flex items-center gap-1.5 w-full justify-start px-2 py-1.5 h-auto text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/40 text-[12px]"
+				className="flex items-center gap-1.5 w-full justify-start px-1 py-1 h-auto text-zinc-600 hover:text-zinc-400 hover:bg-transparent text-[11px]"
 			>
-				<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-					<path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+					<path d="M5 1.5v7M1.5 5h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
 				</svg>
-				Add ticket
+				Add
 			</Button>
 		);
 	}

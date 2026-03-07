@@ -27,9 +27,9 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 	};
 
 	return (
-		<div className="w-64 bg-zinc-900 border-l border-zinc-800 p-4 overflow-y-auto">
+		<div className="w-64 bg-zinc-900/50 border-l border-zinc-800/50 p-4 overflow-y-auto">
 			<div className="flex items-center justify-between mb-4">
-				<h3 className="text-sm font-semibold text-zinc-200">{getNodeLabel(nodeType)}</h3>
+				<h3 className="text-[13px] font-semibold text-zinc-200">{getNodeLabel(nodeType)}</h3>
 			</div>
 
 			<div className="space-y-3">
