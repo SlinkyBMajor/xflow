@@ -7,6 +7,8 @@ import * as boardQueries from "./db/queries/boards";
 import * as laneQueries from "./db/queries/lanes";
 import * as ticketQueries from "./db/queries/tickets";
 import * as workflowQueries from "./db/queries/workflows";
+import * as runQueries from "./db/queries/runs";
+import { triggerWorkflowIfAttached } from "./engine/trigger";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -113,6 +115,9 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			moveTicket: ({ ticketId, targetLaneId, targetIndex }) => {
 				const db = getDb();
 				ticketQueries.moveTicket(db, ticketId, targetLaneId, targetIndex);
+				triggerWorkflowIfAttached(db, ticketId, targetLaneId, (run) => {
+					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+				});
 			},
 
 			reorderTicketsInLane: ({ laneId, ticketIds }) => {
@@ -151,6 +156,21 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			attachWorkflowToLane: ({ laneId, workflowId }) => {
 				const db = getDb();
 				return laneQueries.attachWorkflow(db, laneId, workflowId);
+			},
+
+			getWorkflowRun: ({ id }) => {
+				const db = getDb();
+				return runQueries.getRunById(db, id);
+			},
+
+			getWorkflowRunsForTicket: ({ ticketId }) => {
+				const db = getDb();
+				return runQueries.getRunsByTicket(db, ticketId);
+			},
+
+			getRunEvents: ({ runId }) => {
+				const db = getDb();
+				return runQueries.getEventsByRun(db, runId);
 			},
 		},
 		messages: {

@@ -145,6 +145,29 @@ export interface Workflow {
 	updatedAt: string;
 }
 
+// ── Workflow Run Types ──
+
+export interface WorkflowRun {
+	id: string;
+	ticketId: string;
+	workflowId: string;
+	actorSnapshot: unknown;
+	currentNodeId: string | null;
+	nodeStatus: string;
+	status: string;
+	startedAt: string;
+	finishedAt: string | null;
+	lastCheckpoint: string | null;
+}
+
+export interface RunEvent {
+	id: string;
+	runId: string;
+	type: string;
+	payload: unknown;
+	timestamp: string;
+}
+
 // ── RPC Schema ──
 
 export type XFlowRPC = {
@@ -226,6 +249,18 @@ export type XFlowRPC = {
 				params: { laneId: string; workflowId: string | null };
 				response: Lane;
 			};
+			getWorkflowRun: {
+				params: { id: string };
+				response: WorkflowRun | null;
+			};
+			getWorkflowRunsForTicket: {
+				params: { ticketId: string };
+				response: WorkflowRun[];
+			};
+			getRunEvents: {
+				params: { runId: string };
+				response: RunEvent[];
+			};
 		};
 		messages: {
 			openProjectPicker: {};
@@ -237,6 +272,7 @@ export type XFlowRPC = {
 			boardUpdated: BoardWithLanesAndTickets;
 			projectOpened: ProjectOpenResult;
 			projectPickerResult: { path: string | null };
+			workflowRunUpdated: WorkflowRun;
 		};
 	}>;
 };
