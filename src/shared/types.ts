@@ -71,6 +71,7 @@ export type IRNodeType =
 export interface ClaudeAgentConfig {
 	prompt: string;
 	timeoutMs?: number;
+	includeWorkflowOutput?: boolean;
 }
 
 export interface CustomScriptConfig {

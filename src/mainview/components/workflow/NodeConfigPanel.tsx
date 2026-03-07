@@ -81,6 +81,17 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
+						<label className="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={config.includeWorkflowOutput ?? true}
+								onChange={(e) => updateConfig({ includeWorkflowOutput: e.target.checked })}
+								className="rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500/30 h-3.5 w-3.5"
+							/>
+							<span className="text-xs text-zinc-400">Include prior workflow output</span>
+						</label>
+					</div>
+					<div>
 						<Label className="text-xs text-zinc-400 mb-1">Timeout (ms)</Label>
 						<Input
 							type="number"

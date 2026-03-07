@@ -217,6 +217,7 @@ function buildState(
 							nodeId: node.id,
 							prompt: config.prompt,
 							timeoutMs: config.timeoutMs,
+							includeWorkflowOutput: config.includeWorkflowOutput,
 							ticket: ctx.ticket,
 							context: input.context,
 							db: ctx.db,

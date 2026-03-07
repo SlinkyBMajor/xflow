@@ -4,12 +4,14 @@ import type { Ticket, RunEvent } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
+import * as ticketQueries from "../db/queries/tickets";
 
 interface ClaudeAgentParams {
 	runId: string;
 	nodeId: string;
 	prompt: string;
 	timeoutMs?: number;
+	includeWorkflowOutput?: boolean;
 	ticket: Ticket;
 	context: WorkflowContext;
 	db: DB;
@@ -51,6 +53,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		nodeId,
 		prompt,
 		timeoutMs = 5 * 60 * 1000,
+		includeWorkflowOutput = true,
 		ticket,
 		context,
 		db,
@@ -62,17 +65,38 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	const runDir = `${cwd}/.xflow/runs/${runId}`;
 	mkdirSync(runDir, { recursive: true });
 
+	// Re-fetch ticket to get latest metadata (e.g. output from a previous lane's workflow)
+	const freshTicket = ticketQueries.getTicket(db, ticket.id) ?? ticket;
+
 	const resolvedPrompt = interpolate(prompt, context);
 
-	const contextDoc = [
-		`# Ticket: ${ticket.title}`,
-		ticket.body ? `\n${ticket.body}` : "",
-		Object.keys(ticket.metadata).length > 0
-			? `\n## Metadata\n${JSON.stringify(ticket.metadata, null, 2)}`
-			: "",
-		ticket.tags.length > 0 ? `\n## Tags\n${ticket.tags.join(", ")}` : "",
-		`\n## Instructions\n${resolvedPrompt}`,
-	].join("\n");
+	// Separate workflow output from user metadata
+	const { _workflowOutput, ...userMetadata } = freshTicket.metadata as Record<string, unknown>;
+	const workflowOutput = _workflowOutput as Record<string, { output: string; completedAt: string }> | undefined;
+
+	const sections = [
+		`# Ticket: ${freshTicket.title}`,
+		freshTicket.body ? `\n${freshTicket.body}` : "",
+	];
+
+	if (Object.keys(userMetadata).length > 0) {
+		sections.push(`\n## Metadata\n${JSON.stringify(userMetadata, null, 2)}`);
+	}
+
+	if (freshTicket.tags.length > 0) {
+		sections.push(`\n## Tags\n${freshTicket.tags.join(", ")}`);
+	}
+
+	if (includeWorkflowOutput && workflowOutput && Object.keys(workflowOutput).length > 0) {
+		const outputSections = Object.values(workflowOutput)
+			.sort((a, b) => a.completedAt.localeCompare(b.completedAt))
+			.map((entry) => entry.output);
+		sections.push(`\n## Prior Workflow Output\n\n${outputSections.join("\n\n---\n\n")}`);
+	}
+
+	sections.push(`\n## Instructions\n${resolvedPrompt}`);
+
+	const contextDoc = sections.join("\n");
 
 	writeFileSync(`${runDir}/context.md`, contextDoc);
 
