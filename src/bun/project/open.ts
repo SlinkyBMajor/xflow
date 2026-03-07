@@ -45,7 +45,7 @@ export function openProject(projectPath: string): ProjectOpenResult {
 	runMigrations(db);
 	enableForeignKeys(projectPath);
 
-	if (isNew) {
+	if (isNew || !getFirstBoard(db)) {
 		createDefaultBoard(projectPath);
 	}
 
