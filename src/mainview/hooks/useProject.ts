@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { rpc, onProjectOpened } from "../rpc";
+import { rpc, onProjectOpened, requestProjectPicker } from "../rpc";
 import type { ProjectInfo, BoardWithLanesAndTickets, RecentProject } from "../../shared/types";
 
 export function useProject() {
@@ -18,7 +18,7 @@ export function useProject() {
 	const openProjectPicker = useCallback(async () => {
 		console.log("[useProject] openProjectPicker called");
 		try {
-			const path = await rpc.request.openProjectPicker({});
+			const path = await requestProjectPicker();
 			console.log("[useProject] picker returned path:", path);
 			if (path) {
 				const result = await rpc.request.openProject({ path });

@@ -12,6 +12,14 @@ import * as workflowQueries from "./db/queries/workflows";
 // Since Electrobun's defineRPC is global, views send their project path
 let activeProjectPath: string | null = null;
 
+// Reference to the BrowserWindow for sending messages back to the browser.
+// Set via setMainWindow() after the BrowserWindow is created.
+let mainWindow: any = null;
+
+export function setMainWindow(win: any) {
+	mainWindow = win;
+}
+
 function getDb() {
 	if (!activeProjectPath) throw new Error("No project open");
 	return getConnection(activeProjectPath);
@@ -24,23 +32,6 @@ function getBoard() {
 export const rpc = BrowserView.defineRPC<XFlowRPC>({
 	handlers: {
 		requests: {
-			openProjectPicker: async () => {
-				console.log("[RPC] openProjectPicker called");
-				try {
-					const paths = await Utils.openFileDialog({
-						canChooseFiles: false,
-						canChooseDirectory: true,
-						allowsMultipleSelection: false,
-					});
-					console.log("[RPC] openFileDialog returned:", paths);
-					if (paths && paths.length > 0) return paths[0];
-					return null;
-				} catch (err) {
-					console.error("[RPC] openProjectPicker error:", err);
-					throw err;
-				}
-			},
-
 			openProject: ({ path }) => {
 				console.log("[RPC] openProject called with path:", path);
 				try {
@@ -162,6 +153,23 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return laneQueries.attachWorkflow(db, laneId, workflowId);
 			},
 		},
-		messages: {},
+		messages: {
+			openProjectPicker: async () => {
+				console.log("[RPC] openProjectPicker message received");
+				try {
+					const paths = await Utils.openFileDialog({
+						canChooseFiles: false,
+						canChooseDirectory: true,
+						allowsMultipleSelection: false,
+					});
+					console.log("[RPC] openFileDialog returned:", paths);
+					const path = paths && paths.length > 0 ? paths[0] : null;
+					mainWindow?.webview.rpc.send.projectPickerResult({ path });
+				} catch (err) {
+					console.error("[RPC] openProjectPicker error:", err);
+					mainWindow?.webview.rpc.send.projectPickerResult({ path: null });
+				}
+			},
+		},
 	},
 });

@@ -3,12 +3,13 @@ import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult } from "../s
 
 type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
 type ProjectOpenedListener = (data: ProjectOpenResult) => void;
+type PickerResultListener = (path: string | null) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
+const pickerListeners = new Set<PickerResultListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
-	maxRequestTime: 60000,
 	handlers: {
 		requests: {},
 		messages: {
@@ -17,6 +18,9 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			projectOpened: (data) => {
 				for (const listener of projectListeners) listener(data);
+			},
+			projectPickerResult: ({ path }) => {
+				for (const listener of pickerListeners) listener(path);
 			},
 		},
 	},
@@ -34,4 +38,15 @@ export function onBoardUpdated(listener: BoardUpdateListener): () => void {
 export function onProjectOpened(listener: ProjectOpenedListener): () => void {
 	projectListeners.add(listener);
 	return () => projectListeners.delete(listener);
+}
+
+export function requestProjectPicker(): Promise<string | null> {
+	return new Promise((resolve) => {
+		const onResult: PickerResultListener = (path) => {
+			pickerListeners.delete(onResult);
+			resolve(path);
+		};
+		pickerListeners.add(onResult);
+		rpc.send.openProjectPicker({});
+	});
 }

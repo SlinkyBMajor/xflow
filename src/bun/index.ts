@@ -1,5 +1,5 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
-import { rpc } from "./rpc";
+import { rpc, setMainWindow } from "./rpc";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -32,7 +32,5 @@ const mainWindow = new BrowserWindow({
 	rpc,
 });
 
+setMainWindow(mainWindow);
 console.log("XFlow started! RPC handlers registered.");
-
-// Open dev tools in dev mode for debugging
-mainWindow.webview.openDevTools();

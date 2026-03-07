@@ -150,10 +150,6 @@ export interface Workflow {
 export type XFlowRPC = {
 	bun: RPCSchema<{
 		requests: {
-			openProjectPicker: {
-				params: {};
-				response: string | null;
-			};
 			openProject: {
 				params: { path: string };
 				response: ProjectOpenResult;
@@ -231,13 +227,16 @@ export type XFlowRPC = {
 				response: Lane;
 			};
 		};
-		messages: {};
+		messages: {
+			openProjectPicker: {};
+		};
 	}>;
 	webview: RPCSchema<{
 		requests: {};
 		messages: {
 			boardUpdated: BoardWithLanesAndTickets;
 			projectOpened: ProjectOpenResult;
+			projectPickerResult: { path: string | null };
 		};
 	}>;
 };

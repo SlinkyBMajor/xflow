@@ -17,3 +17,4 @@ That said, this is a tool meant for powerusers, so the UI and UX should not avoi
 
 - Github actions ui
 - Linear app
+- High contrast UI
