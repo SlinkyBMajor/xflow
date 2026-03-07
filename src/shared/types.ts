@@ -289,6 +289,14 @@ export type XFlowRPC = {
 				params: { runId: string };
 				response: void;
 			};
+			approveRun: {
+				params: { runId: string };
+				response: void;
+			};
+			rejectRun: {
+				params: { runId: string };
+				response: void;
+			};
 		};
 		messages: {
 			openProjectPicker: {};
@@ -302,6 +310,7 @@ export type XFlowRPC = {
 			projectPickerResult: { path: string | null };
 			workflowRunUpdated: WorkflowRun;
 			interruptedRunsDetected: InterruptedRunInfo[];
+			runEventAdded: RunEvent;
 		};
 	}>;
 };

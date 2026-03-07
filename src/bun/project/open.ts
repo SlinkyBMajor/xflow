@@ -8,7 +8,7 @@ import { getTicketsByBoard } from "../db/queries/tickets";
 import { addRecent } from "./recents";
 import { detectInterruptedRuns } from "../engine/recovery";
 import { resumeRun } from "../engine/runner";
-import type { ProjectOpenResult, BoardWithLanesAndTickets, WorkflowRun } from "../../shared/types";
+import type { ProjectOpenResult, BoardWithLanesAndTickets, WorkflowRun, RunEvent } from "../../shared/types";
 
 function scaffoldXFlowDir(projectPath: string): void {
 	const xflowDir = `${projectPath}/.xflow`;
@@ -38,6 +38,7 @@ function createDefaultBoard(projectPath: string): void {
 export function openProject(
 	projectPath: string,
 	notifyFrontend?: (run: WorkflowRun) => void,
+	notifyEvent?: (event: RunEvent) => void,
 ): ProjectOpenResult {
 	const xflowDir = `${projectPath}/.xflow`;
 	const isNew = !existsSync(xflowDir);
@@ -67,7 +68,7 @@ export function openProject(
 	const nonResumable = interrupted.filter((info) => {
 		if (info.autoResumable && notifyFrontend) {
 			try {
-				resumeRun(db, info.run.id, notifyFrontend);
+				resumeRun(db, info.run.id, notifyFrontend, projectPath, notifyEvent);
 			} catch (err) {
 				console.error(`[Recovery] Failed to auto-resume run ${info.run.id}:`, err);
 				return true;

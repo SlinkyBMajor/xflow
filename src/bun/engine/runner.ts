@@ -1,7 +1,8 @@
 import { createActor, type AnyActorRef } from "xstate";
 import type { DB } from "../db/connection";
-import type { Ticket, WorkflowIR, WorkflowRun } from "../../shared/types";
+import type { Ticket, WorkflowIR, WorkflowRun, RunEvent } from "../../shared/types";
 import { compileWorkflow } from "./compiler";
+import { killAgentProcess } from "./agent";
 import * as runQueries from "../db/queries/runs";
 import * as workflowQueries from "../db/queries/workflows";
 import * as ticketQueries from "../db/queries/tickets";
@@ -14,6 +15,8 @@ export function startRun(
 	workflowId: string,
 	ir: WorkflowIR,
 	notifyFrontend: (run: WorkflowRun) => void,
+	projectPath?: string,
+	notifyEvent?: (event: RunEvent) => void,
 ): string {
 	const runId = crypto.randomUUID();
 	const now = new Date().toISOString();
@@ -33,7 +36,7 @@ export function startRun(
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
-	});
+	}, undefined, projectPath, notifyEvent);
 
 	const actor = createActor(machine);
 
@@ -93,6 +96,8 @@ export function resumeRun(
 	db: DB,
 	runId: string,
 	notifyFrontend: (run: WorkflowRun) => void,
+	projectPath?: string,
+	notifyEvent?: (event: RunEvent) => void,
 ): WorkflowRun {
 	const run = runQueries.getRunById(db, runId);
 	if (!run) throw new Error(`Run ${runId} not found`);
@@ -113,6 +118,8 @@ export function resumeRun(
 			if (updatedRun) notifyFrontend(updatedRun);
 		},
 		run.currentNodeId ?? undefined,
+		projectPath,
+		notifyEvent,
 	);
 
 	const actor = createActor(machine);
@@ -184,6 +191,7 @@ export function resumeRun(
 }
 
 export function abortRun(db: DB, runId: string): void {
+	killAgentProcess(runId);
 	const actor = activeActors.get(runId);
 	if (actor) {
 		actor.stop();
@@ -205,6 +213,12 @@ export function abortRun(db: DB, runId: string): void {
 	});
 
 	console.log(`[Workflow ${runId}] Run aborted`);
+}
+
+export function sendEventToRun(runId: string, eventType: string): void {
+	const actor = activeActors.get(runId);
+	if (!actor) throw new Error(`No active actor for run ${runId}`);
+	actor.send({ type: eventType });
 }
 
 export function getRunSnapshot(db: DB, runId: string): unknown | null {

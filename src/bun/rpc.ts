@@ -10,7 +10,7 @@ import * as workflowQueries from "./db/queries/workflows";
 import * as runQueries from "./db/queries/runs";
 import { triggerWorkflowIfAttached } from "./engine/trigger";
 import { getInterruptedRuns } from "./engine/recovery";
-import { resumeRun, abortRun } from "./engine/runner";
+import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -41,6 +41,8 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				try {
 					const result = openProject(path, (run) => {
 						mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+					}, (event) => {
+						mainWindow?.webview.rpc.send.runEventAdded(event);
 					});
 					activeProjectPath = path;
 					console.log("[RPC] openProject success:", result.project);
@@ -124,6 +126,8 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				ticketQueries.moveTicket(db, ticketId, targetLaneId, targetIndex);
 				triggerWorkflowIfAttached(db, ticketId, targetLaneId, (run) => {
 					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+				}, activeProjectPath ?? undefined, (event) => {
+					mainWindow?.webview.rpc.send.runEventAdded(event);
 				});
 			},
 
@@ -194,12 +198,22 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				const db = getDb();
 				return resumeRun(db, runId, (run) => {
 					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+				}, activeProjectPath ?? undefined, (event) => {
+					mainWindow?.webview.rpc.send.runEventAdded(event);
 				});
 			},
 
 			abortInterruptedRun: ({ runId }) => {
 				const db = getDb();
 				abortRun(db, runId);
+			},
+
+			approveRun: ({ runId }) => {
+				sendEventToRun(runId, "APPROVED");
+			},
+
+			rejectRun: ({ runId }) => {
+				sendEventToRun(runId, "REJECTED");
 			},
 		},
 		messages: {

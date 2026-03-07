@@ -73,6 +73,7 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 							const ticket = ticketMap.get(ticketId);
 							if (ticket && ticket.laneId !== laneId) {
 								await ticketActions.moveTicket(ticketId, laneId, idx);
+								await refreshBoard();
 							} else {
 								await ticketActions.reorderTicketsInLane(laneId, ticketIds);
 							}

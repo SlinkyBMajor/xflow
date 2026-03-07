@@ -1,4 +1,4 @@
-import { setup, type AnyStateMachine } from "xstate";
+import { setup, assign, type AnyStateMachine } from "xstate";
 import type { DB } from "../db/connection";
 import type {
 	WorkflowIR,
@@ -7,9 +7,14 @@ import type {
 	LogConfig,
 	SetMetadataConfig,
 	MoveToLaneConfig,
+	NotifyConfig,
+	ConditionConfig,
+	ClaudeAgentConfig,
+	RunEvent,
 } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
-import { executeLog, executeSetMetadata, executeMoveToLane } from "./executor";
+import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition } from "./executor";
+import { executeClaudeAgent } from "./agent";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -18,6 +23,8 @@ export function compileWorkflow(
 	db: DB,
 	notifyFrontend: () => void,
 	initialNodeId?: string,
+	projectPath?: string,
+	notifyEvent?: (event: RunEvent) => void,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
@@ -42,6 +49,8 @@ export function compileWorkflow(
 			runId,
 			db,
 			notifyFrontend,
+			projectPath,
+			notifyEvent,
 		});
 	}
 
@@ -73,6 +82,8 @@ function buildState(
 		runId: string;
 		db: DB;
 		notifyFrontend: () => void;
+		projectPath?: string;
+		notifyEvent?: (event: RunEvent) => void;
 	},
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
@@ -152,15 +163,84 @@ function buildState(
 			return { on };
 		}
 
-		// Phase 5 stubs
-		case "claudeAgent":
-		case "customScript":
-		case "notify":
+		case "notify": {
+			const config = node.config as NotifyConfig & { type: "notify" };
+			return {
+				entry: ({ context }: { context: WorkflowContext }) => {
+					executeNotify(ctx.db, ctx.runId, config.title, config.body, context);
+					ctx.notifyFrontend();
+				},
+				always: targets.length > 0 ? { target: targets[0] } : undefined,
+			};
+		}
+
 		case "condition": {
+			const config = node.config as ConditionConfig & { type: "condition" };
+			const trueTarget = targets.find(
+				(t) => edgeLabels.get(`${node.id}->${t}`) === "TRUE",
+			);
+			const falseTarget = targets.find(
+				(t) => edgeLabels.get(`${node.id}->${t}`) === "FALSE",
+			);
+			const alwaysTransitions: any[] = [];
+			if (trueTarget) {
+				alwaysTransitions.push({
+					target: trueTarget,
+					guard: ({ context }: { context: WorkflowContext }) =>
+						evaluateCondition(config.expression, context),
+				});
+			}
+			if (falseTarget) {
+				alwaysTransitions.push({
+					target: falseTarget,
+					guard: ({ context }: { context: WorkflowContext }) =>
+						!evaluateCondition(config.expression, context),
+				});
+			}
+			return {
+				always: alwaysTransitions.length > 0 ? alwaysTransitions : undefined,
+			};
+		}
+
+		case "claudeAgent": {
+			const config = node.config as ClaudeAgentConfig & { type: "claudeAgent" };
+			return {
+				invoke: {
+					src: ({ context }: { context: WorkflowContext }) => {
+						return executeClaudeAgent({
+							runId: ctx.runId,
+							nodeId: node.id,
+							prompt: config.prompt,
+							timeoutMs: config.timeoutMs,
+							ticket: ctx.ticket,
+							context,
+							db: ctx.db,
+							projectPath: ctx.projectPath,
+							onEvent: (event: RunEvent) => {
+								ctx.notifyEvent?.(event);
+								ctx.notifyFrontend();
+							},
+						});
+					},
+					onDone: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: assign({
+							nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+								...context.nodeOutputs,
+								[node.id]: event.output,
+							}),
+						}),
+					},
+					onError: targets.length > 0 ? { target: targets[0] } : undefined,
+				},
+			};
+		}
+
+		case "customScript": {
 			return {
 				entry: () => {
-					console.log(
-						`[Workflow ${ctx.runId}] Node type "${node.type}" not implemented — skipping`,
+					console.warn(
+						`[Workflow ${ctx.runId}] customScript node not yet implemented — skipping. Implementation deferred to Phase 6.`,
 					);
 				},
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
