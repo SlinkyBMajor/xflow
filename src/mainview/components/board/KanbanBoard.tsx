@@ -89,6 +89,7 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 							<Lane
 								key={lane.id}
 								lane={lane}
+								lanes={boardData.lanes}
 								tickets={(items[lane.id] || [])
 									.map((id) => ticketMap.get(id))
 									.filter(Boolean) as Ticket[]}

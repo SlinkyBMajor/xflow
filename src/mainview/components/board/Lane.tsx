@@ -6,9 +6,11 @@ import { TicketCard } from "./TicketCard";
 import { AddTicketButton } from "./AddTicketButton";
 import { LaneSettingsModal } from "../lane/LaneSettingsModal";
 import { TicketDetailModal } from "../ticket/TicketDetailModal";
+import { TicketContextMenu } from "../ticket/TicketContextMenu";
 
 interface LaneProps {
 	lane: LaneType;
+	lanes: LaneType[];
 	tickets: Ticket[];
 	laneActions: {
 		updateLane: (id: string, updates: { name?: string; color?: string; wipLimit?: number | null }) => Promise<void>;
@@ -18,12 +20,13 @@ interface LaneProps {
 		createTicket: (laneId: string, title: string, body?: string, tags?: string[]) => Promise<void>;
 		updateTicket: (id: string, updates: { title?: string; body?: string; tags?: string[]; metadata?: Record<string, unknown> }) => Promise<void>;
 		deleteTicket: (id: string) => Promise<void>;
+		moveTicket: (ticketId: string, targetLaneId: string, targetIndex: number) => Promise<void>;
 	};
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
 
-export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane }: LaneProps) {
+export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -50,13 +53,20 @@ export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow
 
 				<div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 min-h-[40px]">
 					{tickets.map((ticket, index) => (
-						<TicketCard
+						<TicketContextMenu
 							key={ticket.id}
 							ticket={ticket}
-							index={index}
-							laneId={lane.id}
-							onClick={() => setSelectedTicket(ticket)}
-						/>
+							lanes={lanes}
+							onDelete={ticketActions.deleteTicket}
+							onMove={(ticketId, targetLaneId) => ticketActions.moveTicket(ticketId, targetLaneId, 0)}
+						>
+							<TicketCard
+								ticket={ticket}
+								index={index}
+								laneId={lane.id}
+								onClick={() => setSelectedTicket(ticket)}
+							/>
+						</TicketContextMenu>
 					))}
 				</div>
 

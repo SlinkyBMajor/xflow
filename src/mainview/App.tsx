@@ -6,6 +6,7 @@ import { BoardView } from "./components/board/BoardView";
 import { BoardHeader } from "./components/board/BoardHeader";
 import { WorkflowListView } from "./components/workflow/WorkflowListView";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { ConfirmProvider } from "./hooks/useConfirm";
 
 export default function App() {
 	const {
@@ -55,20 +56,20 @@ export default function App() {
 
 	if (!project || !boardData) {
 		return (
-			<TooltipProvider>
+			<ConfirmProvider><TooltipProvider>
 				<WelcomeScreen
 					recentProjects={recentProjects}
 					onOpenProject={openProjectPicker}
 					onSelectRecent={openProject}
 					onRemoveRecent={removeRecentProject}
 				/>
-			</TooltipProvider>
+			</TooltipProvider></ConfirmProvider>
 		);
 	}
 
 	if (activeTab === "workflows") {
 		return (
-			<TooltipProvider>
+			<ConfirmProvider><TooltipProvider>
 				<div className="h-screen flex flex-col bg-zinc-950">
 					<BoardHeader
 						board={boardData.board}
@@ -88,12 +89,12 @@ export default function App() {
 						onSelectWorkflow={setSelectedWorkflowId}
 					/>
 				</div>
-			</TooltipProvider>
+			</TooltipProvider></ConfirmProvider>
 		);
 	}
 
 	return (
-		<TooltipProvider>
+		<ConfirmProvider><TooltipProvider>
 			<BoardView
 				boardData={boardData}
 				setBoardData={setBoardData}
@@ -107,6 +108,6 @@ export default function App() {
 				onSetTab={setActiveTab}
 				onCreateWorkflowForLane={handleCreateWorkflowForLane}
 			/>
-		</TooltipProvider>
+		</TooltipProvider></ConfirmProvider>
 	);
 }
