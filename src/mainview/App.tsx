@@ -21,6 +21,7 @@ export default function App() {
 
 	const { createWorkflow, attachWorkflowToLane } = useWorkflow();
 	const [activeTab, setActiveTab] = useState<"board" | "workflows">("board");
+	const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
 
 	// Global keyboard shortcuts: ⌘1 → Board, ⌘2 → Workflows
 	useEffect(() => {
@@ -83,6 +84,8 @@ export default function App() {
 					<WorkflowListView
 						lanes={boardData.lanes}
 						onCreateWorkflow={handleCreateWorkflow}
+						selectedId={selectedWorkflowId}
+						onSelectWorkflow={setSelectedWorkflowId}
 					/>
 				</div>
 			</TooltipProvider>

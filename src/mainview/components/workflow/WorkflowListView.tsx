@@ -7,6 +7,8 @@ import { Button } from "../ui/button";
 interface WorkflowListViewProps {
 	lanes: Lane[];
 	onCreateWorkflow: () => Promise<Workflow>;
+	selectedId: string | null;
+	onSelectWorkflow: (id: string | null) => void;
 }
 
 function relativeTime(iso: string): string {
@@ -22,11 +24,10 @@ function relativeTime(iso: string): string {
 	return `${months}mo ago`;
 }
 
-export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewProps) {
+export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelectWorkflow }: WorkflowListViewProps) {
 	const { listWorkflows, deleteWorkflow } = useWorkflow();
 	const [workflows, setWorkflows] = useState<Workflow[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
 
 	const refresh = useCallback(async () => {
 		const list = await listWorkflows();
@@ -41,14 +42,14 @@ export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewPr
 	const handleDelete = async (e: React.MouseEvent, id: string) => {
 		e.stopPropagation();
 		await deleteWorkflow(id);
-		if (selectedId === id) setSelectedId(null);
+		if (selectedId === id) onSelectWorkflow(null);
 		refresh();
 	};
 
 	const handleCreate = async () => {
 		const wf = await onCreateWorkflow();
 		await refresh();
-		setSelectedId(wf.id);
+		onSelectWorkflow(wf.id);
 	};
 
 	const getLanesForWorkflow = (workflowId: string) =>
@@ -102,7 +103,7 @@ export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewPr
 							return (
 								<button
 									key={wf.id}
-									onClick={() => setSelectedId(wf.id)}
+									onClick={() => onSelectWorkflow(wf.id)}
 									className={`group w-full text-left px-3 py-2.5 transition-all duration-100 border-l-2 ${
 										isSelected
 											? "bg-zinc-800/50 border-l-violet-500"
@@ -155,7 +156,7 @@ export function WorkflowListView({ lanes, onCreateWorkflow }: WorkflowListViewPr
 						key={selectedId}
 						workflowId={selectedId}
 						lanes={lanes}
-						onBack={() => setSelectedId(null)}
+						onBack={() => onSelectWorkflow(null)}
 						onNameChange={(id, newName) => {
 							setWorkflows((prev) =>
 								prev.map((wf) => (wf.id === id ? { ...wf, name: newName } : wf))
