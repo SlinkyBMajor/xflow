@@ -8,6 +8,9 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { TicketForm } from "./TicketForm";
+import { RunEventLog } from "./RunEventLog";
+import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
+import { useRunEvents } from "../../hooks/useRunEvents";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -19,10 +22,21 @@ interface TicketDetailModalProps {
 	onDelete: () => void;
 }
 
+interface WorkflowOutputEntry {
+	output: string;
+	runId: string;
+	completedAt: string;
+}
+
 export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete }: TicketDetailModalProps) {
 	const [copied, setCopied] = useState(false);
+	const { runs } = useWorkflowRuns(open ? ticket.id : null);
+	const activeRun = runs.find((r) => r.status === "active");
+	const { events } = useRunEvents(activeRun?.id ?? null);
 
-	const metadataEntries = Object.entries(ticket.metadata ?? {});
+	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
+	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
+	const outputEntries = Object.entries(workflowOutput);
 
 	const copyId = () => {
 		navigator.clipboard.writeText(ticket.id);
@@ -63,6 +77,30 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							onSave={onSave}
 							onCancel={onClose}
 						/>
+
+						{/* Workflow output */}
+						{outputEntries.length > 0 && (
+							<div className="mt-6 pt-4 border-t border-zinc-800/60">
+								<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-3">
+									Workflow Output
+								</span>
+								<div className="space-y-3">
+									{outputEntries.map(([nodeId, entry]) => (
+										<WorkflowOutputBlock key={nodeId} nodeId={nodeId} entry={entry} />
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Live event log */}
+						{activeRun && (
+							<div className="mt-6 pt-4 border-t border-zinc-800/60">
+								<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-3">
+									Workflow Activity
+								</span>
+								<RunEventLog events={events} isActive={true} />
+							</div>
+						)}
 					</div>
 
 					{/* Right pane — metadata */}
@@ -84,6 +122,19 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 									<span className="text-[13px] text-zinc-300">{laneName}</span>
 								</div>
 							</MetadataRow>
+
+							{/* Active workflow indicator */}
+							{activeRun && (
+								<MetadataRow label="Workflow">
+									<div className="flex items-center gap-2">
+										<span className="relative flex h-1.5 w-1.5">
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+											<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+										</span>
+										<span className="text-[12px] text-violet-400 font-mono">Running</span>
+									</div>
+								</MetadataRow>
+							)}
 
 							{/* Timestamps */}
 							<MetadataRow label="Created">
@@ -147,6 +198,35 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 				</div>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: WorkflowOutputEntry }) {
+	const [expanded, setExpanded] = useState(true);
+	const lines = entry.output.split("\n");
+	const isLong = lines.length > 12;
+
+	return (
+		<div className="bg-zinc-900/60 border border-zinc-800/50 rounded-lg overflow-hidden">
+			<button
+				onClick={() => setExpanded(!expanded)}
+				className="w-full flex items-center justify-between px-3 py-2 hover:bg-zinc-800/30 transition-colors"
+			>
+				<span className="text-[11px] font-mono text-zinc-500">
+					{expanded ? "▾" : "▸"} {nodeId.slice(0, 8)}
+				</span>
+				<span className="text-[10px] text-zinc-600 font-mono">
+					{formatDate(entry.completedAt)}
+				</span>
+			</button>
+			{expanded && (
+				<div className="px-3 pb-3">
+					<pre className="text-[12px] text-zinc-300 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+						{entry.output || "(no output)"}
+					</pre>
+				</div>
+			)}
+		</div>
 	);
 }
 

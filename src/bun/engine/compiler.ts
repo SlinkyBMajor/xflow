@@ -14,7 +14,7 @@ import type {
 	RunEvent,
 } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
-import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition } from "./executor";
+import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
 
@@ -230,12 +230,18 @@ function buildState(
 					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: assign({
-							nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-								...context.nodeOutputs,
-								[node.id]: event.output,
+						actions: [
+							assign({
+								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+									...context.nodeOutputs,
+									[node.id]: event.output,
+								}),
 							}),
-						}),
+							({ event }: { event: any }) => {
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""));
+								ctx.notifyBoardChanged?.();
+							},
+						],
 					},
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
 				},
@@ -266,12 +272,18 @@ function buildState(
 					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: assign({
-							nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-								...context.nodeOutputs,
-								[node.id]: event.output,
+						actions: [
+							assign({
+								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+									...context.nodeOutputs,
+									[node.id]: event.output,
+								}),
 							}),
-						}),
+							({ event }: { event: any }) => {
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""));
+								ctx.notifyBoardChanged?.();
+							},
+						],
 					},
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
 				},

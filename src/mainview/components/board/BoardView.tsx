@@ -4,6 +4,7 @@ import { useBoard } from "../../hooks/useBoard";
 import { useLanes } from "../../hooks/useLanes";
 import { useTickets } from "../../hooks/useTickets";
 import { useInterruptedRuns } from "../../hooks/useInterruptedRuns";
+import { useActiveRuns } from "../../hooks/useActiveRuns";
 import { BoardHeader } from "./BoardHeader";
 import { InterruptedRunsBanner } from "./InterruptedRunsBanner";
 import { KanbanBoard } from "./KanbanBoard";
@@ -40,6 +41,7 @@ export function BoardView({
 	const lanes = useLanes(refreshBoard);
 	const tickets = useTickets(refreshBoard);
 	const { interruptedRuns, retryRun, abortRun } = useInterruptedRuns();
+	const activeRuns = useActiveRuns();
 	const [showTemplates, setShowTemplates] = useState(false);
 
 	useEffect(() => {
@@ -78,6 +80,7 @@ export function BoardView({
 				refreshBoard={refreshBoard}
 				onEditWorkflow={onEditWorkflow}
 				onCreateWorkflowForLane={onCreateWorkflowForLane}
+				activeRuns={activeRuns}
 			/>
 			{showTemplates && (
 				<TemplateManager

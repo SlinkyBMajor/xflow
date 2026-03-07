@@ -6,10 +6,11 @@ interface TicketCardProps {
 	ticket: Ticket;
 	index: number;
 	laneId: string;
+	isRunning?: boolean;
 	onClick: () => void;
 }
 
-export function TicketCard({ ticket, index, laneId, onClick }: TicketCardProps) {
+export function TicketCard({ ticket, index, laneId, isRunning, onClick }: TicketCardProps) {
 	const { ref, isDragging } = useSortable({
 		id: ticket.id,
 		index,
@@ -27,8 +28,14 @@ export function TicketCard({ ticket, index, laneId, onClick }: TicketCardProps) 
 			ref={ref}
 			data-dragging={isDragging}
 			onClick={onClick}
-			className="group bg-zinc-900/80 hover:bg-zinc-800/60 border border-zinc-800/60 hover:border-zinc-700/50 rounded-lg px-3 py-2.5 cursor-pointer transition-colors duration-100 select-none"
+			className="group relative bg-zinc-900/80 hover:bg-zinc-800/60 border border-zinc-800/60 hover:border-zinc-700/50 rounded-lg px-3 py-2.5 cursor-pointer transition-colors duration-100 select-none"
 		>
+			{isRunning && (
+				<span className="absolute top-2 right-2 flex h-2 w-2">
+					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+					<span className="relative inline-flex rounded-full h-2 w-2 bg-violet-400" />
+				</span>
+			)}
 			<div className="text-[13px] font-medium text-zinc-200 leading-snug">
 				{ticket.title}
 			</div>

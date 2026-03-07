@@ -80,6 +80,31 @@ export function evaluateCondition(
 	}
 }
 
+export function persistNodeOutput(
+	db: DB,
+	ticketId: string,
+	nodeId: string,
+	runId: string,
+	output: string,
+): void {
+	const ticket = ticketQueries.getTicket(db, ticketId);
+	if (!ticket) return;
+
+	const existing = (ticket.metadata._workflowOutput as Record<string, unknown>) ?? {};
+	const updatedMetadata = {
+		...ticket.metadata,
+		_workflowOutput: {
+			...existing,
+			[nodeId]: {
+				output: output.slice(0, 10_000),
+				runId,
+				completedAt: new Date().toISOString(),
+			},
+		},
+	};
+	ticketQueries.updateTicket(db, ticketId, { metadata: updatedMetadata });
+}
+
 export function executeMoveToLane(
 	db: DB,
 	ticketId: string,

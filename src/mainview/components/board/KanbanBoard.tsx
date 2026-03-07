@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
-import type { BoardWithLanesAndTickets, Ticket } from "../../../shared/types";
+import type { BoardWithLanesAndTickets, Ticket, WorkflowRun } from "../../../shared/types";
 import { Lane } from "./Lane";
 import { AddLaneButton } from "./AddLaneButton";
 
@@ -23,9 +23,10 @@ interface KanbanBoardProps {
 	refreshBoard: () => Promise<void>;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
+	activeRuns: Map<string, WorkflowRun>;
 }
 
-export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard, onEditWorkflow, onCreateWorkflowForLane }: KanbanBoardProps) {
+export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard, onEditWorkflow, onCreateWorkflowForLane, activeRuns }: KanbanBoardProps) {
 	// Build a map of laneId -> ticketIds for DnD state
 	const initialItems = useMemo(() => {
 		const map: Record<string, string[]> = {};
@@ -97,6 +98,7 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 								ticketActions={ticketActions}
 								onEditWorkflow={onEditWorkflow}
 								onCreateWorkflowForLane={onCreateWorkflowForLane}
+								activeRuns={activeRuns}
 							/>
 						))}
 					<AddLaneButton onAdd={laneActions.createLane} />
