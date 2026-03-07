@@ -48,16 +48,23 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 	const [wipLimit, setWipLimit] = useState<string>(
 		lane.wipLimit !== null ? String(lane.wipLimit) : "",
 	);
-	const { getWorkflow, attachWorkflowToLane } = useWorkflow();
+	const { getWorkflow, listWorkflows, attachWorkflowToLane } = useWorkflow();
 	const [workflow, setWorkflow] = useState<Workflow | null>(null);
+	const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
 
 	useEffect(() => {
-		if (open && lane.workflowId) {
-			getWorkflow(lane.workflowId).then(setWorkflow);
+		if (open) {
+			listWorkflows().then(setAllWorkflows);
+			if (lane.workflowId) {
+				getWorkflow(lane.workflowId).then(setWorkflow);
+			} else {
+				setWorkflow(null);
+			}
 		} else {
 			setWorkflow(null);
+			setAllWorkflows([]);
 		}
-	}, [open, lane.workflowId, getWorkflow]);
+	}, [open, lane.workflowId, getWorkflow, listWorkflows]);
 
 	const handleSubmit = () => {
 		onSave({
@@ -161,18 +168,54 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 								</div>
 							</div>
 						) : (
-							<div className="rounded-lg border border-dashed border-zinc-800 p-3 text-center">
-								<p className="text-xs text-zinc-600 mb-2">No workflow attached</p>
-								<Button
-									size="sm"
-									onClick={async () => {
-										onClose();
-										await onCreateWorkflowForLane(lane.id, lane.name);
-									}}
-									className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-7"
-								>
-									Create Workflow
-								</Button>
+							<div className="rounded-lg border border-dashed border-zinc-800 p-3">
+								{allWorkflows.length > 0 ? (
+									<>
+										<select
+											className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500 mb-2"
+											defaultValue=""
+											onChange={async (e) => {
+												const id = e.target.value;
+												if (id) {
+													await attachWorkflowToLane(lane.id, id);
+													const w = allWorkflows.find((w) => w.id === id) ?? null;
+													setWorkflow(w);
+												}
+											}}
+										>
+											<option value="" disabled>Select a workflow...</option>
+											{allWorkflows.map((w) => (
+												<option key={w.id} value={w.id}>{w.name}</option>
+											))}
+										</select>
+										<div className="text-center">
+											<span className="text-[11px] text-zinc-600">or </span>
+											<button
+												onClick={async () => {
+													onClose();
+													await onCreateWorkflowForLane(lane.id, lane.name);
+												}}
+												className="text-[11px] text-violet-400 hover:text-violet-300"
+											>
+												create a new workflow
+											</button>
+										</div>
+									</>
+								) : (
+									<div className="text-center">
+										<p className="text-xs text-zinc-600 mb-2">No workflows yet</p>
+										<Button
+											size="sm"
+											onClick={async () => {
+												onClose();
+												await onCreateWorkflowForLane(lane.id, lane.name);
+											}}
+											className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-7"
+										>
+											Create Workflow
+										</Button>
+									</div>
+								)}
 							</div>
 						)}
 					</div>
