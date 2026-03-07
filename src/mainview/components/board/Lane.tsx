@@ -19,9 +19,10 @@ interface LaneProps {
 		updateTicket: (id: string, updates: { title?: string; body?: string; tags?: string[]; metadata?: Record<string, unknown> }) => Promise<void>;
 		deleteTicket: (id: string) => Promise<void>;
 	};
+	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 }
 
-export function Lane({ lane, tickets, laneActions, ticketActions }: LaneProps) {
+export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -73,6 +74,7 @@ export function Lane({ lane, tickets, laneActions, ticketActions }: LaneProps) {
 					laneActions.updateLane(lane.id, updates);
 					setSettingsOpen(false);
 				}}
+				onEditWorkflow={onEditWorkflow}
 			/>
 
 			{selectedTicket && (

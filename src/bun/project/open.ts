@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "fs";
 import { basename } from "path";
-import { getConnection } from "../db/connection";
+import { getConnection, enableForeignKeys } from "../db/connection";
 import { runMigrations } from "../db/migrate";
 import { createBoard, getFirstBoard } from "../db/queries/boards";
 import { createLane, getLanesByBoard } from "../db/queries/lanes";
@@ -43,6 +43,7 @@ export function openProject(projectPath: string): ProjectOpenResult {
 
 	const db = getConnection(projectPath);
 	runMigrations(db);
+	enableForeignKeys(projectPath);
 
 	if (isNew) {
 		createDefaultBoard(projectPath);

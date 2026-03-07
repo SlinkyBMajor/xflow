@@ -16,12 +16,19 @@ export function useProject() {
 	}, []);
 
 	const openProjectPicker = useCallback(async () => {
-		const path = await rpc.request.openProjectPicker({});
-		if (path) {
-			const result = await rpc.request.openProject({ path });
-			setProject(result.project);
-			setBoardData(result.board);
-			rpc.request.getRecentProjects({}).then(setRecentProjects).catch(console.error);
+		console.log("[useProject] openProjectPicker called");
+		try {
+			const path = await rpc.request.openProjectPicker({});
+			console.log("[useProject] picker returned path:", path);
+			if (path) {
+				const result = await rpc.request.openProject({ path });
+				console.log("[useProject] openProject result:", result);
+				setProject(result.project);
+				setBoardData(result.board);
+				rpc.request.getRecentProjects({}).then(setRecentProjects).catch(console.error);
+			}
+		} catch (err) {
+			console.error("[useProject] openProjectPicker error:", err);
 		}
 	}, []);
 

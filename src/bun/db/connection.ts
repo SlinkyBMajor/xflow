@@ -14,11 +14,17 @@ export function getConnection(projectPath: string): DB {
 	const sqlite = new Database(dbPath);
 
 	sqlite.exec("PRAGMA journal_mode = WAL;");
-	sqlite.exec("PRAGMA foreign_keys = ON;");
 
 	const db = drizzle(sqlite, { schema });
 	connections.set(projectPath, { db, sqlite });
 	return db;
+}
+
+export function enableForeignKeys(projectPath: string): void {
+	const existing = connections.get(projectPath);
+	if (existing) {
+		existing.sqlite.exec("PRAGMA foreign_keys = ON;");
+	}
 }
 
 export function closeConnection(projectPath: string): void {

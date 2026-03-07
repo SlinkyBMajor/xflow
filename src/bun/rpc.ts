@@ -2,11 +2,11 @@ import { BrowserView, Utils } from "electrobun/bun";
 import type { XFlowRPC } from "../shared/types";
 import { openProject, getBoardData } from "./project/open";
 import { getRecents, removeRecent } from "./project/recents";
-import { getProjectForWindow, registerWindow } from "./project/window-manager";
 import { getConnection } from "./db/connection";
 import * as boardQueries from "./db/queries/boards";
 import * as laneQueries from "./db/queries/lanes";
 import * as ticketQueries from "./db/queries/tickets";
+import * as workflowQueries from "./db/queries/workflows";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -25,19 +25,33 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 	handlers: {
 		requests: {
 			openProjectPicker: async () => {
-				const paths = await Utils.openFileDialog({
-					canChooseFiles: false,
-					canChooseDirectory: true,
-					allowsMultipleSelection: false,
-				});
-				if (paths && paths.length > 0) return paths[0];
-				return null;
+				console.log("[RPC] openProjectPicker called");
+				try {
+					const paths = await Utils.openFileDialog({
+						canChooseFiles: false,
+						canChooseDirectory: true,
+						allowsMultipleSelection: false,
+					});
+					console.log("[RPC] openFileDialog returned:", paths);
+					if (paths && paths.length > 0) return paths[0];
+					return null;
+				} catch (err) {
+					console.error("[RPC] openProjectPicker error:", err);
+					throw err;
+				}
 			},
 
 			openProject: ({ path }) => {
-				const result = openProject(path);
-				activeProjectPath = path;
-				return result;
+				console.log("[RPC] openProject called with path:", path);
+				try {
+					const result = openProject(path);
+					activeProjectPath = path;
+					console.log("[RPC] openProject success:", result.project);
+					return result;
+				} catch (err) {
+					console.error("[RPC] openProject error:", err);
+					throw err;
+				}
 			},
 
 			getRecentProjects: () => {
@@ -113,6 +127,39 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			reorderTicketsInLane: ({ laneId, ticketIds }) => {
 				const db = getDb();
 				ticketQueries.reorderTicketsInLane(db, laneId, ticketIds);
+			},
+			getWorkflow: ({ id }) => {
+				const db = getDb();
+				return workflowQueries.getWorkflowById(db, id);
+			},
+
+			createWorkflow: ({ name }) => {
+				const db = getDb();
+				const id = crypto.randomUUID();
+				const defaultIR = {
+					version: 1 as const,
+					nodes: [
+						{ id: crypto.randomUUID(), type: "start" as const, position: { x: 250, y: 50 }, config: { type: "start" as const } },
+						{ id: crypto.randomUUID(), type: "end" as const, position: { x: 250, y: 300 }, config: { type: "end" as const } },
+					],
+					edges: [],
+				};
+				return workflowQueries.createWorkflow(db, id, name, defaultIR);
+			},
+
+			updateWorkflow: ({ id, name, definition }) => {
+				const db = getDb();
+				return workflowQueries.updateWorkflow(db, id, { name, definition });
+			},
+
+			deleteWorkflow: ({ id }) => {
+				const db = getDb();
+				workflowQueries.deleteWorkflow(db, id);
+			},
+
+			attachWorkflowToLane: ({ laneId, workflowId }) => {
+				const db = getDb();
+				return laneQueries.attachWorkflow(db, laneId, workflowId);
 			},
 		},
 		messages: {},

@@ -32,4 +32,7 @@ const mainWindow = new BrowserWindow({
 	rpc,
 });
 
-console.log("XFlow started!");
+console.log("XFlow started! RPC handlers registered.");
+
+// Open dev tools in dev mode for debugging
+mainWindow.webview.openDevTools();

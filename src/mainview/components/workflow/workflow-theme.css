@@ -1,0 +1,55 @@
+.react-flow {
+	--xy-background-color: #09090b;
+	--xy-node-border-radius: 8px;
+	--xy-edge-stroke: #52525b;
+	--xy-edge-stroke-selected: #8b5cf6;
+	--xy-edge-stroke-width: 2;
+	--xy-connectionline-stroke: #8b5cf6;
+	--xy-connectionline-stroke-width: 2;
+}
+
+.react-flow__minimap {
+	background-color: #18181b;
+	border: 1px solid #27272a;
+	border-radius: 8px;
+}
+
+.react-flow__controls {
+	border: 1px solid #27272a;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.react-flow__controls button {
+	background-color: #18181b;
+	border-color: #27272a;
+	color: #a1a1aa;
+	width: 28px;
+	height: 28px;
+}
+
+.react-flow__controls button:hover {
+	background-color: #27272a;
+	color: #fafafa;
+}
+
+.react-flow__controls button svg {
+	fill: currentColor;
+}
+
+.react-flow__attribution {
+	display: none;
+}
+
+.react-flow__handle {
+	width: 10px;
+	height: 10px;
+	background-color: #3f3f46;
+	border: 2px solid #52525b;
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connecting {
+	background-color: #8b5cf6;
+	border-color: #8b5cf6;
+}

@@ -21,9 +21,10 @@ interface KanbanBoardProps {
 		reorderTicketsInLane: (laneId: string, ticketIds: string[]) => Promise<void>;
 	};
 	refreshBoard: () => Promise<void>;
+	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 }
 
-export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard }: KanbanBoardProps) {
+export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard, onEditWorkflow }: KanbanBoardProps) {
 	// Build a map of laneId -> ticketIds for DnD state
 	const initialItems = useMemo(() => {
 		const map: Record<string, string[]> = {};
@@ -91,6 +92,7 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 									.filter(Boolean) as Ticket[]}
 								laneActions={laneActions}
 								ticketActions={ticketActions}
+								onEditWorkflow={onEditWorkflow}
 							/>
 						))}
 					<AddLaneButton onAdd={laneActions.createLane} />

@@ -8,6 +8,7 @@ const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
+	maxRequestTime: 60000,
 	handlers: {
 		requests: {},
 		messages: {

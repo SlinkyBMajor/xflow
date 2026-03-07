@@ -53,6 +53,98 @@ export type ProjectOpenResult = {
 	board: BoardWithLanesAndTickets;
 };
 
+// ── Workflow IR Types ──
+
+export type IRNodeType =
+	| "start"
+	| "end"
+	| "claudeAgent"
+	| "customScript"
+	| "notify"
+	| "waitForApproval"
+	| "moveToLane"
+	| "condition"
+	| "setMetadata"
+	| "log";
+
+export interface ClaudeAgentConfig {
+	prompt: string;
+	timeoutMs?: number;
+}
+
+export interface CustomScriptConfig {
+	script: string;
+	interpreter?: "bun" | "sh";
+}
+
+export interface NotifyConfig {
+	title: string;
+	body: string;
+}
+
+export interface WaitForApprovalConfig {
+	message: string;
+}
+
+export interface MoveToLaneConfig {
+	laneId: string;
+	laneName: string;
+}
+
+export interface ConditionConfig {
+	expression: string;
+}
+
+export interface SetMetadataConfig {
+	key: string;
+	value: string;
+}
+
+export interface LogConfig {
+	message: string;
+}
+
+export type IRNodeConfig =
+	| { type: "start" }
+	| { type: "end" }
+	| { type: "claudeAgent" } & ClaudeAgentConfig
+	| { type: "customScript" } & CustomScriptConfig
+	| { type: "notify" } & NotifyConfig
+	| { type: "waitForApproval" } & WaitForApprovalConfig
+	| { type: "moveToLane" } & MoveToLaneConfig
+	| { type: "condition" } & ConditionConfig
+	| { type: "setMetadata" } & SetMetadataConfig
+	| { type: "log" } & LogConfig;
+
+export interface IRNode {
+	id: string;
+	type: IRNodeType;
+	position: { x: number; y: number };
+	label?: string;
+	config: IRNodeConfig;
+}
+
+export interface IREdge {
+	id: string;
+	from: string;
+	to: string;
+	on?: string;
+}
+
+export interface WorkflowIR {
+	version: 1;
+	nodes: IRNode[];
+	edges: IREdge[];
+}
+
+export interface Workflow {
+	id: string;
+	name: string;
+	definition: WorkflowIR;
+	createdAt: string;
+	updatedAt: string;
+}
+
 // ── RPC Schema ──
 
 export type XFlowRPC = {
@@ -117,6 +209,26 @@ export type XFlowRPC = {
 			reorderTicketsInLane: {
 				params: { laneId: string; ticketIds: string[] };
 				response: void;
+			};
+			getWorkflow: {
+				params: { id: string };
+				response: Workflow | null;
+			};
+			createWorkflow: {
+				params: { name: string };
+				response: Workflow;
+			};
+			updateWorkflow: {
+				params: { id: string; name?: string; definition?: WorkflowIR };
+				response: Workflow;
+			};
+			deleteWorkflow: {
+				params: { id: string };
+				response: void;
+			};
+			attachWorkflowToLane: {
+				params: { laneId: string; workflowId: string | null };
+				response: Lane;
 			};
 		};
 		messages: {};

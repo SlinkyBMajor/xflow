@@ -56,6 +56,11 @@ export function deleteLane(db: DB, laneId: string): void {
 	db.delete(lanes).where(eq(lanes.id, laneId)).run();
 }
 
+export function attachWorkflow(db: DB, laneId: string, workflowId: string | null): Lane {
+	db.update(lanes).set({ workflowId }).where(eq(lanes.id, laneId)).run();
+	return db.select().from(lanes).where(eq(lanes.id, laneId)).get()!;
+}
+
 export function reorderLanes(db: DB, laneIds: string[]): void {
 	for (let i = 0; i < laneIds.length; i++) {
 		db.update(lanes).set({ order: i }).where(eq(lanes.id, laneIds[i])).run();

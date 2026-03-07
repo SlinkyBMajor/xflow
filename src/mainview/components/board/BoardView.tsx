@@ -13,6 +13,7 @@ interface BoardViewProps {
 	onSwitchProject: (path: string) => void;
 	onOpenProjectPicker: () => void;
 	onCloseProject: () => void;
+	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 }
 
 export function BoardView({
@@ -23,6 +24,7 @@ export function BoardView({
 	onSwitchProject,
 	onOpenProjectPicker,
 	onCloseProject,
+	onEditWorkflow,
 }: BoardViewProps) {
 	const { refreshBoard, updateBoardName } = useBoard(boardData, setBoardData);
 	const lanes = useLanes(refreshBoard);
@@ -44,6 +46,7 @@ export function BoardView({
 				lanes={lanes}
 				tickets={tickets}
 				refreshBoard={refreshBoard}
+				onEditWorkflow={onEditWorkflow}
 			/>
 		</div>
 	);
