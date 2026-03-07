@@ -84,14 +84,17 @@ export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow
 				<TicketDetailModal
 					open={!!selectedTicket}
 					ticket={selectedTicket}
+					laneName={lane.name}
+					laneColor={lane.color}
 					onClose={() => setSelectedTicket(null)}
 					onSave={(updates) => {
 						ticketActions.updateTicket(selectedTicket.id, updates);
 						setSelectedTicket(null);
 					}}
 					onDelete={() => {
-						ticketActions.deleteTicket(selectedTicket.id);
+						const id = selectedTicket.id;
 						setSelectedTicket(null);
+						ticketActions.deleteTicket(id);
 					}}
 				/>
 			)}

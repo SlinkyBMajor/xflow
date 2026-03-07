@@ -1,6 +1,6 @@
 import { eq, asc, and } from "drizzle-orm";
 import type { DB } from "../connection";
-import { tickets } from "../schema";
+import { tickets, workflowRuns, runEvents } from "../schema";
 import type { Ticket } from "../../../shared/types";
 
 function rowToTicket(row: typeof tickets.$inferSelect): Ticket {
@@ -84,6 +84,14 @@ export function updateTicket(
 }
 
 export function deleteTicket(db: DB, ticketId: string): void {
+	// Delete run events for all runs belonging to this ticket
+	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();
+	for (const run of runs) {
+		db.delete(runEvents).where(eq(runEvents.runId, run.id)).run();
+	}
+	// Delete workflow runs for this ticket
+	db.delete(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).run();
+	// Delete the ticket
 	db.delete(tickets).where(eq(tickets.id, ticketId)).run();
 }
 
