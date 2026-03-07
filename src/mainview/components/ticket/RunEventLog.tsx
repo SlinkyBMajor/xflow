@@ -160,7 +160,23 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 
 	switch (data.type) {
 		case "assistant": {
-			const texts = extractTextContent(data.content);
+			// Claude CLI stream-json: content is in data.message.content
+			const content = data.message?.content ?? data.content;
+			if (!content) return null;
+			// Check for tool_use blocks
+			if (Array.isArray(content)) {
+				for (const block of content) {
+					if (block.type === "tool_use") {
+						return (
+							<div className="text-[11px] font-mono leading-relaxed">
+								{prefix}
+								<span className="text-violet-400/90">{describeToolUse(block.name, block.input)}</span>
+							</div>
+						);
+					}
+				}
+			}
+			const texts = extractTextContent(content);
 			if (!texts) return null;
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
@@ -180,17 +196,21 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 			);
 		}
 
-		case "tool_result": {
+		case "tool_result":
+		case "user": {
 			return <CollapsibleToolResult prefix={prefix} data={data} />;
 		}
 
 		case "result": {
-			const texts = extractTextContent(data.content);
+			// Claude CLI stream-json: result text is in data.result (string)
+			const resultText = typeof data.result === "string" ? data.result : null;
+			const contentText = extractTextContent(data.content);
+			const texts = resultText || contentText;
 			if (!texts) return null;
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-zinc-300">{texts}</span>
+					<span className="text-emerald-400">{texts}</span>
 				</div>
 			);
 		}
@@ -202,7 +222,9 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 
 function CollapsibleToolResult({ prefix, data }: { prefix: React.ReactNode; data: Record<string, any> }) {
 	const [open, setOpen] = useState(false);
-	const content = extractTextContent(data.content) ?? JSON.stringify(data.output ?? data.content ?? "", null, 2);
+	// Handle both direct tool_result and Claude CLI user message wrapping
+	const rawContent = data.message?.content ?? data.content;
+	const content = extractTextContent(rawContent) ?? extractToolResultContent(rawContent) ?? JSON.stringify(data.output ?? rawContent ?? "", null, 2);
 	const preview = typeof content === "string" ? content.slice(0, 80) : "";
 
 	return (
@@ -235,6 +257,16 @@ function extractTextContent(content: unknown): string | null {
 		}
 	}
 	return texts.length > 0 ? texts.join("") : null;
+}
+
+function extractToolResultContent(content: unknown): string | null {
+	if (!Array.isArray(content)) return null;
+	for (const block of content) {
+		if (block?.type === "tool_result" && typeof block.content === "string") {
+			return block.content.slice(0, 200);
+		}
+	}
+	return null;
 }
 
 function describeToolUse(name?: string, input?: Record<string, any>): string {

@@ -120,20 +120,20 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 					const event = JSON.parse(trimmed);
 					insertAndEmit(db, runId, "AGENT_OUTPUT", event, onEvent);
 
-					if (event.type === "assistant" && Array.isArray(event.content)) {
-						for (const block of event.content) {
+					// Claude CLI stream-json: assistant text is in event.message.content[]
+					if (event.type === "assistant" && event.message?.content) {
+						for (const block of event.message.content) {
 							if (block.type === "text") {
 								outputText += block.text;
 							}
 						}
 					}
 
-					if (event.type === "result" && Array.isArray(event.content)) {
-						for (const block of event.content) {
-							if (block.type === "text") {
-								outputText += block.text;
-							}
-						}
+					// Claude CLI stream-json: final result text is in event.result (string)
+					if (event.type === "result" && typeof event.result === "string") {
+						// Result contains the full final text; replace accumulated
+						// partial assistant text to avoid duplication
+						outputText = event.result;
 					}
 				} catch {
 					// Non-JSON line, ignore
