@@ -46,15 +46,15 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-			<DialogContent className="max-w-4xl">
+			<DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
 				<DialogTitle className="sr-only">Edit Ticket</DialogTitle>
 				<DialogDescription className="sr-only">
 					Edit ticket details
 				</DialogDescription>
 
-				<div className="flex min-h-[360px]">
+				<div className="flex min-h-[360px] max-h-[85vh]">
 					{/* Left pane — editing */}
-					<div className="flex-1 p-5 min-w-0">
+					<div className="flex-1 p-5 min-w-0 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
 						<div className="flex items-start justify-between mb-5">
 							<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
 								Ticket

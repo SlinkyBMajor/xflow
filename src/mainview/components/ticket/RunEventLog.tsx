@@ -4,9 +4,10 @@ import type { RunEvent } from "../../../shared/types";
 interface RunEventLogProps {
 	events: RunEvent[];
 	isActive: boolean;
+	fullHeight?: boolean;
 }
 
-export function RunEventLog({ events, isActive }: RunEventLogProps) {
+export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const shouldAutoScroll = useRef(true);
 
@@ -26,7 +27,7 @@ export function RunEventLog({ events, isActive }: RunEventLogProps) {
 	if (events.length === 0 && !isActive) return null;
 
 	return (
-		<div className="relative">
+		<div className={`relative ${fullHeight ? "flex flex-col flex-1 min-h-0" : ""}`}>
 			{/* Active indicator */}
 			{isActive && (
 				<div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
@@ -43,7 +44,9 @@ export function RunEventLog({ events, isActive }: RunEventLogProps) {
 			<div
 				ref={scrollRef}
 				onScroll={handleScroll}
-				className="max-h-80 overflow-y-auto bg-zinc-950 border border-zinc-800/60 rounded-lg p-3 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
+				className={`overflow-y-auto bg-zinc-950 p-3 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent ${
+				fullHeight ? "flex-1 min-h-0" : "max-h-80 border border-zinc-800/60 rounded-lg"
+			}`}
 			>
 				{events.length === 0 ? (
 					<div className="text-[11px] font-mono text-zinc-700 italic">

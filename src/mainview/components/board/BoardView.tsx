@@ -9,6 +9,7 @@ import { BoardHeader } from "./BoardHeader";
 import { InterruptedRunsBanner } from "./InterruptedRunsBanner";
 import { KanbanBoard } from "./KanbanBoard";
 import { TemplateManager } from "../templates/TemplateManager";
+import { AgentPanel } from "./AgentPanel";
 
 interface BoardViewProps {
 	boardData: BoardWithLanesAndTickets;
@@ -82,6 +83,7 @@ export function BoardView({
 				onCreateWorkflowForLane={onCreateWorkflowForLane}
 				activeRuns={activeRuns}
 			/>
+			<AgentPanel activeRuns={activeRuns} tickets={boardData.tickets} />
 			{showTemplates && (
 				<TemplateManager
 					onApply={() => {

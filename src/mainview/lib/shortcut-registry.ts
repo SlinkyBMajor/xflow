@@ -42,6 +42,12 @@ export const SHORTCUT_REGISTRY: Shortcut[] = [
 		keys: "⌘⇧T",
 		group: "Kanban",
 	},
+	{
+		id: "toggle-agent-panel",
+		label: "Toggle agent panel",
+		keys: "⌘J",
+		group: "Kanban",
+	},
 ];
 
 export function getShortcutsByGroup(): Record<string, Shortcut[]> {

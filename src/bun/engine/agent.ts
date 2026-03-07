@@ -105,7 +105,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	const fullPrompt = `${contextDoc}`;
 
 	const proc = Bun.spawn(
-		["claude", "-p", fullPrompt, "--output-format", "stream-json", "--verbose"],
+		["claude", "-p", fullPrompt, "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"],
 		{
 			cwd,
 			stdout: "pipe",
