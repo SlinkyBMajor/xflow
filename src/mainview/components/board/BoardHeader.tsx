@@ -14,20 +14,24 @@ interface BoardHeaderProps {
 	board: Board;
 	projectName: string;
 	recentProjects: RecentProject[];
+	activeTab: "board" | "workflows";
 	onUpdateName: (name: string) => void;
 	onSwitchProject: (path: string) => void;
 	onOpenProjectPicker: () => void;
 	onCloseProject: () => void;
+	onSetTab: (tab: "board" | "workflows") => void;
 }
 
 export function BoardHeader({
 	board,
 	projectName,
 	recentProjects,
+	activeTab,
 	onUpdateName,
 	onSwitchProject,
 	onOpenProjectPicker,
 	onCloseProject,
+	onSetTab,
 }: BoardHeaderProps) {
 	const [editing, setEditing] = useState(false);
 	const [name, setName] = useState(board.name);
@@ -136,6 +140,32 @@ export function BoardHeader({
 					{board.name}
 				</button>
 			)}
+
+			<div className="flex-1" />
+
+			{/* Tab switcher */}
+			<div className="flex items-center gap-0.5 bg-zinc-900/60 rounded-md p-0.5 border border-zinc-800/40">
+				<button
+					onClick={() => onSetTab("board")}
+					className={`flex items-center gap-1.5 text-[11px] font-mono tracking-wide transition-all rounded px-2.5 py-1 ${
+						activeTab === "board"
+							? "bg-zinc-800 text-zinc-200 shadow-sm"
+							: "text-zinc-500 hover:text-zinc-300"
+					}`}
+				>
+					Board
+				</button>
+				<button
+					onClick={() => onSetTab("workflows")}
+					className={`flex items-center gap-1.5 text-[11px] font-mono tracking-wide transition-all rounded px-2.5 py-1 ${
+						activeTab === "workflows"
+							? "bg-zinc-800 text-zinc-200 shadow-sm"
+							: "text-zinc-500 hover:text-zinc-300"
+					}`}
+				>
+					Workflows
+				</button>
+			</div>
 		</div>
 	);
 }

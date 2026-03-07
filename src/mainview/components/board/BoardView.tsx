@@ -14,6 +14,9 @@ interface BoardViewProps {
 	onOpenProjectPicker: () => void;
 	onCloseProject: () => void;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
+	activeTab: "board" | "workflows";
+	onSetTab: (tab: "board" | "workflows") => void;
+	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
 
 export function BoardView({
@@ -25,6 +28,9 @@ export function BoardView({
 	onOpenProjectPicker,
 	onCloseProject,
 	onEditWorkflow,
+	activeTab,
+	onSetTab,
+	onCreateWorkflowForLane,
 }: BoardViewProps) {
 	const { refreshBoard, updateBoardName } = useBoard(boardData, setBoardData);
 	const lanes = useLanes(refreshBoard);
@@ -36,10 +42,12 @@ export function BoardView({
 				board={boardData.board}
 				projectName={projectName}
 				recentProjects={recentProjects}
+				activeTab={activeTab}
 				onUpdateName={updateBoardName}
 				onSwitchProject={onSwitchProject}
 				onOpenProjectPicker={onOpenProjectPicker}
 				onCloseProject={onCloseProject}
+				onSetTab={onSetTab}
 			/>
 			<KanbanBoard
 				boardData={boardData}
@@ -47,6 +55,7 @@ export function BoardView({
 				tickets={tickets}
 				refreshBoard={refreshBoard}
 				onEditWorkflow={onEditWorkflow}
+				onCreateWorkflowForLane={onCreateWorkflowForLane}
 			/>
 		</div>
 	);

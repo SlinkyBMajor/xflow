@@ -233,6 +233,10 @@ export type XFlowRPC = {
 				params: { id: string };
 				response: Workflow | null;
 			};
+			listWorkflows: {
+				params: {};
+				response: Workflow[];
+			};
 			createWorkflow: {
 				params: { name: string };
 				response: Workflow;

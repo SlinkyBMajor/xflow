@@ -20,9 +20,10 @@ interface LaneProps {
 		deleteTicket: (id: string) => Promise<void>;
 	};
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
+	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
 
-export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow }: LaneProps) {
+export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -75,6 +76,7 @@ export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow
 					setSettingsOpen(false);
 				}}
 				onEditWorkflow={onEditWorkflow}
+				onCreateWorkflowForLane={onCreateWorkflowForLane}
 			/>
 
 			{selectedTicket && (

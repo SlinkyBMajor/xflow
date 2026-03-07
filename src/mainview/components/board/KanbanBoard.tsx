@@ -22,9 +22,10 @@ interface KanbanBoardProps {
 	};
 	refreshBoard: () => Promise<void>;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
+	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
 
-export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard, onEditWorkflow }: KanbanBoardProps) {
+export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActions, refreshBoard, onEditWorkflow, onCreateWorkflowForLane }: KanbanBoardProps) {
 	// Build a map of laneId -> ticketIds for DnD state
 	const initialItems = useMemo(() => {
 		const map: Record<string, string[]> = {};
@@ -93,6 +94,7 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 								laneActions={laneActions}
 								ticketActions={ticketActions}
 								onEditWorkflow={onEditWorkflow}
+								onCreateWorkflowForLane={onCreateWorkflowForLane}
 							/>
 						))}
 					<AddLaneButton onAdd={laneActions.createLane} />

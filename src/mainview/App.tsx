@@ -1,13 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useProject } from "./hooks/useProject";
+import { useWorkflow } from "./hooks/useWorkflow";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 import { BoardView } from "./components/board/BoardView";
-import { WorkflowEditor } from "./components/workflow/WorkflowEditor";
+import { BoardHeader } from "./components/board/BoardHeader";
+import { WorkflowListView } from "./components/workflow/WorkflowListView";
 import { TooltipProvider } from "./components/ui/tooltip";
-
-type AppView =
-	| { type: "board" }
-	| { type: "workflow-editor"; laneId: string; laneName: string; workflowId: string };
 
 export default function App() {
 	const {
@@ -21,11 +19,22 @@ export default function App() {
 		removeRecentProject,
 	} = useProject();
 
-	const [view, setView] = useState<AppView>({ type: "board" });
+	const { createWorkflow, attachWorkflowToLane } = useWorkflow();
+	const [activeTab, setActiveTab] = useState<"board" | "workflows">("board");
 
-	const handleEditWorkflow = (laneId: string, laneName: string, workflowId: string) => {
-		setView({ type: "workflow-editor", laneId, laneName, workflowId });
+	const handleEditWorkflowFromLane = (_laneId: string, _laneName: string, _workflowId: string) => {
+		setActiveTab("workflows");
 	};
+
+	const handleCreateWorkflowForLane = useCallback(async (laneId: string, laneName: string) => {
+		const workflow = await createWorkflow(`${laneName} Workflow`);
+		await attachWorkflowToLane(laneId, workflow.id);
+		setActiveTab("workflows");
+	}, [createWorkflow, attachWorkflowToLane]);
+
+	const handleCreateWorkflow = useCallback(async () => {
+		return await createWorkflow("Untitled Workflow");
+	}, [createWorkflow]);
 
 	if (!project || !boardData) {
 		return (
@@ -40,16 +49,26 @@ export default function App() {
 		);
 	}
 
-	if (view.type === "workflow-editor") {
+	if (activeTab === "workflows") {
 		return (
 			<TooltipProvider>
-				<WorkflowEditor
-					workflowId={view.workflowId}
-					laneId={view.laneId}
-					laneName={view.laneName}
-					lanes={boardData.lanes}
-					onBack={() => setView({ type: "board" })}
-				/>
+				<div className="h-screen flex flex-col bg-zinc-950">
+					<BoardHeader
+						board={boardData.board}
+						projectName={project.name}
+						recentProjects={recentProjects}
+						activeTab="workflows"
+						onUpdateName={() => {}}
+						onSwitchProject={openProject}
+						onOpenProjectPicker={openProjectPicker}
+						onCloseProject={closeProject}
+						onSetTab={setActiveTab}
+					/>
+					<WorkflowListView
+						lanes={boardData.lanes}
+						onCreateWorkflow={handleCreateWorkflow}
+					/>
+				</div>
 			</TooltipProvider>
 		);
 	}
@@ -64,7 +83,10 @@ export default function App() {
 				onSwitchProject={openProject}
 				onOpenProjectPicker={openProjectPicker}
 				onCloseProject={closeProject}
-				onEditWorkflow={handleEditWorkflow}
+				onEditWorkflow={handleEditWorkflowFromLane}
+				activeTab="board"
+				onSetTab={setActiveTab}
+				onCreateWorkflowForLane={handleCreateWorkflowForLane}
 			/>
 		</TooltipProvider>
 	);

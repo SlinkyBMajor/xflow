@@ -25,13 +25,12 @@ import { Button } from "../ui/button";
 
 interface WorkflowEditorProps {
 	workflowId: string;
-	laneId: string;
-	laneName: string;
 	lanes: Lane[];
-	onBack: () => void;
+	onBack?: () => void;
+	onNameChange?: (id: string, name: string) => void;
 }
 
-function WorkflowEditorInner({ workflowId, laneId, laneName, lanes, onBack }: WorkflowEditorProps) {
+function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditorProps) {
 	const { getWorkflow, updateWorkflow } = useWorkflow();
 	const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
 	const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -39,6 +38,8 @@ function WorkflowEditorInner({ workflowId, laneId, laneName, lanes, onBack }: Wo
 	const [isDirty, setIsDirty] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [loaded, setLoaded] = useState(false);
+	const [workflowName, setWorkflowName] = useState("");
+	const [editingName, setEditingName] = useState(false);
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
 	const { screenToFlowPosition } = useReactFlow();
 
@@ -50,6 +51,7 @@ function WorkflowEditorInner({ workflowId, laneId, laneName, lanes, onBack }: Wo
 				const { nodes: rfNodes, edges: rfEdges } = irToReactFlow(workflow.definition);
 				setNodes(rfNodes);
 				setEdges(rfEdges);
+				setWorkflowName(workflow.name);
 			}
 			setLoaded(true);
 		})();
@@ -152,6 +154,17 @@ function WorkflowEditorInner({ workflowId, laneId, laneName, lanes, onBack }: Wo
 		markDirty();
 	}, [screenToFlowPosition, setNodes, markDirty]);
 
+	// Save workflow name
+	const handleNameSave = useCallback(async (newName: string) => {
+		const trimmed = newName.trim();
+		if (trimmed && trimmed !== workflowName) {
+			await updateWorkflow(workflowId, { name: trimmed });
+			setWorkflowName(trimmed);
+			onNameChange?.(workflowId, trimmed);
+		}
+		setEditingName(false);
+	}, [workflowName, workflowId, updateWorkflow, onNameChange]);
+
 	// Save
 	const handleSave = useCallback(async () => {
 		const ir = reactFlowToIR(nodes, edges);
@@ -178,17 +191,30 @@ function WorkflowEditorInner({ workflowId, laneId, laneName, lanes, onBack }: Wo
 	}, [handleSave]);
 
 	return (
-		<div className="h-screen flex flex-col bg-zinc-950">
+		<div className="flex-1 flex flex-col bg-zinc-950">
 			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 bg-zinc-900/50">
-				<div className="flex items-center gap-3">
-					<Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-400 hover:text-zinc-200">
-						&larr; Back to Board
-					</Button>
-					<div className="w-px h-5 bg-zinc-700" />
-					<span className="text-sm text-zinc-400">
-						Workflow: <span className="text-zinc-200 font-medium">"{laneName}"</span>
-					</span>
+			<div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/40 bg-zinc-900/30">
+				<div className="flex items-center gap-2">
+					{editingName ? (
+						<input
+							autoFocus
+							value={workflowName}
+							onChange={(e) => setWorkflowName(e.target.value)}
+							onBlur={() => handleNameSave(workflowName)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") handleNameSave(workflowName);
+								if (e.key === "Escape") setEditingName(false);
+							}}
+							className="text-sm font-semibold text-zinc-200 bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 outline-none focus:border-violet-500 w-56"
+						/>
+					) : (
+						<button
+							onClick={() => setEditingName(true)}
+							className="text-sm font-semibold text-zinc-200 hover:text-zinc-50 transition-colors"
+						>
+							{workflowName || "Untitled Workflow"}
+						</button>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					{saveError && (

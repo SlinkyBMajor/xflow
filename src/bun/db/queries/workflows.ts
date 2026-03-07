@@ -10,6 +10,11 @@ function rowToWorkflow(row: typeof workflows.$inferSelect): Workflow {
 	};
 }
 
+export function listWorkflows(db: DB): Workflow[] {
+	const rows = db.select().from(workflows).all();
+	return rows.map(rowToWorkflow);
+}
+
 export function getWorkflowById(db: DB, id: string): Workflow | null {
 	const row = db.select().from(workflows).where(eq(workflows.id, id)).get();
 	return row ? rowToWorkflow(row) : null;

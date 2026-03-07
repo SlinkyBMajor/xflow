@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { Lane } from "../../../shared/types";
+import { useState, useEffect } from "react";
+import type { Lane, Workflow } from "../../../shared/types";
 import { useWorkflow } from "../../hooks/useWorkflow";
 import {
 	Dialog,
@@ -19,6 +19,7 @@ interface LaneSettingsModalProps {
 	onClose: () => void;
 	onSave: (updates: { name?: string; color?: string; wipLimit?: number | null }) => void;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
+	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
 
 const COLOR_OPTIONS = [
@@ -27,13 +28,35 @@ const COLOR_OPTIONS = [
 	"#71717a",
 ];
 
-export function LaneSettingsModal({ open, lane, onClose, onSave, onEditWorkflow }: LaneSettingsModalProps) {
+function relativeTime(iso: string): string {
+	const diff = Date.now() - new Date(iso).getTime();
+	const mins = Math.floor(diff / 60000);
+	if (mins < 1) return "just now";
+	if (mins < 60) return `${mins}m ago`;
+	const hrs = Math.floor(mins / 60);
+	if (hrs < 24) return `${hrs}h ago`;
+	const days = Math.floor(hrs / 24);
+	if (days < 30) return `${days}d ago`;
+	const months = Math.floor(days / 30);
+	return `${months}mo ago`;
+}
+
+export function LaneSettingsModal({ open, lane, onClose, onSave, onEditWorkflow, onCreateWorkflowForLane }: LaneSettingsModalProps) {
 	const [name, setName] = useState(lane.name);
 	const [color, setColor] = useState(lane.color || "#71717a");
 	const [wipLimit, setWipLimit] = useState<string>(
 		lane.wipLimit !== null ? String(lane.wipLimit) : "",
 	);
-	const { createWorkflow, attachWorkflowToLane } = useWorkflow();
+	const { getWorkflow, attachWorkflowToLane } = useWorkflow();
+	const [workflow, setWorkflow] = useState<Workflow | null>(null);
+
+	useEffect(() => {
+		if (open && lane.workflowId) {
+			getWorkflow(lane.workflowId).then(setWorkflow);
+		} else {
+			setWorkflow(null);
+		}
+	}, [open, lane.workflowId, getWorkflow]);
 
 	const handleSubmit = () => {
 		onSave({
@@ -99,44 +122,57 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onEditWorkflow 
 					{/* Workflow section */}
 					<div className="mt-4 pt-4 border-t border-zinc-800">
 						<Label className="mb-2">Workflow</Label>
-						{lane.workflowId ? (
-							<div className="flex gap-2">
-								<Button
-									size="sm"
-									variant="ghost"
-									onClick={() => {
-										onClose();
-										onEditWorkflow(lane.id, lane.name, lane.workflowId!);
-									}}
-									className="text-violet-400 hover:text-violet-300"
-								>
-									Edit Workflow
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									onClick={async () => {
-										await attachWorkflowToLane(lane.id, null);
-									}}
-									className="text-zinc-400 hover:text-red-400"
-								>
-									Detach Workflow
-								</Button>
+						{lane.workflowId && workflow ? (
+							<div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-3">
+								<div className="flex items-start justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-sm font-medium text-zinc-200 truncate">
+											{workflow.name}
+										</p>
+										<p className="text-[11px] text-zinc-600 font-mono mt-0.5">
+											Updated {relativeTime(workflow.updatedAt)}
+										</p>
+									</div>
+								</div>
+								<div className="flex gap-2 mt-3">
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() => {
+											onClose();
+											onEditWorkflow(lane.id, lane.name, lane.workflowId!);
+										}}
+										className="text-violet-400 hover:text-violet-300 h-7 text-xs"
+									>
+										Edit
+									</Button>
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={async () => {
+											await attachWorkflowToLane(lane.id, null);
+											setWorkflow(null);
+										}}
+										className="text-zinc-500 hover:text-red-400 h-7 text-xs"
+									>
+										Detach
+									</Button>
+								</div>
 							</div>
 						) : (
-							<Button
-								size="sm"
-								variant="ghost"
-								onClick={async () => {
-									const workflow = await createWorkflow(`${lane.name} Workflow`);
-									await attachWorkflowToLane(lane.id, workflow.id);
-									onClose();
-									onEditWorkflow(lane.id, lane.name, workflow.id);
-								}}
-								className="text-violet-400 hover:text-violet-300"
-							>
-								Create Workflow
-							</Button>
+							<div className="rounded-lg border border-dashed border-zinc-800 p-3 text-center">
+								<p className="text-xs text-zinc-600 mb-2">No workflow attached</p>
+								<Button
+									size="sm"
+									onClick={async () => {
+										onClose();
+										await onCreateWorkflowForLane(lane.id, lane.name);
+									}}
+									className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-7"
+								>
+									Create Workflow
+								</Button>
+							</div>
 						)}
 					</div>
 

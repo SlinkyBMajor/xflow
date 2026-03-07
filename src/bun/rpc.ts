@@ -129,6 +129,11 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return workflowQueries.getWorkflowById(db, id);
 			},
 
+			listWorkflows: () => {
+				const db = getDb();
+				return workflowQueries.listWorkflows(db);
+			},
+
 			createWorkflow: ({ name }) => {
 				const db = getDb();
 				const id = crypto.randomUUID();

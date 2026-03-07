@@ -7,6 +7,10 @@ export function useWorkflow() {
 		return await rpc.request.getWorkflow({ id });
 	}, []);
 
+	const listWorkflows = useCallback(async (): Promise<Workflow[]> => {
+		return await rpc.request.listWorkflows({});
+	}, []);
+
 	const createWorkflow = useCallback(async (name: string): Promise<Workflow> => {
 		return await rpc.request.createWorkflow({ name });
 	}, []);
@@ -26,5 +30,5 @@ export function useWorkflow() {
 		return await rpc.request.attachWorkflowToLane({ laneId, workflowId });
 	}, []);
 
-	return { getWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, attachWorkflowToLane };
+	return { getWorkflow, listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, attachWorkflowToLane };
 }
