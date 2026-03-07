@@ -3,6 +3,7 @@ import type { DB } from "../db/connection";
 import type { Ticket, WorkflowIR, WorkflowRun, RunEvent } from "../../shared/types";
 import { compileWorkflow } from "./compiler";
 import { killAgentProcess } from "./agent";
+import { killScriptProcess } from "./script";
 import * as runQueries from "../db/queries/runs";
 import * as workflowQueries from "../db/queries/workflows";
 import * as ticketQueries from "../db/queries/tickets";
@@ -192,6 +193,7 @@ export function resumeRun(
 
 export function abortRun(db: DB, runId: string): void {
 	killAgentProcess(runId);
+	killScriptProcess(runId);
 	const actor = activeActors.get(runId);
 	if (actor) {
 		actor.stop();

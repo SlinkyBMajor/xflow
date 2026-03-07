@@ -80,7 +80,7 @@ export function getDefaultConfig(type: IRNodeType): IRNodeConfig {
 		case "claudeAgent":
 			return { type: "claudeAgent", prompt: "", timeoutMs: 60000 };
 		case "customScript":
-			return { type: "customScript", script: "", interpreter: "bun" };
+			return { type: "customScript", script: "", interpreter: "bun", timeoutMs: 30000 };
 		case "notify":
 			return { type: "notify", title: "", body: "" };
 		case "waitForApproval":

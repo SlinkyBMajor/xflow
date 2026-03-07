@@ -76,6 +76,7 @@ export interface ClaudeAgentConfig {
 export interface CustomScriptConfig {
 	script: string;
 	interpreter?: "bun" | "sh";
+	timeoutMs?: number;
 }
 
 export interface NotifyConfig {
@@ -178,6 +179,46 @@ export interface InterruptedRunInfo {
 	interruptedNodeLabel: string | null;
 	interruptedNodeType: IRNodeType | null;
 	autoResumable: boolean;
+}
+
+// ── Workflow Version Types ──
+
+export interface WorkflowVersion {
+	id: string;
+	workflowId: string;
+	version: number;
+	definition: WorkflowIR;
+	createdAt: string;
+	label: string | null;
+}
+
+// ── Board Template Types ──
+
+export interface BoardTemplate {
+	id: string;
+	name: string;
+	description?: string;
+	version: 1;
+	lanes: Array<{
+		name: string;
+		color: string | null;
+		order: number;
+		workflow?: WorkflowIR;
+	}>;
+	createdAt: string;
+	builtIn?: boolean;
+}
+
+// ── Run Visualization Types ──
+
+export type NodeRunStatus = "idle" | "active" | "completed" | "error";
+
+export interface WorkflowRunState {
+	runId: string;
+	status: string;
+	currentNodeId: string | null;
+	completedNodeIds: string[];
+	errorNodeId: string | null;
 }
 
 // ── RPC Schema ──
@@ -284,6 +325,34 @@ export type XFlowRPC = {
 			retryRun: {
 				params: { runId: string };
 				response: WorkflowRun;
+			};
+			listTemplates: {
+				params: {};
+				response: BoardTemplate[];
+			};
+			exportBoardAsTemplate: {
+				params: { name: string; description?: string };
+				response: BoardTemplate;
+			};
+			applyTemplate: {
+				params: { templateId: string };
+				response: void;
+			};
+			deleteTemplate: {
+				params: { id: string };
+				response: void;
+			};
+			listWorkflowVersions: {
+				params: { workflowId: string };
+				response: WorkflowVersion[];
+			};
+			restoreWorkflowVersion: {
+				params: { workflowId: string; versionId: string };
+				response: Workflow;
+			};
+			getActiveRunForWorkflow: {
+				params: { workflowId: string };
+				response: WorkflowRunState | null;
 			};
 			abortInterruptedRun: {
 				params: { runId: string };

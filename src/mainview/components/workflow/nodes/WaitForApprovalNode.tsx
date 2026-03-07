@@ -9,6 +9,7 @@ function WaitForApprovalNodeInner({ data, selected }: NodeProps) {
 		<WorkflowNodeShell
 			selected={selected}
 			accentColor="#f97316"
+			runStatus={data.runStatus as any}
 			sourceHandles={[
 				{ id: "APPROVED", label: "APPROVED" },
 				{ id: "REJECTED", label: "REJECTED" },

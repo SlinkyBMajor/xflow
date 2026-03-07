@@ -43,6 +43,17 @@ export const tickets = sqliteTable("tickets", {
 	updatedAt: text("updated_at").notNull(),
 });
 
+export const workflowVersions = sqliteTable("workflow_versions", {
+	id: text("id").primaryKey(),
+	workflowId: text("workflow_id")
+		.notNull()
+		.references(() => workflows.id, { onDelete: "cascade" }),
+	version: integer("version").notNull(),
+	definition: text("definition").notNull(),
+	createdAt: text("created_at").notNull(),
+	label: text("label"),
+});
+
 export const workflowRuns = sqliteTable("workflow_runs", {
 	id: text("id").primaryKey(),
 	ticketId: text("ticket_id")

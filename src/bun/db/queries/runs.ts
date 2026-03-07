@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import type { DB } from "../connection";
 import { workflowRuns, runEvents } from "../schema";
 import type { WorkflowRun, RunEvent } from "../../../shared/types";
@@ -73,6 +73,15 @@ export function getRunsByTicket(db: DB, ticketId: string): WorkflowRun[] {
 		.orderBy(desc(workflowRuns.startedAt))
 		.all()
 		.map(rowToRun);
+}
+
+export function getActiveRunForWorkflow(db: DB, workflowId: string): WorkflowRun | null {
+	const row = db
+		.select()
+		.from(workflowRuns)
+		.where(and(eq(workflowRuns.workflowId, workflowId), eq(workflowRuns.status, "active")))
+		.get();
+	return row ? rowToRun(row) : null;
 }
 
 export function getActiveRuns(db: DB): WorkflowRun[] {

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { DB } from "../connection";
 import { workflows, lanes } from "../schema";
 import type { Workflow, WorkflowIR } from "../../../shared/types";
+import { snapshotVersion } from "./workflow-versions";
 
 function rowToWorkflow(row: typeof workflows.$inferSelect): Workflow {
 	return {
@@ -43,6 +44,13 @@ export function updateWorkflow(
 	id: string,
 	updates: { name?: string; definition?: WorkflowIR },
 ): Workflow {
+	if (updates.definition !== undefined) {
+		const current = getWorkflowById(db, id);
+		if (current) {
+			snapshotVersion(db, id, current.definition);
+		}
+	}
+
 	const setValues: Record<string, unknown> = {
 		updatedAt: new Date().toISOString(),
 	};

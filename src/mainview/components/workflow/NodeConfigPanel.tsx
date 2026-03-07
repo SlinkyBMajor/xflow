@@ -114,6 +114,15 @@ function renderConfigFields(
 							<option value="sh">Shell</option>
 						</select>
 					</div>
+					<div>
+						<Label className="text-xs text-zinc-400 mb-1">Timeout (ms)</Label>
+						<Input
+							type="number"
+							value={config.timeoutMs ?? 30000}
+							onChange={(e) => updateConfig({ timeoutMs: parseInt(e.target.value) || undefined })}
+							className="h-8 text-sm w-28"
+						/>
+					</div>
 				</>
 			);
 		case "notify":

@@ -6,7 +6,7 @@ function SetMetadataNodeInner({ data, selected }: NodeProps) {
 	const key = (data.config as { key?: string })?.key || "";
 
 	return (
-		<WorkflowNodeShell selected={selected} accentColor="#10b981">
+		<WorkflowNodeShell selected={selected} accentColor="#10b981" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<span className="text-emerald-400 text-xs font-bold">#</span>
 				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>

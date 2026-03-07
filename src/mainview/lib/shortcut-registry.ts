@@ -28,6 +28,20 @@ export const SHORTCUT_REGISTRY: Shortcut[] = [
 		keys: "⌘S",
 		group: "Workflow Editor",
 	},
+	{
+		id: "workflow-version-history",
+		label: "Version history",
+		keys: "⌘⇧H",
+		group: "Workflow Editor",
+	},
+
+	// ── Kanban ──────────────────────────────────────────
+	{
+		id: "board-templates",
+		label: "Board templates",
+		keys: "⌘⇧T",
+		group: "Kanban",
+	},
 ];
 
 export function getShortcutsByGroup(): Record<string, Shortcut[]> {

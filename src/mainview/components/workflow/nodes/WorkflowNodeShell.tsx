@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from "react";
 import { Handle, Position } from "@xyflow/react";
+import type { NodeRunStatus } from "../../../../shared/types";
 
 interface WorkflowNodeShellProps {
 	children: ReactNode;
@@ -8,6 +9,20 @@ interface WorkflowNodeShellProps {
 	showTargetHandle?: boolean;
 	showSourceHandle?: boolean;
 	sourceHandles?: { id: string; label: string }[];
+	runStatus?: NodeRunStatus;
+}
+
+function getRunStatusClasses(runStatus?: NodeRunStatus): string {
+	switch (runStatus) {
+		case "active":
+			return "border-violet-500 animate-pulse shadow-lg shadow-violet-500/30";
+		case "completed":
+			return "border-emerald-500/60";
+		case "error":
+			return "border-red-500 shadow-lg shadow-red-500/20";
+		default:
+			return "";
+	}
 }
 
 function WorkflowNodeShellInner({
@@ -17,16 +32,34 @@ function WorkflowNodeShellInner({
 	showTargetHandle = true,
 	showSourceHandle = true,
 	sourceHandles,
+	runStatus,
 }: WorkflowNodeShellProps) {
+	const runClasses = getRunStatusClasses(runStatus);
+	const selectionClasses = !runClasses
+		? selected
+			? "border-violet-500 shadow-lg shadow-violet-500/20"
+			: "border-zinc-700 hover:border-zinc-600"
+		: runClasses;
+
 	return (
 		<div
 			className={`
 				relative bg-zinc-900 border rounded-lg px-4 py-3 min-w-[180px] max-w-[220px]
 				transition-colors
-				${selected ? "border-violet-500 shadow-lg shadow-violet-500/20" : "border-zinc-700 hover:border-zinc-600"}
+				${selectionClasses}
 			`}
 		>
-			<div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg" style={{ backgroundColor: accentColor }} />
+			<div
+				className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg"
+				style={{ backgroundColor: runStatus === "completed" ? "#10b981" : runStatus === "error" ? "#ef4444" : accentColor }}
+			/>
+			{runStatus === "completed" && (
+				<div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+					<svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+						<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				</div>
+			)}
 			{showTargetHandle && (
 				<Handle type="target" position={Position.Top} className="!bg-zinc-600 !border-zinc-500 !w-2.5 !h-2.5" />
 			)}

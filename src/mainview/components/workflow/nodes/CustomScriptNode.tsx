@@ -6,7 +6,7 @@ function CustomScriptNodeInner({ data, selected }: NodeProps) {
 	const interpreter = (data.config as { interpreter?: string })?.interpreter || "bun";
 
 	return (
-		<WorkflowNodeShell selected={selected} accentColor="#f59e0b">
+		<WorkflowNodeShell selected={selected} accentColor="#f59e0b" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<span className="text-amber-400 text-xs font-mono font-bold">&gt;_</span>
 				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>

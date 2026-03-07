@@ -9,6 +9,7 @@ function ConditionNodeInner({ data, selected }: NodeProps) {
 		<WorkflowNodeShell
 			selected={selected}
 			accentColor="#eab308"
+			runStatus={data.runStatus as any}
 			sourceHandles={[
 				{ id: "TRUE", label: "TRUE" },
 				{ id: "FALSE", label: "FALSE" },

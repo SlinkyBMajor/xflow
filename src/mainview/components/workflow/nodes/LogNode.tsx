@@ -7,7 +7,7 @@ function LogNodeInner({ data, selected }: NodeProps) {
 	const preview = message.length > 40 ? message.slice(0, 40) + "..." : message;
 
 	return (
-		<WorkflowNodeShell selected={selected} accentColor="#71717a">
+		<WorkflowNodeShell selected={selected} accentColor="#71717a" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<span className="text-zinc-400 text-xs font-mono font-bold">Aa</span>
 				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>

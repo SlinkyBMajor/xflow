@@ -15,12 +15,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "./workflow-theme.css";
-import type { WorkflowIR, Lane } from "../../../shared/types";
+import type { WorkflowIR, Lane, NodeRunStatus } from "../../../shared/types";
 import { useWorkflow } from "../../hooks/useWorkflow";
+import { rpc } from "../../rpc";
+import { useWorkflowRunState } from "../../hooks/useWorkflowRunState";
 import { irToReactFlow, reactFlowToIR, validateIR, getDefaultConfig, getNodeLabel } from "../../lib/workflow-ir";
 import { nodeTypes } from "./nodes";
 import { NodePalette } from "./NodePalette";
 import { NodeConfigPanel } from "./NodeConfigPanel";
+import { VersionHistory } from "./VersionHistory";
 import { Button } from "../ui/button";
 
 interface WorkflowEditorProps {
@@ -41,8 +44,55 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	const [workflowName, setWorkflowName] = useState("");
 	const [savedName, setSavedName] = useState("");
 	const [editingName, setEditingName] = useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
 	const { screenToFlowPosition } = useReactFlow();
+	const { runState, isRunning, getNodeRunStatus } = useWorkflowRunState(workflowId);
+
+	// Inject runStatus into node data when running
+	useEffect(() => {
+		if (!isRunning) return;
+		setNodes((nds) =>
+			nds.map((n) => ({
+				...n,
+				data: { ...n.data, runStatus: getNodeRunStatus(n.id) },
+			})),
+		);
+	}, [runState, isRunning, getNodeRunStatus, setNodes]);
+
+	// Clear runStatus when run ends
+	useEffect(() => {
+		if (isRunning) return;
+		setNodes((nds) =>
+			nds.map((n) => {
+				if (n.data.runStatus) {
+					const { runStatus, ...rest } = n.data;
+					return { ...n, data: rest };
+				}
+				return n;
+			}),
+		);
+	}, [isRunning, setNodes]);
+
+	// Highlight edges during run
+	useEffect(() => {
+		if (!isRunning || !runState) return;
+		setEdges((eds) =>
+			eds.map((e) => {
+				const sourceCompleted = runState.completedNodeIds.includes(e.source);
+				const targetCompleted = runState.completedNodeIds.includes(e.target);
+				const isActiveEdge = sourceCompleted && runState.currentNodeId === e.target;
+
+				if (isActiveEdge) {
+					return { ...e, animated: true, style: { stroke: "#8b5cf6", strokeWidth: 2 } };
+				}
+				if (sourceCompleted && targetCompleted) {
+					return { ...e, animated: false, style: { stroke: "#10b981", strokeWidth: 2 } };
+				}
+				return { ...e, animated: false, style: { stroke: "#52525b", strokeWidth: 2 } };
+			}),
+		);
+	}, [runState, isRunning, setEdges]);
 
 	// Load workflow
 	useEffect(() => {
@@ -183,12 +233,28 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 		setSaveError(null);
 	}, [nodes, edges, workflowId, updateWorkflow]);
 
-	// Keyboard shortcut for save
+	// Restore version
+	const handleRestoreVersion = useCallback(async (versionId: string) => {
+		const workflow = await rpc.request.restoreWorkflowVersion({ workflowId, versionId });
+		const { nodes: rfNodes, edges: rfEdges } = irToReactFlow(workflow.definition);
+		setNodes(rfNodes);
+		setEdges(rfEdges);
+		setIsDirty(false);
+		setSaveError(null);
+		setShowHistory(false);
+		setSelectedNode(null);
+	}, [workflowId, setNodes, setEdges]);
+
+	// Keyboard shortcuts
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === "s") {
 				e.preventDefault();
 				handleSave();
+			}
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "h") {
+				e.preventDefault();
+				setShowHistory((prev) => !prev);
 			}
 		};
 		window.addEventListener("keydown", handler);
@@ -223,14 +289,28 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 					)}
 				</div>
 				<div className="flex items-center gap-2">
+					{isRunning && (
+						<span className="flex items-center gap-1.5 text-xs text-violet-400 mr-2">
+							<span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+							Run in progress
+						</span>
+					)}
 					{saveError && (
 						<span className="text-xs text-red-400 mr-2">{saveError}</span>
 					)}
 					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setShowHistory((prev) => !prev)}
+						className={showHistory ? "text-violet-400" : "text-zinc-400 hover:text-zinc-200"}
+					>
+						History
+					</Button>
+					<Button
 						size="sm"
 						onClick={handleSave}
-						disabled={!isDirty}
-						className={isDirty ? "bg-violet-600 hover:bg-violet-500 text-white" : ""}
+						disabled={!isDirty || isRunning}
+						className={isDirty && !isRunning ? "bg-violet-600 hover:bg-violet-500 text-white" : ""}
 					>
 						{isDirty ? "Save" : "Saved"}
 					</Button>
@@ -239,20 +319,23 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 
 			{/* Editor */}
 			<div className="flex-1 flex overflow-hidden">
-				<NodePalette />
+				{!isRunning && <NodePalette />}
 				<div className="flex-1" ref={reactFlowWrapper}>
 					<ReactFlow
 						nodes={nodes}
 						edges={edges}
 						onNodesChange={handleNodesChange}
 						onEdgesChange={handleEdgesChange}
-						onConnect={onConnect}
+						onConnect={isRunning ? undefined : onConnect}
 						isValidConnection={isValidConnection}
-						onNodeClick={onNodeClick}
+						onNodeClick={isRunning ? undefined : onNodeClick}
 						onPaneClick={onPaneClick}
-						onDragOver={onDragOver}
-						onDrop={onDrop}
+						onDragOver={isRunning ? undefined : onDragOver}
+						onDrop={isRunning ? undefined : onDrop}
 						nodeTypes={nodeTypes}
+						nodesConnectable={!isRunning}
+						nodesDraggable={!isRunning}
+						elementsSelectable={!isRunning}
 						fitView
 						proOptions={{ hideAttribution: true }}
 						defaultEdgeOptions={{
@@ -269,14 +352,20 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 						/>
 					</ReactFlow>
 				</div>
-				{selectedNode && (
+				{showHistory ? (
+					<VersionHistory
+						workflowId={workflowId}
+						onRestore={handleRestoreVersion}
+						onClose={() => setShowHistory(false)}
+					/>
+				) : selectedNode ? (
 					<NodeConfigPanel
 						node={selectedNode}
 						lanes={lanes}
 						onUpdate={onUpdateNodeData}
 						onDelete={onDeleteNode}
 					/>
-				)}
+				) : null}
 			</div>
 		</div>
 	);

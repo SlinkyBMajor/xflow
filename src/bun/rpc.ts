@@ -1,5 +1,5 @@
 import { BrowserView, Utils } from "electrobun/bun";
-import type { XFlowRPC } from "../shared/types";
+import type { XFlowRPC, WorkflowRunState } from "../shared/types";
 import { openProject, getBoardData } from "./project/open";
 import { getRecents, removeRecent } from "./project/recents";
 import { getConnection } from "./db/connection";
@@ -7,8 +7,10 @@ import * as boardQueries from "./db/queries/boards";
 import * as laneQueries from "./db/queries/lanes";
 import * as ticketQueries from "./db/queries/tickets";
 import * as workflowQueries from "./db/queries/workflows";
+import * as versionQueries from "./db/queries/workflow-versions";
 import * as runQueries from "./db/queries/runs";
 import { triggerWorkflowIfAttached } from "./engine/trigger";
+import * as templates from "./project/templates";
 import { getInterruptedRuns } from "./engine/recovery";
 import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
 
@@ -169,6 +171,41 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				workflowQueries.deleteWorkflow(db, id);
 			},
 
+			listTemplates: () => {
+				return templates.listTemplates();
+			},
+
+			exportBoardAsTemplate: ({ name, description }) => {
+				const db = getDb();
+				return templates.exportBoardAsTemplate(db, name, description);
+			},
+
+			applyTemplate: ({ templateId }) => {
+				const db = getDb();
+				const allTemplates = templates.listTemplates();
+				const template = allTemplates.find((t) => t.id === templateId);
+				if (!template) throw new Error(`Template ${templateId} not found`);
+				const board = boardQueries.getFirstBoard(db);
+				if (!board) throw new Error("No board found");
+				templates.applyTemplate(db, board.id, template);
+			},
+
+			deleteTemplate: ({ id }) => {
+				templates.deleteTemplate(id);
+			},
+
+			listWorkflowVersions: ({ workflowId }) => {
+				const db = getDb();
+				return versionQueries.listVersions(db, workflowId);
+			},
+
+			restoreWorkflowVersion: ({ workflowId, versionId }) => {
+				const db = getDb();
+				const version = versionQueries.getVersion(db, versionId);
+				if (!version) throw new Error(`Version ${versionId} not found`);
+				return workflowQueries.updateWorkflow(db, workflowId, { definition: version.definition });
+			},
+
 			attachWorkflowToLane: ({ laneId, workflowId }) => {
 				const db = getDb();
 				return laneQueries.attachWorkflow(db, laneId, workflowId);
@@ -187,6 +224,25 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			getRunEvents: ({ runId }) => {
 				const db = getDb();
 				return runQueries.getEventsByRun(db, runId);
+			},
+
+			getActiveRunForWorkflow: ({ workflowId }) => {
+				const db = getDb();
+				const run = runQueries.getActiveRunForWorkflow(db, workflowId);
+				if (!run) return null;
+				const events = runQueries.getEventsByRun(db, run.id);
+				const completedNodeIds = events
+					.filter((e) => e.type === "NODE_COMPLETED" && (e.payload as any)?.nodeId)
+					.map((e) => (e.payload as any).nodeId as string);
+				const errorEvent = events.find((e) => e.type === "SCRIPT_ERROR" || e.type === "AGENT_TIMEOUT" || e.type === "SCRIPT_TIMEOUT");
+				const state: WorkflowRunState = {
+					runId: run.id,
+					status: run.status,
+					currentNodeId: run.currentNodeId,
+					completedNodeIds,
+					errorNodeId: errorEvent ? (errorEvent.payload as any)?.nodeId ?? null : null,
+				};
+				return state;
 			},
 
 			getInterruptedRuns: () => {

@@ -10,11 +10,13 @@ import type {
 	NotifyConfig,
 	ConditionConfig,
 	ClaudeAgentConfig,
+	CustomScriptConfig,
 	RunEvent,
 } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition } from "./executor";
 import { executeClaudeAgent } from "./agent";
+import { executeCustomScript } from "./script";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -237,13 +239,37 @@ function buildState(
 		}
 
 		case "customScript": {
+			const config = node.config as CustomScriptConfig & { type: "customScript" };
 			return {
-				entry: () => {
-					console.warn(
-						`[Workflow ${ctx.runId}] customScript node not yet implemented — skipping. Implementation deferred to Phase 6.`,
-					);
+				invoke: {
+					src: ({ context }: { context: WorkflowContext }) => {
+						return executeCustomScript({
+							runId: ctx.runId,
+							nodeId: node.id,
+							script: config.script,
+							interpreter: config.interpreter,
+							timeoutMs: config.timeoutMs,
+							ticket: ctx.ticket,
+							context,
+							db: ctx.db,
+							projectPath: ctx.projectPath,
+							onEvent: (event: RunEvent) => {
+								ctx.notifyEvent?.(event);
+								ctx.notifyFrontend();
+							},
+						});
+					},
+					onDone: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: assign({
+							nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+								...context.nodeOutputs,
+								[node.id]: event.output,
+							}),
+						}),
+					},
+					onError: targets.length > 0 ? { target: targets[0] } : undefined,
 				},
-				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
 		}
 

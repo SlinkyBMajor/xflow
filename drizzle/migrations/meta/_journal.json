@@ -8,6 +8,13 @@
       "when": 1772837358383,
       "tag": "0000_dusty_reptil",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772885494656,
+      "tag": "0001_lethal_molly_hayes",
+      "breakpoints": true
     }
   ]
 }
