@@ -1,16 +1,17 @@
 import type { Lane } from "../../../shared/types";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Workflow, Pencil } from "lucide-react";
 
 interface LaneHeaderProps {
 	lane: Lane;
 	ticketCount: number;
 	isOverWip: boolean;
 	onEdit: () => void;
-	onDelete: () => void;
+	onOpenWorkflow?: () => void;
 }
 
-export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onDelete }: LaneHeaderProps) {
+export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflow }: LaneHeaderProps) {
 	return (
 		<div className="group flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/40">
 			<div
@@ -31,6 +32,20 @@ export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onDelete }: L
 				{lane.wipLimit !== null && `/${lane.wipLimit}`}
 			</span>
 
+			{lane.workflowId && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={onOpenWorkflow}
+							className="flex-shrink-0 text-violet-400/60 hover:text-violet-400 transition-colors"
+						>
+							<Workflow size={14} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>Open workflow</TooltipContent>
+				</Tooltip>
+			)}
+
 			<div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -40,38 +55,10 @@ export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onDelete }: L
 							onClick={onEdit}
 							className="h-6 w-6 text-zinc-500 hover:text-zinc-300"
 						>
-							<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-								<path
-									d="M8.5 1.5l2 2-7 7H1.5v-2l7-7z"
-									stroke="currentColor"
-									strokeWidth="1.2"
-									strokeLinejoin="round"
-								/>
-							</svg>
+							<Pencil size={12} />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>Edit lane</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={onDelete}
-							className="h-6 w-6 text-zinc-500 hover:text-red-400 hover:bg-red-900/40"
-						>
-							<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-								<path
-									d="M2 3h8M4.5 3V2h3v1M3 3v7.5h6V3"
-									stroke="currentColor"
-									strokeWidth="1.2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								/>
-							</svg>
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>Delete lane</TooltipContent>
 				</Tooltip>
 			</div>
 		</div>

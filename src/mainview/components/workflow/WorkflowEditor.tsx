@@ -39,6 +39,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [loaded, setLoaded] = useState(false);
 	const [workflowName, setWorkflowName] = useState("");
+	const [savedName, setSavedName] = useState("");
 	const [editingName, setEditingName] = useState(false);
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
 	const { screenToFlowPosition } = useReactFlow();
@@ -52,6 +53,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 				setNodes(rfNodes);
 				setEdges(rfEdges);
 				setWorkflowName(workflow.name);
+				setSavedName(workflow.name);
 			}
 			setLoaded(true);
 		})();
@@ -157,13 +159,16 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	// Save workflow name
 	const handleNameSave = useCallback(async (newName: string) => {
 		const trimmed = newName.trim();
-		if (trimmed && trimmed !== workflowName) {
+		if (trimmed && trimmed !== savedName) {
 			await updateWorkflow(workflowId, { name: trimmed });
 			setWorkflowName(trimmed);
+			setSavedName(trimmed);
 			onNameChange?.(workflowId, trimmed);
+		} else {
+			setWorkflowName(savedName);
 		}
 		setEditingName(false);
-	}, [workflowName, workflowId, updateWorkflow, onNameChange]);
+	}, [savedName, workflowId, updateWorkflow, onNameChange]);
 
 	// Save
 	const handleSave = useCallback(async () => {
@@ -204,6 +209,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 							onKeyDown={(e) => {
 								if (e.key === "Enter") handleNameSave(workflowName);
 								if (e.key === "Escape") setEditingName(false);
+								if (e.metaKey || e.ctrlKey) e.stopPropagation();
 							}}
 							className="text-sm font-semibold text-zinc-200 bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 outline-none focus:border-violet-500 w-56"
 						/>

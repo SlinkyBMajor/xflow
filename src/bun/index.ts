@@ -1,4 +1,24 @@
-import { BrowserWindow, Updater } from "electrobun/bun";
+import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun";
+
+ApplicationMenu.setApplicationMenu([
+	{
+		submenu: [{ label: "Quit", role: "quit" }],
+	},
+	{
+		label: "Edit",
+		submenu: [
+			{ role: "undo" },
+			{ role: "redo" },
+			{ type: "separator" },
+			{ role: "cut" },
+			{ role: "copy" },
+			{ role: "paste" },
+			{ role: "pasteAndMatchStyle" },
+			{ role: "delete" },
+			{ role: "selectAll" },
+		],
+	},
+]);
 import { rpc, setMainWindow } from "./rpc";
 
 const DEV_SERVER_PORT = 5173;

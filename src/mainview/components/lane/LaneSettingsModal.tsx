@@ -18,6 +18,7 @@ interface LaneSettingsModalProps {
 	lane: Lane;
 	onClose: () => void;
 	onSave: (updates: { name?: string; color?: string; wipLimit?: number | null }) => void;
+	onDelete: () => void;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 }
@@ -41,7 +42,7 @@ function relativeTime(iso: string): string {
 	return `${months}mo ago`;
 }
 
-export function LaneSettingsModal({ open, lane, onClose, onSave, onEditWorkflow, onCreateWorkflowForLane }: LaneSettingsModalProps) {
+export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEditWorkflow, onCreateWorkflowForLane }: LaneSettingsModalProps) {
 	const [name, setName] = useState(lane.name);
 	const [color, setColor] = useState(lane.color || "#71717a");
 	const [wipLimit, setWipLimit] = useState<string>(
@@ -176,7 +177,15 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onEditWorkflow,
 						)}
 					</div>
 
-					<DialogFooter className="mt-6">
+					<DialogFooter className="mt-6 flex items-center">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={onDelete}
+							className="mr-auto text-zinc-500 hover:text-red-400 hover:bg-red-900/20"
+						>
+							Delete lane
+						</Button>
 						<Button variant="ghost" size="sm" onClick={onClose}>
 							Cancel
 						</Button>

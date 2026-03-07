@@ -59,7 +59,7 @@ export function validateIR(ir: WorkflowIR): { valid: boolean; errors: string[] }
 	const startNodes = ir.nodes.filter((n) => n.type === "start");
 	const endNodes = ir.nodes.filter((n) => n.type === "end");
 
-	if (startNodes.length !== 1) errors.push("Workflow must have exactly one Start node");
+	if (startNodes.length !== 1) errors.push("Workflow must have exactly one Entry node");
 	if (endNodes.length === 0) errors.push("Workflow must have at least one End node");
 
 	const nodeIds = new Set(ir.nodes.map((n) => n.id));
@@ -98,7 +98,7 @@ export function getDefaultConfig(type: IRNodeType): IRNodeConfig {
 
 export function getNodeLabel(type: IRNodeType): string {
 	const labels: Record<IRNodeType, string> = {
-		start: "Start",
+		start: "Entry",
 		end: "End",
 		claudeAgent: "Claude Agent",
 		customScript: "Custom Script",

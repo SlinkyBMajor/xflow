@@ -45,7 +45,7 @@ export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow
 					ticketCount={tickets.length}
 					isOverWip={isOverWip}
 					onEdit={() => setSettingsOpen(true)}
-					onDelete={() => laneActions.deleteLane(lane.id)}
+					onOpenWorkflow={lane.workflowId ? () => onEditWorkflow(lane.id, lane.name, lane.workflowId!) : undefined}
 				/>
 
 				<div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1.5 min-h-[40px]">
@@ -75,6 +75,7 @@ export function Lane({ lane, tickets, laneActions, ticketActions, onEditWorkflow
 					laneActions.updateLane(lane.id, updates);
 					setSettingsOpen(false);
 				}}
+				onDelete={() => laneActions.deleteLane(lane.id)}
 				onEditWorkflow={onEditWorkflow}
 				onCreateWorkflowForLane={onCreateWorkflowForLane}
 			/>
