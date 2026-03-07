@@ -1,15 +1,17 @@
 import { Electroview } from "electrobun/view";
-import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun } from "../shared/types";
+import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo } from "../shared/types";
 
 type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
 type ProjectOpenedListener = (data: ProjectOpenResult) => void;
 type PickerResultListener = (path: string | null) => void;
 type WorkflowRunUpdateListener = (run: WorkflowRun) => void;
+type InterruptedRunsListener = (runs: InterruptedRunInfo[]) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
 const pickerListeners = new Set<PickerResultListener>();
 const workflowRunListeners = new Set<WorkflowRunUpdateListener>();
+const interruptedRunsListeners = new Set<InterruptedRunsListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
 	handlers: {
@@ -26,6 +28,9 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			workflowRunUpdated: (data) => {
 				for (const listener of workflowRunListeners) listener(data);
+			},
+			interruptedRunsDetected: (data) => {
+				for (const listener of interruptedRunsListeners) listener(data);
 			},
 		},
 	},
@@ -48,6 +53,11 @@ export function onProjectOpened(listener: ProjectOpenedListener): () => void {
 export function onWorkflowRunUpdated(listener: WorkflowRunUpdateListener): () => void {
 	workflowRunListeners.add(listener);
 	return () => workflowRunListeners.delete(listener);
+}
+
+export function onInterruptedRunsDetected(listener: InterruptedRunsListener): () => void {
+	interruptedRunsListeners.add(listener);
+	return () => interruptedRunsListeners.delete(listener);
 }
 
 export function requestProjectPicker(): Promise<string | null> {

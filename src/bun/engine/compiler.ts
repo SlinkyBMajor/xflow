@@ -17,9 +17,12 @@ export function compileWorkflow(
 	runId: string,
 	db: DB,
 	notifyFrontend: () => void,
+	initialNodeId?: string,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
+
+	const initialState = initialNodeId ?? startNode.id;
 
 	const edgesFrom = new Map<string, string[]>();
 	const edgeLabels = new Map<string, string>();
@@ -49,7 +52,7 @@ export function compileWorkflow(
 		},
 	}).createMachine({
 		id: `workflow-${runId}`,
-		initial: startNode.id,
+		initial: initialState,
 		context: {
 			ticket: { ...ticket },
 			nodeOutputs: {},
@@ -140,11 +143,19 @@ function buildState(
 			};
 		}
 
+		case "waitForApproval": {
+			const on: Record<string, any> = {};
+			for (const targetId of targets) {
+				const label = edgeLabels.get(`${node.id}->${targetId}`) ?? "NEXT";
+				on[label] = { target: targetId };
+			}
+			return { on };
+		}
+
 		// Phase 5 stubs
 		case "claudeAgent":
 		case "customScript":
 		case "notify":
-		case "waitForApproval":
 		case "condition": {
 			return {
 				entry: () => {

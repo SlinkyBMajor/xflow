@@ -2,7 +2,9 @@ import type { BoardWithLanesAndTickets, RecentProject } from "../../../shared/ty
 import { useBoard } from "../../hooks/useBoard";
 import { useLanes } from "../../hooks/useLanes";
 import { useTickets } from "../../hooks/useTickets";
+import { useInterruptedRuns } from "../../hooks/useInterruptedRuns";
 import { BoardHeader } from "./BoardHeader";
+import { InterruptedRunsBanner } from "./InterruptedRunsBanner";
 import { KanbanBoard } from "./KanbanBoard";
 
 interface BoardViewProps {
@@ -35,6 +37,7 @@ export function BoardView({
 	const { refreshBoard, updateBoardName } = useBoard(boardData, setBoardData);
 	const lanes = useLanes(refreshBoard);
 	const tickets = useTickets(refreshBoard);
+	const { interruptedRuns, retryRun, abortRun } = useInterruptedRuns();
 
 	return (
 		<div className="h-screen flex flex-col bg-zinc-950">
@@ -48,6 +51,11 @@ export function BoardView({
 				onOpenProjectPicker={onOpenProjectPicker}
 				onCloseProject={onCloseProject}
 				onSetTab={onSetTab}
+			/>
+			<InterruptedRunsBanner
+				interruptedRuns={interruptedRuns}
+				onRetry={retryRun}
+				onAbort={abortRun}
 			/>
 			<KanbanBoard
 				boardData={boardData}

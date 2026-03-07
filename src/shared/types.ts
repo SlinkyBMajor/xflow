@@ -51,6 +51,7 @@ export interface ProjectInfo {
 export type ProjectOpenResult = {
 	project: ProjectInfo;
 	board: BoardWithLanesAndTickets;
+	interruptedRuns: InterruptedRunInfo[];
 };
 
 // ── Workflow IR Types ──
@@ -168,6 +169,17 @@ export interface RunEvent {
 	timestamp: string;
 }
 
+// ── Interrupted Run Types ──
+
+export interface InterruptedRunInfo {
+	run: WorkflowRun;
+	ticketTitle: string;
+	workflowName: string;
+	interruptedNodeLabel: string | null;
+	interruptedNodeType: IRNodeType | null;
+	autoResumable: boolean;
+}
+
 // ── RPC Schema ──
 
 export type XFlowRPC = {
@@ -265,6 +277,18 @@ export type XFlowRPC = {
 				params: { runId: string };
 				response: RunEvent[];
 			};
+			getInterruptedRuns: {
+				params: {};
+				response: InterruptedRunInfo[];
+			};
+			retryRun: {
+				params: { runId: string };
+				response: WorkflowRun;
+			};
+			abortInterruptedRun: {
+				params: { runId: string };
+				response: void;
+			};
 		};
 		messages: {
 			openProjectPicker: {};
@@ -277,6 +301,7 @@ export type XFlowRPC = {
 			projectOpened: ProjectOpenResult;
 			projectPickerResult: { path: string | null };
 			workflowRunUpdated: WorkflowRun;
+			interruptedRunsDetected: InterruptedRunInfo[];
 		};
 	}>;
 };

@@ -6,7 +6,9 @@ import { createBoard, getFirstBoard } from "../db/queries/boards";
 import { createLane, getLanesByBoard } from "../db/queries/lanes";
 import { getTicketsByBoard } from "../db/queries/tickets";
 import { addRecent } from "./recents";
-import type { ProjectOpenResult, BoardWithLanesAndTickets } from "../../shared/types";
+import { detectInterruptedRuns } from "../engine/recovery";
+import { resumeRun } from "../engine/runner";
+import type { ProjectOpenResult, BoardWithLanesAndTickets, WorkflowRun } from "../../shared/types";
 
 function scaffoldXFlowDir(projectPath: string): void {
 	const xflowDir = `${projectPath}/.xflow`;
@@ -33,7 +35,10 @@ function createDefaultBoard(projectPath: string): void {
 	}
 }
 
-export function openProject(projectPath: string): ProjectOpenResult {
+export function openProject(
+	projectPath: string,
+	notifyFrontend?: (run: WorkflowRun) => void,
+): ProjectOpenResult {
 	const xflowDir = `${projectPath}/.xflow`;
 	const isNew = !existsSync(xflowDir);
 
@@ -56,9 +61,26 @@ export function openProject(projectPath: string): ProjectOpenResult {
 	const projectName = basename(projectPath);
 	addRecent(projectPath, projectName);
 
+	const interrupted = detectInterruptedRuns(db);
+
+	// Auto-resume waitForApproval nodes immediately
+	const nonResumable = interrupted.filter((info) => {
+		if (info.autoResumable && notifyFrontend) {
+			try {
+				resumeRun(db, info.run.id, notifyFrontend);
+			} catch (err) {
+				console.error(`[Recovery] Failed to auto-resume run ${info.run.id}:`, err);
+				return true;
+			}
+			return false;
+		}
+		return true;
+	});
+
 	return {
 		project: { path: projectPath, name: projectName },
 		board: { board, lanes, tickets },
+		interruptedRuns: nonResumable,
 	};
 }
 

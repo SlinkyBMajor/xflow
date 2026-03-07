@@ -3,6 +3,8 @@ import type { DB } from "../db/connection";
 import type { Ticket, WorkflowIR, WorkflowRun } from "../../shared/types";
 import { compileWorkflow } from "./compiler";
 import * as runQueries from "../db/queries/runs";
+import * as workflowQueries from "../db/queries/workflows";
+import * as ticketQueries from "../db/queries/tickets";
 
 const activeActors = new Map<string, AnyActorRef>();
 
@@ -87,6 +89,100 @@ export function startRun(
 	return runId;
 }
 
+export function resumeRun(
+	db: DB,
+	runId: string,
+	notifyFrontend: (run: WorkflowRun) => void,
+): WorkflowRun {
+	const run = runQueries.getRunById(db, runId);
+	if (!run) throw new Error(`Run ${runId} not found`);
+
+	const workflow = workflowQueries.getWorkflowById(db, run.workflowId);
+	if (!workflow) throw new Error(`Workflow ${run.workflowId} not found`);
+
+	const ticket = ticketQueries.getTicket(db, run.ticketId);
+	if (!ticket) throw new Error(`Ticket ${run.ticketId} not found`);
+
+	const machine = compileWorkflow(
+		workflow.definition,
+		ticket,
+		runId,
+		db,
+		() => {
+			const updatedRun = runQueries.getRunById(db, runId);
+			if (updatedRun) notifyFrontend(updatedRun);
+		},
+		run.currentNodeId ?? undefined,
+	);
+
+	const actor = createActor(machine);
+
+	actor.subscribe((state) => {
+		const currentNodeId = typeof state.value === "string" ? state.value : null;
+		const checkpoint = new Date().toISOString();
+
+		runQueries.updateRun(db, runId, {
+			currentNodeId,
+			lastCheckpoint: checkpoint,
+			actorSnapshot: state,
+		});
+
+		runQueries.insertRunEvent(db, {
+			id: crypto.randomUUID(),
+			runId,
+			type: "NODE_COMPLETED",
+			payload: { nodeId: currentNodeId },
+			timestamp: checkpoint,
+		});
+
+		const updatedRun = runQueries.getRunById(db, runId);
+		if (updatedRun) notifyFrontend(updatedRun);
+
+		if (state.status === "done") {
+			runQueries.updateRun(db, runId, {
+				status: "done",
+				nodeStatus: "completed",
+				finishedAt: new Date().toISOString(),
+			});
+			activeActors.delete(runId);
+			const finalRun = runQueries.getRunById(db, runId);
+			if (finalRun) notifyFrontend(finalRun);
+			console.log(`[Workflow ${runId}] Resumed run completed`);
+		}
+
+		if (state.status === "error") {
+			runQueries.updateRun(db, runId, {
+				status: "aborted",
+				nodeStatus: "interrupted",
+				finishedAt: new Date().toISOString(),
+			});
+			activeActors.delete(runId);
+			const errorRun = runQueries.getRunById(db, runId);
+			if (errorRun) notifyFrontend(errorRun);
+			console.error(`[Workflow ${runId}] Resumed run errored`);
+		}
+	});
+
+	runQueries.updateRun(db, runId, {
+		nodeStatus: "running",
+		finishedAt: null,
+	});
+
+	runQueries.insertRunEvent(db, {
+		id: crypto.randomUUID(),
+		runId,
+		type: "RUN_RESUMED",
+		payload: { currentNodeId: run.currentNodeId },
+		timestamp: new Date().toISOString(),
+	});
+
+	activeActors.set(runId, actor);
+	actor.start();
+
+	console.log(`[Workflow ${runId}] Run resumed at node ${run.currentNodeId}`);
+	return runQueries.getRunById(db, runId)!;
+}
+
 export function abortRun(db: DB, runId: string): void {
 	const actor = activeActors.get(runId);
 	if (actor) {
@@ -98,6 +194,14 @@ export function abortRun(db: DB, runId: string): void {
 		status: "aborted",
 		nodeStatus: "interrupted",
 		finishedAt: new Date().toISOString(),
+	});
+
+	runQueries.insertRunEvent(db, {
+		id: crypto.randomUUID(),
+		runId,
+		type: "RUN_ABORTED",
+		payload: {},
+		timestamp: new Date().toISOString(),
 	});
 
 	console.log(`[Workflow ${runId}] Run aborted`);
