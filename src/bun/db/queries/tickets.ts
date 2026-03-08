@@ -1,13 +1,14 @@
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, desc } from "drizzle-orm";
 import type { DB } from "../connection";
-import { tickets, workflowRuns, runEvents } from "../schema";
-import type { Ticket } from "../../../shared/types";
+import { tickets, workflowRuns, runEvents, lanes } from "../schema";
+import type { Ticket, TicketMetadata, TicketDerivedData } from "../../../shared/types";
 
 function rowToTicket(row: typeof tickets.$inferSelect): Ticket {
 	return {
 		...row,
 		tags: row.tags ? JSON.parse(row.tags) : [],
 		metadata: row.metadata ? JSON.parse(row.metadata) : {},
+		laneEnteredAt: row.laneEnteredAt ?? null,
 	};
 }
 
@@ -50,8 +51,9 @@ export function createTicket(
 		title,
 		body,
 		tags: JSON.stringify(tags),
-		metadata: JSON.stringify({}),
+		metadata: JSON.stringify({ runCount: 0, agentRunCount: 0, retryCount: 0, abortCount: 0 }),
 		order,
+		laneEnteredAt: now,
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -67,7 +69,7 @@ export function updateTicket(
 		title?: string;
 		body?: string;
 		tags?: string[];
-		metadata?: Record<string, unknown>;
+		metadata?: TicketMetadata;
 	},
 ): Ticket {
 	const setValues: Record<string, unknown> = {
@@ -111,11 +113,14 @@ export function moveTicket(
 	const sourceLaneId = ticket.laneId;
 
 	// Move the ticket to the target lane
+	const now = new Date().toISOString();
+	const laneChanged = sourceLaneId !== targetLaneId;
 	db.update(tickets)
 		.set({
 			laneId: targetLaneId,
 			order: targetIndex,
-			updatedAt: new Date().toISOString(),
+			updatedAt: now,
+			...(laneChanged ? { laneEnteredAt: now } : {}),
 		})
 		.where(eq(tickets.id, ticketId))
 		.run();
@@ -173,4 +178,196 @@ export function reorderTicketsInLane(
 			.where(eq(tickets.id, ticketIds[i]))
 			.run();
 	}
+}
+
+// ── Metadata Helpers ──
+
+export function incrementMetadataCounter(
+	db: DB,
+	ticketId: string,
+	key: string,
+): void {
+	const row = db.select().from(tickets).where(eq(tickets.id, ticketId)).get();
+	if (!row) return;
+	const metadata: TicketMetadata = row.metadata ? JSON.parse(row.metadata) : {};
+	metadata[key] = ((metadata[key] as number) || 0) + 1;
+	db.update(tickets)
+		.set({ metadata: JSON.stringify(metadata) })
+		.where(eq(tickets.id, ticketId))
+		.run();
+}
+
+export function setMetadataField(
+	db: DB,
+	ticketId: string,
+	key: string,
+	value: unknown,
+): void {
+	const row = db.select().from(tickets).where(eq(tickets.id, ticketId)).get();
+	if (!row) return;
+	const metadata: TicketMetadata = row.metadata ? JSON.parse(row.metadata) : {};
+	metadata[key] = value;
+	db.update(tickets)
+		.set({ metadata: JSON.stringify(metadata) })
+		.where(eq(tickets.id, ticketId))
+		.run();
+}
+
+// ── Derived Data Queries ──
+
+function getLastCompletedNodeId(db: DB, ticketId: string): string | null {
+	const activeRun = db
+		.select()
+		.from(workflowRuns)
+		.where(and(eq(workflowRuns.ticketId, ticketId), eq(workflowRuns.status, "active")))
+		.get();
+	if (!activeRun) return null;
+
+	const event = db
+		.select()
+		.from(runEvents)
+		.where(and(eq(runEvents.runId, activeRun.id), eq(runEvents.type, "NODE_COMPLETED")))
+		.orderBy(desc(runEvents.timestamp))
+		.limit(1)
+		.get();
+	if (!event?.payload) return null;
+	const payload = JSON.parse(event.payload);
+	return payload.nodeId ?? null;
+}
+
+function getTotalRunDurationMs(db: DB, ticketId: string): number {
+	const runs = db
+		.select()
+		.from(workflowRuns)
+		.where(eq(workflowRuns.ticketId, ticketId))
+		.all();
+	let total = 0;
+	for (const run of runs) {
+		if (run.startedAt && run.finishedAt) {
+			total += new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime();
+		}
+	}
+	return total;
+}
+
+function getTotalAgentDurationMs(db: DB, ticketId: string): number {
+	const runs = db
+		.select({ id: workflowRuns.id })
+		.from(workflowRuns)
+		.where(eq(workflowRuns.ticketId, ticketId))
+		.all();
+	let total = 0;
+	for (const run of runs) {
+		const events = db
+			.select()
+			.from(runEvents)
+			.where(and(eq(runEvents.runId, run.id), eq(runEvents.type, "AGENT_COMPLETED")))
+			.all();
+		for (const event of events) {
+			if (event.payload) {
+				const payload = JSON.parse(event.payload);
+				total += payload.durationMs ?? 0;
+			}
+		}
+	}
+	return total;
+}
+
+function getLastAgentOutput(db: DB, ticketId: string): string | null {
+	const runs = db
+		.select({ id: workflowRuns.id })
+		.from(workflowRuns)
+		.where(eq(workflowRuns.ticketId, ticketId))
+		.orderBy(desc(workflowRuns.startedAt))
+		.all();
+	for (const run of runs) {
+		const event = db
+			.select()
+			.from(runEvents)
+			.where(and(eq(runEvents.runId, run.id), eq(runEvents.type, "AGENT_OUTPUT")))
+			.orderBy(desc(runEvents.timestamp))
+			.limit(1)
+			.get();
+		if (event?.payload) {
+			const payload = JSON.parse(event.payload);
+			return payload.summary ?? null;
+		}
+	}
+	return null;
+}
+
+function getLaneHistory(
+	db: DB,
+	ticketId: string,
+): { laneId: string; laneName: string; enteredAt: string; exitedAt: string | null }[] {
+	const runs = db
+		.select({ id: workflowRuns.id })
+		.from(workflowRuns)
+		.where(eq(workflowRuns.ticketId, ticketId))
+		.all();
+	const runIds = runs.map((r) => r.id);
+	if (runIds.length === 0) return [];
+
+	const allEvents: { type: string; payload: string | null; timestamp: string }[] = [];
+	for (const runId of runIds) {
+		const events = db
+			.select()
+			.from(runEvents)
+			.where(and(eq(runEvents.runId, runId), eq(runEvents.type, "LANE_ENTERED")))
+			.orderBy(runEvents.timestamp)
+			.all();
+		allEvents.push(...events.map((e) => ({ type: e.type, payload: e.payload, timestamp: e.timestamp })));
+
+		const exitEvents = db
+			.select()
+			.from(runEvents)
+			.where(and(eq(runEvents.runId, runId), eq(runEvents.type, "LANE_EXITED")))
+			.orderBy(runEvents.timestamp)
+			.all();
+		allEvents.push(...exitEvents.map((e) => ({ type: e.type, payload: e.payload, timestamp: e.timestamp })));
+	}
+
+	allEvents.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+	const history: { laneId: string; laneName: string; enteredAt: string; exitedAt: string | null }[] = [];
+	const openEntries = new Map<string, number>(); // laneId -> index in history
+
+	for (const event of allEvents) {
+		if (!event.payload) continue;
+		const payload = JSON.parse(event.payload);
+		if (event.type === "LANE_ENTERED") {
+			openEntries.set(payload.laneId, history.length);
+			history.push({
+				laneId: payload.laneId,
+				laneName: payload.laneName,
+				enteredAt: payload.timestamp ?? event.timestamp,
+				exitedAt: null,
+			});
+		} else if (event.type === "LANE_EXITED") {
+			const idx = openEntries.get(payload.laneId);
+			if (idx !== undefined) {
+				history[idx].exitedAt = payload.timestamp ?? event.timestamp;
+				openEntries.delete(payload.laneId);
+			}
+		}
+	}
+
+	return history;
+}
+
+function getLaneElapsedMs(db: DB, ticketId: string): number {
+	const ticket = db.select().from(tickets).where(eq(tickets.id, ticketId)).get();
+	if (!ticket?.laneEnteredAt) return 0;
+	return Date.now() - new Date(ticket.laneEnteredAt).getTime();
+}
+
+export function getTicketDerivedData(db: DB, ticketId: string): TicketDerivedData {
+	return {
+		lastCompletedNodeId: getLastCompletedNodeId(db, ticketId),
+		totalRunDurationMs: getTotalRunDurationMs(db, ticketId),
+		totalAgentDurationMs: getTotalAgentDurationMs(db, ticketId),
+		lastAgentOutput: getLastAgentOutput(db, ticketId),
+		laneHistory: getLaneHistory(db, ticketId),
+		laneElapsedMs: getLaneElapsedMs(db, ticketId),
+	};
 }

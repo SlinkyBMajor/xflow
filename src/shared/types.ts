@@ -18,6 +18,24 @@ export interface Lane {
 	workflowId: string | null;
 }
 
+export interface TicketMetadata {
+	runCount?: number;
+	agentRunCount?: number;
+	retryCount?: number;
+	abortCount?: number;
+	lastErrorMessage?: string;
+	[key: string]: unknown;
+}
+
+export interface TicketDerivedData {
+	lastCompletedNodeId: string | null;
+	totalRunDurationMs: number;
+	totalAgentDurationMs: number;
+	lastAgentOutput: string | null;
+	laneHistory: { laneId: string; laneName: string; enteredAt: string; exitedAt: string | null }[];
+	laneElapsedMs: number;
+}
+
 export interface Ticket {
 	id: string;
 	boardId: string;
@@ -25,7 +43,8 @@ export interface Ticket {
 	title: string;
 	body: string | null;
 	tags: string[];
-	metadata: Record<string, unknown>;
+	metadata: TicketMetadata;
+	laneEnteredAt: string | null;
 	order: number;
 	createdAt: string;
 	updatedAt: string;
@@ -268,7 +287,7 @@ export type XFlowRPC = {
 				response: Ticket;
 			};
 			updateTicket: {
-				params: { id: string; title?: string; body?: string; tags?: string[]; metadata?: Record<string, unknown> };
+				params: { id: string; title?: string; body?: string; tags?: string[]; metadata?: TicketMetadata };
 				response: Ticket;
 			};
 			deleteTicket: {
@@ -354,6 +373,10 @@ export type XFlowRPC = {
 			getActiveRunForWorkflow: {
 				params: { workflowId: string };
 				response: WorkflowRunState | null;
+			};
+			getTicketDerivedData: {
+				params: { ticketId: string };
+				response: TicketDerivedData;
 			};
 			abortInterruptedRun: {
 				params: { runId: string };

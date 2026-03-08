@@ -84,6 +84,15 @@ export function getActiveRunForWorkflow(db: DB, workflowId: string): WorkflowRun
 	return row ? rowToRun(row) : null;
 }
 
+export function getActiveRunForTicket(db: DB, ticketId: string): WorkflowRun | null {
+	const row = db
+		.select()
+		.from(workflowRuns)
+		.where(and(eq(workflowRuns.ticketId, ticketId), eq(workflowRuns.status, "active")))
+		.get();
+	return row ? rowToRun(row) : null;
+}
+
 export function getActiveRuns(db: DB): WorkflowRun[] {
 	return db
 		.select()

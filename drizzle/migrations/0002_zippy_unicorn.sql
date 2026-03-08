@@ -1,0 +1,1 @@
+ALTER TABLE `tickets` ADD `lane_entered_at` text;

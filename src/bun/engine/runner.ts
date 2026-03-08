@@ -35,6 +35,9 @@ export function startRun(
 		startedAt: now,
 	});
 
+	// Step 5b: Increment runCount on run start
+	ticketQueries.incrementMetadataCounter(db, ticket.id, "runCount");
+
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
@@ -81,12 +84,17 @@ export function startRun(
 				nodeStatus: "interrupted",
 				finishedAt: new Date().toISOString(),
 			});
+			// Step 5c: Set lastErrorMessage on error
+			ticketQueries.setMetadataField(db, ticket.id, "lastErrorMessage", `Workflow run errored at node ${currentNodeId}`);
 			activeActors.delete(runId);
 			const errorRun = runQueries.getRunById(db, runId);
 			if (errorRun) notifyFrontend(errorRun);
 			console.error(`[Workflow ${runId}] Run errored`);
 		}
 	});
+
+	// TODO (Step 5f): When agent nodes are implemented, increment agentRunCount
+	// and emit AGENT_STARTED/AGENT_COMPLETED/AGENT_OUTPUT events here.
 
 	activeActors.set(runId, actor);
 	actor.start();
@@ -110,6 +118,9 @@ export function resumeRun(
 
 	const ticket = ticketQueries.getTicket(db, run.ticketId);
 	if (!ticket) throw new Error(`Ticket ${run.ticketId} not found`);
+
+	// Step 5e: Increment retryCount on resume
+	ticketQueries.incrementMetadataCounter(db, ticket.id, "retryCount");
 
 	const machine = compileWorkflow(
 		workflow.definition,
@@ -167,6 +178,8 @@ export function resumeRun(
 				nodeStatus: "interrupted",
 				finishedAt: new Date().toISOString(),
 			});
+			// Step 5c: Set lastErrorMessage on resumed run error
+			ticketQueries.setMetadataField(db, ticket.id, "lastErrorMessage", `Workflow run errored at node ${currentNodeId}`);
 			activeActors.delete(runId);
 			const errorRun = runQueries.getRunById(db, runId);
 			if (errorRun) notifyFrontend(errorRun);
@@ -201,6 +214,12 @@ export function abortRun(db: DB, runId: string): void {
 	if (actor) {
 		actor.stop();
 		activeActors.delete(runId);
+	}
+
+	// Step 5d: Increment abortCount — fetch ticketId from the run
+	const run = runQueries.getRunById(db, runId);
+	if (run) {
+		ticketQueries.incrementMetadataCounter(db, run.ticketId, "abortCount");
 	}
 
 	runQueries.updateRun(db, runId, {

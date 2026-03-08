@@ -39,6 +39,7 @@ export const tickets = sqliteTable("tickets", {
 	tags: text("tags"),
 	metadata: text("metadata"),
 	order: integer("order").notNull().default(0),
+	laneEnteredAt: text("lane_entered_at"),
 	createdAt: text("created_at").notNull(),
 	updatedAt: text("updated_at").notNull(),
 });
