@@ -292,7 +292,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 			runQueries.updateRun(db, runId, { mergeResult: result });
 			if (result.success) {
 				await removeWorktree(projectPath, worktreePath);
-				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+				runQueries.updateRun(db, runId, { worktreePath: null });
 			}
 		} else if (mergeStrategy === "pr" && resolvedBaseBranch) {
 			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "pr", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });

@@ -148,7 +148,8 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 		}
 	};
 
-	const showActions = run.worktreePath && !cleaned;
+	const isMergedState = state === "merged";
+	const showActions = run.worktreePath && !cleaned && !isMergedState;
 	const config = stateConfig[state];
 	const StateIcon = config.icon;
 
