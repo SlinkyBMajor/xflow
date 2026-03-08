@@ -4,7 +4,21 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
+
+const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
+	start: "Entry point of the workflow",
+	end: "Terminal node — ends the workflow run",
+	claudeAgent: "Runs a Claude Code agent with a prompt",
+	customScript: "Executes a shell or Bun script",
+	notify: "Sends a desktop notification",
+	waitForApproval: "Pauses the workflow until manually approved",
+	moveToLane: "Moves the ticket to another lane",
+	condition: "Branches based on a JavaScript expression",
+	setMetadata: "Sets a key-value pair on the ticket",
+	log: "Logs a message to the workflow output",
+};
 
 interface NodeConfigPanelProps {
 	node: Node;
@@ -29,7 +43,12 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 	return (
 		<div className="w-64 bg-[#161b22]/50 border-l border-[#21262d] p-4 overflow-y-auto">
 			<div className="flex items-center justify-between mb-4">
-				<h3 className="text-[13px] font-semibold text-[#e6edf3]">{getNodeLabel(nodeType)}</h3>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<h3 className="text-[13px] font-semibold text-[#e6edf3] cursor-default">{getNodeLabel(nodeType)}</h3>
+					</TooltipTrigger>
+					<TooltipContent>{NODE_DESCRIPTIONS[nodeType]}</TooltipContent>
+				</Tooltip>
 			</div>
 
 			<div className="space-y-3">
@@ -48,14 +67,19 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 
 			{!isFlowNode && (
 				<div className="mt-6 pt-4 border-t border-[#21262d]">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => onDelete(node.id)}
-						className="w-full text-red-400 hover:text-red-300 hover:bg-red-950/30"
-					>
-						Delete Node
-					</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => onDelete(node.id)}
+								className="w-full text-red-400 hover:text-red-300 hover:bg-red-950/30"
+							>
+								Delete Node
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Remove this node and disconnect its edges</TooltipContent>
+					</Tooltip>
 				</div>
 			)}
 		</div>

@@ -13,6 +13,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface LaneSettingsModalProps {
 	open: boolean;
@@ -141,7 +142,12 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 
 					{/* Workflow section */}
 					<div className="mt-4 pt-4 border-t border-[#21262d]">
-						<Label className="mb-2">Workflow</Label>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Label className="mb-2 cursor-default">Workflow</Label>
+							</TooltipTrigger>
+							<TooltipContent>Workflow that runs automatically when a ticket enters this lane</TooltipContent>
+						</Tooltip>
 						{lane.workflowId && workflow ? (
 							<div className="rounded-lg border border-[#21262d] bg-[#161b22]/50 p-3">
 								<div className="flex items-start justify-between gap-2">
@@ -233,14 +239,19 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 					</div>
 
 					<DialogFooter className="mt-6 flex items-center">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={onDelete}
-							className="mr-auto text-[#8b949e] hover:text-red-400 hover:bg-red-900/20"
-						>
-							Delete lane
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={onDelete}
+									className="mr-auto text-[#8b949e] hover:text-red-400 hover:bg-red-900/20"
+								>
+									Delete lane
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Permanently delete this lane and move its tickets to the first lane</TooltipContent>
+						</Tooltip>
 						<Button variant="ghost" size="sm" onClick={onClose}>
 							Cancel
 						</Button>

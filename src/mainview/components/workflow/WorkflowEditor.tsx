@@ -27,6 +27,7 @@ import { NodeConfigPanel } from "./NodeConfigPanel";
 import { VersionHistory } from "./VersionHistory";
 import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface WorkflowEditorProps {
 	workflowId: string;
@@ -326,22 +327,32 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 					{saveError && (
 						<span className="text-xs text-red-400 mr-2">{saveError}</span>
 					)}
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => setShowHistory((prev) => !prev)}
-						className={showHistory ? "text-[#58a6ff]" : "text-[#8b949e] hover:text-[#e6edf3]"}
-					>
-						History
-					</Button>
-					<Button
-						size="sm"
-						onClick={handleSave}
-						disabled={!isDirty || isRunning}
-						className={isDirty && !isRunning ? "bg-[#238636] hover:bg-[#2ea043] text-white" : ""}
-					>
-						{isDirty ? "Save" : "Saved"}
-					</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setShowHistory((prev) => !prev)}
+								className={showHistory ? "text-[#58a6ff]" : "text-[#8b949e] hover:text-[#e6edf3]"}
+							>
+								History
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Version history (⌘⇧H)</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								size="sm"
+								onClick={handleSave}
+								disabled={!isDirty || isRunning}
+								className={isDirty && !isRunning ? "bg-[#238636] hover:bg-[#2ea043] text-white" : ""}
+							>
+								{isDirty ? "Save" : "Saved"}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Save workflow (⌘S)</TooltipContent>
+					</Tooltip>
 				</div>
 			</div>
 
