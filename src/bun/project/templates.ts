@@ -116,7 +116,7 @@ export function applyTemplate(db: DB, boardId: string, template: BoardTemplate):
 	}
 }
 
-function remapMoveToLaneNodes(ir: WorkflowIR, laneNameToId: Map<string, string>): WorkflowIR {
+export function remapMoveToLaneNodes(ir: WorkflowIR, laneNameToId: Map<string, string>): WorkflowIR {
 	return {
 		...ir,
 		nodes: ir.nodes.map((node) => {
