@@ -23,51 +23,17 @@ export function useWorktreeRuns() {
 	}, [refreshWorktreeRuns]);
 
 	useEffect(() => {
-		const unsubRun = onWorkflowRunUpdated((run) => {
-			if (run.worktreePath) {
-				// Re-fetch from backend to get fresh git change summaries
-				refreshWorktreeRuns();
-			} else {
-				// worktreePath became null — remove entry
-				setWorktreeRuns((prev) => {
-					if (!prev.has(run.ticketId)) return prev;
-					const existing = prev.get(run.ticketId);
-					if (existing && existing.run.id === run.id) {
-						const next = new Map(prev);
-						next.delete(run.ticketId);
-						return next;
-					}
-					return prev;
-				});
-			}
+		const unsubRun = onWorkflowRunUpdated(() => {
+			// Always re-fetch — the broadened query handles both active and merged PR runs
+			refreshWorktreeRuns();
 		});
 
-		const unsubCleanup = onWorktreeCleanupDone(({ runId }) => {
-			setWorktreeRuns((prev) => {
-				const next = new Map(prev);
-				for (const [ticketId, info] of next) {
-					if (info.run.id === runId) {
-						next.delete(ticketId);
-						break;
-					}
-				}
-				return next;
-			});
+		const unsubCleanup = onWorktreeCleanupDone(() => {
+			refreshWorktreeRuns();
 		});
 
-		const unsubMerge = onWorktreeMergeResult(({ runId, result }) => {
-			if (result.success) {
-				setWorktreeRuns((prev) => {
-					const next = new Map(prev);
-					for (const [ticketId, info] of next) {
-						if (info.run.id === runId) {
-							next.delete(ticketId);
-							break;
-						}
-					}
-					return next;
-				});
-			}
+		const unsubMerge = onWorktreeMergeResult(() => {
+			refreshWorktreeRuns();
 		});
 
 		return () => { unsubRun(); unsubCleanup(); unsubMerge(); };

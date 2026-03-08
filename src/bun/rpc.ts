@@ -67,7 +67,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						getDb: () => getConnection(path),
 						notify: {
 							worktreeMergeResult: (data) => mainWindow?.webview.rpc.send.worktreeMergeResult(data),
-							worktreeCleanupDone: (data) => mainWindow?.webview.rpc.send.worktreeCleanupDone(data),
+							workflowRunUpdated: (run) => mainWindow?.webview.rpc.send.workflowRunUpdated(run),
 						},
 					});
 					return result;
@@ -452,7 +452,10 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 							await removeWorktree(projectPath, run.worktreePath);
 						}
 						runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
-						mainWindow?.webview.rpc.send.worktreeCleanupDone({ runId });
+						const updatedRun = runQueries.getRunById(db, runId);
+						if (updatedRun) {
+							mainWindow?.webview.rpc.send.workflowRunUpdated(updatedRun);
+						}
 					} catch (err) {
 						console.error(`[RPC] markPrMerged error:`, err);
 					}

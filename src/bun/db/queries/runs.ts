@@ -1,4 +1,4 @@
-import { eq, desc, and, isNotNull } from "drizzle-orm";
+import { eq, desc, and, isNotNull, sql, or, like } from "drizzle-orm";
 import type { DB } from "../connection";
 import { workflowRuns, runEvents } from "../schema";
 import type { WorkflowRun, RunEvent, MergeResult } from "../../../shared/types";
@@ -119,7 +119,10 @@ export function getRunsWithWorktrees(db: DB): WorkflowRun[] {
 	return db
 		.select()
 		.from(workflowRuns)
-		.where(isNotNull(workflowRuns.worktreePath))
+		.where(or(
+			isNotNull(workflowRuns.worktreePath),
+			like(workflowRuns.mergeResult, '%"prUrl"%'),
+		))
 		.all()
 		.map(rowToRun);
 }

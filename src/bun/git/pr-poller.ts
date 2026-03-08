@@ -1,5 +1,5 @@
 import type { DB } from "../db/connection";
-import type { MergeResult } from "../../shared/types";
+import type { MergeResult, WorkflowRun } from "../../shared/types";
 import * as runQueries from "../db/queries/runs";
 import { removeWorktree } from "./worktree";
 
@@ -10,7 +10,7 @@ interface PollContext {
 	getDb: () => DB;
 	notify: {
 		worktreeMergeResult: (data: { runId: string; result: MergeResult }) => void;
-		worktreeCleanupDone: (data: { runId: string }) => void;
+		workflowRunUpdated: (run: WorkflowRun) => void;
 	};
 }
 
@@ -74,8 +74,11 @@ async function pollOpenPRs(ctx: PollContext) {
 			// Update DB
 			runQueries.updateRun(db, run.id, { worktreePath: null, worktreeBranch: null });
 
-			// Notify webview
-			ctx.notify.worktreeCleanupDone({ runId: run.id });
+			// Notify webview with updated run
+			const updatedRun = runQueries.getRunById(db, run.id);
+			if (updatedRun) {
+				ctx.notify.workflowRunUpdated(updatedRun);
+			}
 		}
 	} catch (err) {
 		console.error(`[PR Poller] Poll error:`, err);

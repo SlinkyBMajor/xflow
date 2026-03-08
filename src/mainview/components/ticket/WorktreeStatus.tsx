@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GitBranch, GitPullRequest, ExternalLink } from "lucide-react";
+import { GitBranch, GitPullRequest, GitMerge, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone, openExternal } from "../../rpc";
@@ -14,6 +14,7 @@ type WorktreeState = "active" | "merged" | "conflict" | "pr_created" | "pending"
 function getWorktreeState(run: WorkflowRun, mergeResult: MergeResult | null): WorktreeState {
 	if (run.status === "active") return "active";
 	if (mergeResult?.conflicted) return "conflict";
+	if (mergeResult?.success && mergeResult.prUrl && !run.worktreePath) return "merged";
 	if (mergeResult?.success && mergeResult.prUrl) return "pr_created";
 	if (mergeResult?.success) return "merged";
 	if (!run.worktreePath) return "merged";
@@ -122,7 +123,9 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 		<div className="space-y-4">
 			<div className="flex items-center gap-3">
 				<div className="flex items-center gap-2">
-					{state === "pr_created" ? (
+					{state === "merged" && mergeResult?.prUrl ? (
+						<GitMerge size={14} className="text-green-400" />
+					) : state === "pr_created" ? (
 						<GitPullRequest size={14} className="text-purple-400" />
 					) : (
 						<GitBranch size={14} className="text-[#8b949e]" />

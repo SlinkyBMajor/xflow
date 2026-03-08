@@ -1,4 +1,4 @@
-import { GitBranch, GitPullRequest } from "lucide-react";
+import { GitBranch, GitPullRequest, GitMerge } from "lucide-react";
 import type { WorkflowRun } from "../../../shared/types";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 
@@ -11,6 +11,7 @@ type WorktreeState = "active" | "merged" | "conflict" | "pr_created" | "pending"
 function getWorktreeState(run: WorkflowRun): WorktreeState {
 	if (run.status === "active") return "active";
 	if (run.mergeResult?.conflicted) return "conflict";
+	if (run.mergeResult?.success && run.mergeResult.prUrl && !run.worktreePath) return "merged";
 	if (run.mergeResult?.success && run.mergeResult.prUrl) return "pr_created";
 	if (run.mergeResult?.success) return "merged";
 	if (!run.worktreePath) return "merged";
@@ -36,13 +37,18 @@ const stateLabels: Record<WorktreeState, string> = {
 export function WorktreeSidebarIndicator({ run }: WorktreeSidebarIndicatorProps) {
 	const { copied, copy } = useCopyFeedback();
 	const state = getWorktreeState(run);
-	const Icon = state === "pr_created" ? GitPullRequest : GitBranch;
+	const Icon = state === "merged" && run.mergeResult?.prUrl ? GitMerge
+		: state === "pr_created" ? GitPullRequest
+		: GitBranch;
+	const iconColor = state === "merged" && run.mergeResult?.prUrl ? "text-green-400"
+		: state === "pr_created" ? "text-purple-400"
+		: "text-[#8b949e]";
 
 	return (
 		<div className="space-y-2">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-1.5">
-					<Icon size={12} className={state === "pr_created" ? "text-purple-400" : "text-[#8b949e]"} />
+					<Icon size={12} className={iconColor} />
 					<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 						Worktree
 					</span>
