@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { GitBranch, GitPullRequest, GitMerge, ExternalLink } from "lucide-react";
+import { GitBranch, GitPullRequest, GitMerge, ExternalLink, Copy, Check, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone, openExternal } from "../../rpc";
 import type { WorkflowRun, MergeResult } from "../../../shared/types";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 
 interface WorktreeStatusProps {
 	run: WorkflowRun;
@@ -21,20 +22,48 @@ function getWorktreeState(run: WorkflowRun, mergeResult: MergeResult | null): Wo
 	return "pending";
 }
 
-const stateStyles: Record<WorktreeState, string> = {
-	active: "bg-yellow-900/30 text-yellow-400 border-yellow-800",
-	merged: "bg-green-900/30 text-green-400 border-green-800",
-	conflict: "bg-red-900/30 text-red-400 border-red-800",
-	pr_created: "bg-purple-900/30 text-purple-400 border-purple-800",
-	pending: "bg-blue-900/30 text-blue-400 border-blue-800",
-};
-
-const stateLabels: Record<WorktreeState, string> = {
-	active: "Active",
-	merged: "Merged",
-	conflict: "Conflict",
-	pr_created: "PR Open",
-	pending: "Pending",
+const stateConfig: Record<WorktreeState, {
+	label: string;
+	badgeClass: string;
+	accentBorder: string;
+	icon: typeof GitBranch;
+	iconClass: string;
+}> = {
+	active: {
+		label: "Active",
+		badgeClass: "bg-yellow-900/30 text-yellow-400 border-yellow-700/50",
+		accentBorder: "border-l-yellow-500",
+		icon: GitBranch,
+		iconClass: "text-yellow-400",
+	},
+	merged: {
+		label: "Merged",
+		badgeClass: "bg-green-900/30 text-green-400 border-green-700/50",
+		accentBorder: "border-l-green-500",
+		icon: GitMerge,
+		iconClass: "text-green-400",
+	},
+	conflict: {
+		label: "Conflict",
+		badgeClass: "bg-red-900/30 text-red-400 border-red-700/50",
+		accentBorder: "border-l-red-500",
+		icon: AlertTriangle,
+		iconClass: "text-red-400",
+	},
+	pr_created: {
+		label: "PR Open",
+		badgeClass: "bg-purple-900/30 text-purple-400 border-purple-700/50",
+		accentBorder: "border-l-purple-500",
+		icon: GitPullRequest,
+		iconClass: "text-purple-400",
+	},
+	pending: {
+		label: "Pending",
+		badgeClass: "bg-blue-900/30 text-blue-400 border-blue-700/50",
+		accentBorder: "border-l-blue-500",
+		icon: GitBranch,
+		iconClass: "text-[#8b949e]",
+	},
 };
 
 function DiffLine({ line }: { line: string }) {
@@ -56,6 +85,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	const [showDiff, setShowDiff] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [cleaned, setCleaned] = useState(false);
+	const { copied, copy } = useCopyFeedback();
 
 	useEffect(() => {
 		const unsubMerge = onWorktreeMergeResult(({ runId, result }) => {
@@ -113,176 +143,213 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 
 	const copyBranch = () => {
 		if (run.worktreeBranch) {
-			navigator.clipboard.writeText(run.worktreeBranch);
+			copy(run.worktreeBranch);
 		}
 	};
 
 	const showActions = run.worktreePath && !cleaned;
+	const config = stateConfig[state];
+	const StateIcon = config.icon;
+
+	const hasBody = run.worktreeBranch
+		|| (mergeResult?.conflicted && mergeResult.conflictFiles)
+		|| (mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl)
+		|| mergeResult?.prUrl
+		|| (mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error)
+		|| loading
+		|| (showActions && (state === "pending" || state === "conflict" || state === "pr_created"))
+		|| (showDiff && diffText);
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-center gap-3">
-				<div className="flex items-center gap-2">
-					{state === "merged" && mergeResult?.prUrl ? (
-						<GitMerge size={14} className="text-green-400" />
-					) : state === "pr_created" ? (
-						<GitPullRequest size={14} className="text-purple-400" />
-					) : (
-						<GitBranch size={14} className="text-[#8b949e]" />
-					)}
-					<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
-						Worktree
-					</span>
-				</div>
-				<span className={`text-[10px] px-1.5 py-0.5 rounded border ${stateStyles[state]}`}>
-					{stateLabels[state]}
+		<div className={`rounded-lg border border-[#30363d] border-l-2 ${config.accentBorder} bg-[#161b22] overflow-hidden`}>
+			{/* Header */}
+			<div className="flex items-center gap-2.5 px-3.5 py-2.5">
+				<StateIcon size={14} className={config.iconClass} />
+				<span className="text-[11px] font-medium text-[#e6edf3] tracking-tight">
+					Worktree
 				</span>
+				<span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${config.badgeClass}`}>
+					{config.label}
+				</span>
+
+				{run.worktreeBranch && (
+					<button
+						onClick={copyBranch}
+						className="ml-auto flex items-center gap-1.5 text-[11px] font-mono text-[#58a6ff] bg-[#0d1117] rounded-md px-2 py-1 border border-[#21262d] hover:border-[#58a6ff]/40 transition-colors truncate max-w-[240px] group"
+						title="Click to copy branch name"
+					>
+						<span className="truncate">{run.worktreeBranch}</span>
+						{copied ? (
+							<Check size={10} className="text-emerald-400 shrink-0" />
+						) : (
+							<Copy size={10} className="text-[#6e7681] group-hover:text-[#58a6ff] shrink-0 transition-colors" />
+						)}
+					</button>
+				)}
 			</div>
 
-			{run.worktreeBranch && (
-				<button
-					onClick={copyBranch}
-					className="text-left text-xs font-mono text-[#58a6ff] bg-[#0d1117] rounded px-3 py-2 border border-[#21262d] hover:border-[#58a6ff]/50 transition-colors truncate max-w-md"
-					title="Click to copy branch name"
-				>
-					{run.worktreeBranch}
-				</button>
-			)}
+			{/* Body */}
+			{hasBody && (
+				<div className="border-t border-[#21262d] px-3.5 py-3 space-y-3">
+					{/* Conflict files */}
+					{mergeResult?.conflicted && mergeResult.conflictFiles && (
+						<div className="text-xs space-y-1.5">
+							<p className="text-red-400 font-medium">Conflicted files:</p>
+							<ul className="space-y-0.5">
+								{mergeResult.conflictFiles.map((f) => (
+									<li key={f} className="font-mono text-[11px] text-red-300/80 truncate pl-2 border-l border-red-800/50">
+										{f}
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 
-			{mergeResult?.conflicted && mergeResult.conflictFiles && (
-				<div className="text-xs text-red-400 space-y-1">
-					<p className="font-medium">Conflicted files:</p>
-					<ul className="list-disc list-inside space-y-0.5">
-						{mergeResult.conflictFiles.map((f) => (
-							<li key={f} className="font-mono truncate">{f}</li>
-						))}
-					</ul>
+					{/* Success message */}
+					{mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl && (
+						<div className="flex items-center gap-2 text-xs text-green-400">
+							<GitMerge size={12} />
+							<span>Merged successfully</span>
+						</div>
+					)}
+
+					{/* PR link */}
+					{mergeResult?.prUrl && (
+						<button
+							type="button"
+							onClick={() => openExternal(mergeResult.prUrl!)}
+							className="flex items-center gap-2 text-xs text-purple-400 hover:text-purple-300 transition-colors w-full group"
+						>
+							<GitPullRequest size={12} className="shrink-0" />
+							<span className="font-mono truncate">{mergeResult.prUrl}</span>
+							<ExternalLink size={10} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+						</button>
+					)}
+
+					{/* Error message */}
+					{mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error && (
+						<p className="text-xs text-red-400">{mergeResult.error}</p>
+					)}
+
+					{/* Loading */}
+					{loading && (
+						<div className="flex items-center gap-2 text-xs text-[#8b949e]">
+							<span className="relative flex h-1.5 w-1.5">
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b949e] opacity-75" />
+								<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#8b949e]" />
+							</span>
+							Working...
+						</div>
+					)}
+
+					{/* Actions — pending */}
+					{state === "pending" && showActions && (
+						<div className="flex items-center gap-1.5 pt-0.5">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleViewDiff}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+							>
+								{showDiff ? "Hide Diff" : "View Diff"}
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => handleMerge("auto")}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+							>
+								Merge
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => handleMerge("pr")}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+							>
+								Create PR
+							</Button>
+							<div className="flex-1" />
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleCleanup}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+							>
+								Cleanup
+							</Button>
+						</div>
+					)}
+
+					{/* Actions — conflict */}
+					{state === "conflict" && showActions && (
+						<div className="flex items-center gap-1.5 pt-0.5">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => handleMerge("auto")}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+							>
+								Retry Merge
+							</Button>
+							<div className="flex-1" />
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleCleanup}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+							>
+								Cleanup
+							</Button>
+						</div>
+					)}
+
+					{/* Actions — pr_created */}
+					{state === "pr_created" && showActions && (
+						<div className="flex items-center gap-1.5 pt-0.5">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									setLoading(true);
+									rpc.request.markPrMerged({ runId: run.id });
+								}}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+							>
+								Mark as Merged
+							</Button>
+							<div className="flex-1" />
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleCleanup}
+								disabled={loading}
+								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+							>
+								Cleanup
+							</Button>
+						</div>
+					)}
+
+					{/* Diff viewer */}
+					{showDiff && diffText && (
+						<pre className="text-[11px] font-mono bg-[#0d1117] rounded-md p-3 border border-[#21262d] max-h-72 overflow-auto whitespace-pre-wrap leading-relaxed scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
+							{diffText.split("\n").map((line, i) => (
+								<span key={i}>
+									<DiffLine line={line} />
+									{"\n"}
+								</span>
+							))}
+						</pre>
+					)}
 				</div>
-			)}
-
-			{mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl && (
-				<p className="text-xs text-green-400">Merged successfully</p>
-			)}
-
-			{mergeResult?.prUrl && (
-				<button
-					type="button"
-					onClick={() => openExternal(mergeResult.prUrl!)}
-					className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
-				>
-					<GitPullRequest size={12} />
-					<span className="font-mono">{mergeResult.prUrl}</span>
-					<ExternalLink size={10} />
-				</button>
-			)}
-
-			{mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error && (
-				<p className="text-xs text-red-400">{mergeResult.error}</p>
-			)}
-
-			{loading && (
-				<p className="text-xs text-[#8b949e]">Working...</p>
-			)}
-
-			{state === "pending" && showActions && (
-				<div className="flex gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleViewDiff}
-						disabled={loading}
-						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
-					>
-						{showDiff ? "Hide Diff" : "View Diff"}
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => handleMerge("auto")}
-						disabled={loading}
-						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
-					>
-						Merge
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => handleMerge("pr")}
-						disabled={loading}
-						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
-					>
-						Create PR
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleCleanup}
-						disabled={loading}
-						className="text-xs h-8 text-red-400 hover:text-red-300"
-					>
-						Cleanup
-					</Button>
-				</div>
-			)}
-
-			{state === "conflict" && showActions && (
-				<div className="flex gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => handleMerge("auto")}
-						disabled={loading}
-						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
-					>
-						Retry Merge
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleCleanup}
-						disabled={loading}
-						className="text-xs h-8 text-red-400 hover:text-red-300"
-					>
-						Cleanup
-					</Button>
-				</div>
-			)}
-
-			{state === "pr_created" && showActions && (
-				<div className="flex gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => {
-							setLoading(true);
-							rpc.request.markPrMerged({ runId: run.id });
-						}}
-						disabled={loading}
-						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
-					>
-						Mark as Merged
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleCleanup}
-						disabled={loading}
-						className="text-xs h-8 text-red-400 hover:text-red-300"
-					>
-						Cleanup
-					</Button>
-				</div>
-			)}
-
-			{showDiff && diffText && (
-				<pre className="text-[11px] font-mono bg-[#0d1117] rounded-lg p-3 border border-[#21262d] max-h-80 overflow-auto whitespace-pre-wrap leading-relaxed">
-					{diffText.split("\n").map((line, i) => (
-						<span key={i}>
-							<DiffLine line={line} />
-							{"\n"}
-						</span>
-					))}
-				</pre>
 			)}
 		</div>
 	);
