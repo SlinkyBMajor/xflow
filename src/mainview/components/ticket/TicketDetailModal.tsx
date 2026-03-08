@@ -35,7 +35,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const { copied: metaCopied, copy: copyMeta } = useCopyFeedback();
 	const { runs } = useWorkflowRuns(open ? ticket.id : null);
 	const activeRun = runs.find((r) => r.status === "active");
-	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch);
+	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch || r.mergeResult);
 	const { events } = useRunEvents(activeRun?.id ?? null);
 
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));

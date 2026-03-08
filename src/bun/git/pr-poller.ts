@@ -72,7 +72,7 @@ async function pollOpenPRs(ctx: PollContext) {
 			}
 
 			// Update DB
-			runQueries.updateRun(db, run.id, { worktreePath: null, worktreeBranch: null });
+			runQueries.updateRun(db, run.id, { worktreePath: null });
 
 			// Notify webview with updated run
 			const updatedRun = runQueries.getRunById(db, run.id);

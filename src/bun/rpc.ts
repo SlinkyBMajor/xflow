@@ -358,7 +358,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 						if (result.success && mergeStrategy === "auto" && run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
-							runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+							runQueries.updateRun(db, runId, { worktreePath: null });
 						}
 
 						mainWindow?.webview.rpc.send.worktreeMergeResult({ runId, result });
@@ -432,7 +432,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				(async () => {
 					try {
 						await removeWorktree(projectPath, worktreePath);
-						runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+						runQueries.updateRun(db, runId, { worktreePath: null });
 						mainWindow?.webview.rpc.send.worktreeCleanupDone({ runId });
 					} catch (err) {
 						console.error(`[RPC] cleanupWorktree error:`, err);
@@ -451,7 +451,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						if (run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
 						}
-						runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+						runQueries.updateRun(db, runId, { worktreePath: null });
 						const updatedRun = runQueries.getRunById(db, runId);
 						if (updatedRun) {
 							mainWindow?.webview.rpc.send.workflowRunUpdated(updatedRun);

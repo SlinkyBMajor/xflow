@@ -121,6 +121,7 @@ export function getRunsWithWorktrees(db: DB): WorkflowRun[] {
 		.from(workflowRuns)
 		.where(or(
 			isNotNull(workflowRuns.worktreePath),
+			isNotNull(workflowRuns.worktreeBranch),
 			like(workflowRuns.mergeResult, '%"prUrl"%'),
 		))
 		.all()
