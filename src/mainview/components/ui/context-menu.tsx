@@ -19,7 +19,7 @@ const ContextMenuContent = React.forwardRef<
     <ContextMenuPrimitive.Content
       ref={ref}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl animate-in fade-in-0 zoom-in-95",
+        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-[#30363d] bg-[#161b22] shadow-xl animate-in fade-in-0 zoom-in-95",
         className
       )}
       {...props}
@@ -37,7 +37,7 @@ const ContextMenuItem = React.forwardRef<
   <ContextMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center gap-2.5 px-3 py-2 text-[12px] outline-none transition-colors focus:bg-zinc-800/60 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-pointer select-none items-center gap-2.5 px-3 py-2 text-[12px] outline-none transition-colors focus:bg-[#21262d] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       inset && "pl-8",
       className
     )}
@@ -55,7 +55,7 @@ const ContextMenuLabel = React.forwardRef<
   <ContextMenuPrimitive.Label
     ref={ref}
     className={cn(
-      "px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-600",
+      "px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-[#6e7681]",
       inset && "pl-8",
       className
     )}
@@ -70,7 +70,7 @@ const ContextMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.Separator
     ref={ref}
-    className={cn("my-1 h-px bg-zinc-800", className)}
+    className={cn("my-1 h-px bg-[#21262d]", className)}
     {...props}
   />
 ))
@@ -85,14 +85,14 @@ const ContextMenuSubTrigger = React.forwardRef<
   <ContextMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center gap-2.5 px-3 py-2 text-[12px] outline-none transition-colors focus:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60",
+      "relative flex cursor-pointer select-none items-center gap-2.5 px-3 py-2 text-[12px] outline-none transition-colors focus:bg-[#21262d] data-[state=open]:bg-[#21262d]/60",
       inset && "pl-8",
       className
     )}
     {...props}
   >
     {children}
-    <svg className="ml-auto h-3.5 w-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <svg className="ml-auto h-3.5 w-3.5 text-[#8b949e]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
   </ContextMenuPrimitive.SubTrigger>
 ))
 ContextMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger.displayName
@@ -105,7 +105,7 @@ const ContextMenuSubContent = React.forwardRef<
     <ContextMenuPrimitive.SubContent
       ref={ref}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl animate-in fade-in-0 zoom-in-95",
+        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-[#30363d] bg-[#161b22] shadow-xl animate-in fade-in-0 zoom-in-95",
         className
       )}
       {...props}

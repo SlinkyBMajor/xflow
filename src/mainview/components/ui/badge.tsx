@@ -9,13 +9,13 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-zinc-700/50 text-zinc-400 border border-zinc-700/30",
+          "bg-[#21262d] text-[#8b949e] border border-[#30363d]/50",
         secondary:
-          "bg-zinc-800 text-zinc-300 border border-zinc-700/50",
+          "bg-[#161b22] text-[#e6edf3] border border-[#30363d]",
         destructive:
           "bg-red-900/30 text-red-400 border border-red-800/30",
         outline:
-          "text-zinc-400 border border-zinc-700/50",
+          "text-[#8b949e] border border-[#30363d]",
       },
     },
     defaultVariants: {

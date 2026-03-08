@@ -7,12 +7,12 @@ function ClaudeAgentNodeInner({ data, selected }: NodeProps) {
 	const preview = prompt.length > 40 ? prompt.slice(0, 40) + "..." : prompt;
 
 	return (
-		<WorkflowNodeShell selected={selected} accentColor="#8b5cf6" runStatus={data.runStatus as any}>
+		<WorkflowNodeShell selected={selected} accentColor="#58a6ff" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
-				<span className="text-violet-400 text-sm font-bold">&#10022;</span>
-				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>
+				<span className="text-[#58a6ff] text-sm font-bold">&#10022;</span>
+				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
-			{preview && <p className="text-xs text-zinc-500 mt-1 font-mono truncate">{preview}</p>}
+			{preview && <p className="text-xs text-[#8b949e] mt-1 font-mono truncate">{preview}</p>}
 		</WorkflowNodeShell>
 	);
 }

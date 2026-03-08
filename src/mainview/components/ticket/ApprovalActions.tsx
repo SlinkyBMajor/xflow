@@ -41,7 +41,7 @@ export function ApprovalActions({ runId, message }: ApprovalActionsProps) {
 			</div>
 
 			{message && (
-				<p className="text-[12px] text-zinc-400 mb-3 leading-relaxed">
+				<p className="text-[12px] text-[#8b949e] mb-3 leading-relaxed">
 					{message}
 				</p>
 			)}

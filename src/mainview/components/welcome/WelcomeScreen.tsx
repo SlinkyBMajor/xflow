@@ -18,18 +18,18 @@ export function WelcomeScreen({
 	return (
 		<div className="h-screen flex flex-col items-center justify-center relative overflow-hidden">
 			{/* Atmospheric background */}
-			<div className="absolute inset-0 bg-zinc-950">
+			<div className="absolute inset-0 bg-[#0d1117]">
 				<div
 					className="absolute inset-0 opacity-30"
 					style={{
 						background:
-							"radial-gradient(ellipse 80% 50% at 50% 40%, rgba(167, 139, 250, 0.08), transparent)",
+							"radial-gradient(ellipse 80% 50% at 50% 40%, rgba(88, 166, 255, 0.06), transparent)",
 					}}
 				/>
 				<div
 					className="absolute inset-0"
 					style={{
-						backgroundImage: `radial-gradient(rgba(161, 161, 170, 0.06) 1px, transparent 1px)`,
+						backgroundImage: `radial-gradient(rgba(139, 148, 158, 0.05) 1px, transparent 1px)`,
 						backgroundSize: "24px 24px",
 					}}
 				/>
@@ -39,13 +39,13 @@ export function WelcomeScreen({
 				{/* Logo / Title */}
 				<div className="text-center mb-10">
 					<div className="inline-flex items-center gap-3 mb-4">
-						<div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
+						<div className="w-8 h-8 rounded-lg bg-[#58a6ff]/15 border border-[#58a6ff]/25 flex items-center justify-center">
 							<svg
 								width="16"
 								height="16"
 								viewBox="0 0 16 16"
 								fill="none"
-								className="text-violet-400"
+								className="text-[#58a6ff]"
 							>
 								<path
 									d="M2 4h4v4H2V4zm0 6h4v4H2v-4zm6-6h4v4H8V4zm0 6h4v4H8v-4z"
@@ -56,13 +56,13 @@ export function WelcomeScreen({
 							</svg>
 						</div>
 						<h1
-							className="text-2xl font-semibold tracking-tight text-zinc-100"
+							className="text-2xl font-semibold tracking-tight text-[#e6edf3]"
 							style={{ fontFamily: "var(--font-display)" }}
 						>
 							XFlow
 						</h1>
 					</div>
-					<p className="text-sm text-zinc-500 leading-relaxed">
+					<p className="text-sm text-[#8b949e] leading-relaxed">
 						Agentic Kanban board with workflow engines.
 						<br />
 						Open a project directory to begin.
@@ -72,7 +72,7 @@ export function WelcomeScreen({
 				{/* Open Project Button */}
 				<Button
 					onClick={onOpenProject}
-					className="w-full gap-2.5 py-3 h-auto bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/30 hover:shadow-violet-800/40"
+					className="w-full gap-2.5 py-3 h-auto bg-[#238636] hover:bg-[#2ea043] text-white shadow-lg shadow-[#238636]/20 hover:shadow-[#2ea043]/30"
 				>
 					<svg
 						width="16"
@@ -95,10 +95,10 @@ export function WelcomeScreen({
 				{recentProjects.length > 0 && (
 					<div className="mt-8">
 						<div className="flex items-center gap-2 mb-3 px-1">
-							<span className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+							<span className="text-[11px] font-medium uppercase tracking-wider text-[#6e7681]">
 								Recent
 							</span>
-							<div className="flex-1 h-px bg-zinc-800/80" />
+							<div className="flex-1 h-px bg-[#21262d]" />
 						</div>
 						<RecentProjectList
 							projects={recentProjects}
@@ -110,7 +110,7 @@ export function WelcomeScreen({
 			</div>
 
 			{/* Version tag */}
-			<div className="absolute bottom-4 text-[10px] text-zinc-700 font-mono">
+			<div className="absolute bottom-4 text-[10px] text-[#484f58] font-mono">
 				v0.1.0
 			</div>
 		</div>

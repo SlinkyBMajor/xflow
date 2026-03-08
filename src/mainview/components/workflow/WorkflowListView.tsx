@@ -58,14 +58,14 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 	return (
 		<div className="flex-1 flex overflow-hidden">
 			{/* Sidebar */}
-			<div className="w-60 flex-shrink-0 border-r border-zinc-800/50 flex flex-col bg-zinc-900/20">
+			<div className="w-60 flex-shrink-0 border-r border-[#21262d] flex flex-col bg-[#161b22]/30">
 				{/* Sidebar header */}
-				<div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/40">
-					<span className="text-[10px] text-zinc-600 font-mono tracking-widest uppercase">Workflows</span>
+				<div className="flex items-center justify-between px-3 py-2 border-b border-[#21262d]/40">
+					<span className="text-[10px] text-[#6e7681] font-mono tracking-widest uppercase">Workflows</span>
 					<Button
 						size="sm"
 						onClick={handleCreate}
-						className="bg-violet-600 hover:bg-violet-500 text-white text-[11px] h-6 px-2"
+						className="bg-[#238636] hover:bg-[#2ea043] text-white text-[11px] h-6 px-2"
 					>
 						<svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mr-1">
 							<path d="M5 2V8M2 5H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -78,20 +78,20 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 				<div className="flex-1 overflow-y-auto py-1">
 					{loading ? (
 						<div className="flex items-center justify-center h-24">
-							<span className="text-[11px] text-zinc-600 font-mono">Loading...</span>
+							<span className="text-[11px] text-[#6e7681] font-mono">Loading...</span>
 						</div>
 					) : workflows.length === 0 ? (
 						<div className="flex flex-col items-center justify-center h-48 px-4 gap-3">
-							<div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800/60 flex items-center justify-center">
-								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-zinc-700">
+							<div className="w-10 h-10 rounded-lg bg-[#161b22] border border-[#21262d] flex items-center justify-center">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[#484f58]">
 									<path d="M3 5h3v3H3V5zm0 5h3v3H3v-3zm5-5h3v3H8V5zm0 5h3v3H8v-3z" fill="currentColor" opacity="0.5" />
 								</svg>
 							</div>
-							<p className="text-xs text-zinc-600 text-center">No workflows yet</p>
+							<p className="text-xs text-[#6e7681] text-center">No workflows yet</p>
 							<Button
 								size="sm"
 								onClick={handleCreate}
-								className="bg-violet-600 hover:bg-violet-500 text-white text-[11px] h-7"
+								className="bg-[#238636] hover:bg-[#2ea043] text-white text-[11px] h-7"
 							>
 								Create one
 							</Button>
@@ -106,17 +106,17 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 									onClick={() => onSelectWorkflow(wf.id)}
 									className={`group w-full text-left px-3 py-2.5 transition-all duration-100 border-l-2 ${
 										isSelected
-											? "bg-zinc-800/50 border-l-violet-500"
-											: "border-l-transparent hover:bg-zinc-800/30"
+											? "bg-[#21262d]/50 border-l-[#58a6ff]"
+											: "border-l-transparent hover:bg-[#21262d]/30"
 									}`}
 								>
 									<div className="flex items-center justify-between gap-1">
-										<span className={`text-[13px] font-medium truncate ${isSelected ? "text-zinc-100" : "text-zinc-300"}`}>
+										<span className={`text-[13px] font-medium truncate ${isSelected ? "text-[#f0f6fc]" : "text-[#e6edf3]"}`}>
 											{wf.name}
 										</span>
 										<button
 											onClick={(e) => handleDelete(e, wf.id)}
-											className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all flex-shrink-0 p-0.5"
+											className="opacity-0 group-hover:opacity-100 text-[#6e7681] hover:text-red-400 transition-all flex-shrink-0 p-0.5"
 										>
 											<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
 												<path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -128,7 +128,7 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 											attached.map((lane) => (
 												<span
 													key={lane.id}
-													className="inline-flex items-center gap-1 text-[10px] text-zinc-500"
+													className="inline-flex items-center gap-1 text-[10px] text-[#8b949e]"
 												>
 													<span
 														className="w-1.5 h-1.5 rounded-full flex-shrink-0"
@@ -138,9 +138,9 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 												</span>
 											))
 										) : (
-											<span className="text-[10px] text-zinc-700 italic">unattached</span>
+											<span className="text-[10px] text-[#484f58] italic">unattached</span>
 										)}
-										<span className="text-[10px] text-zinc-700 font-mono ml-auto">{relativeTime(wf.updatedAt)}</span>
+										<span className="text-[10px] text-[#484f58] font-mono ml-auto">{relativeTime(wf.updatedAt)}</span>
 									</div>
 								</button>
 							);
@@ -166,8 +166,8 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 				) : (
 					<div className="flex-1 flex items-center justify-center">
 						<div className="text-center">
-							<p className="text-sm text-zinc-500">Select a workflow to edit</p>
-							<p className="text-xs text-zinc-700 mt-1">or create a new one from the sidebar</p>
+							<p className="text-sm text-[#8b949e]">Select a workflow to edit</p>
+							<p className="text-xs text-[#484f58] mt-1">or create a new one from the sidebar</p>
 						</div>
 					</div>
 				)}

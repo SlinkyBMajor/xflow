@@ -28,20 +28,20 @@ export function TicketCard({ ticket, index, laneId, isRunning, onClick }: Ticket
 			ref={ref}
 			data-dragging={isDragging}
 			onClick={onClick}
-			className="group relative bg-zinc-900/80 hover:bg-zinc-800/60 border border-zinc-800/60 hover:border-zinc-700/50 rounded-lg px-3 py-2.5 cursor-pointer transition-colors duration-100 select-none"
+			className="group relative bg-[#161b22] hover:bg-[#1c2129] border border-[#21262d] hover:border-[#30363d] rounded-lg px-3 py-2.5 cursor-pointer transition-colors duration-100 select-none"
 		>
 			{isRunning && (
 				<span className="absolute top-2 right-2 flex h-2 w-2">
-					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-					<span className="relative inline-flex rounded-full h-2 w-2 bg-violet-400" />
+					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+					<span className="relative inline-flex rounded-full h-2 w-2 bg-[#58a6ff]" />
 				</span>
 			)}
-			<div className="text-[13px] font-medium text-zinc-200 leading-snug">
+			<div className="text-[13px] font-medium text-[#e6edf3] leading-snug">
 				{ticket.title}
 			</div>
 
 			{ticket.body && (
-				<div className="mt-1 text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
+				<div className="mt-1 text-[11px] text-[#8b949e] leading-relaxed line-clamp-2">
 					{ticket.body}
 				</div>
 			)}

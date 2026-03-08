@@ -17,9 +17,9 @@ function ConditionNodeInner({ data, selected }: NodeProps) {
 		>
 			<div className="flex items-center gap-2">
 				<span className="text-yellow-400 text-sm font-bold">&#9095;</span>
-				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>
+				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
-			{expression && <p className="text-xs text-zinc-500 mt-1 font-mono truncate">{expression}</p>}
+			{expression && <p className="text-xs text-[#8b949e] mt-1 font-mono truncate">{expression}</p>}
 		</WorkflowNodeShell>
 	);
 }

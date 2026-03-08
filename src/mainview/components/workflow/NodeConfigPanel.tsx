@@ -27,14 +27,14 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 	};
 
 	return (
-		<div className="w-64 bg-zinc-900/50 border-l border-zinc-800/50 p-4 overflow-y-auto">
+		<div className="w-64 bg-[#161b22]/50 border-l border-[#21262d] p-4 overflow-y-auto">
 			<div className="flex items-center justify-between mb-4">
-				<h3 className="text-[13px] font-semibold text-zinc-200">{getNodeLabel(nodeType)}</h3>
+				<h3 className="text-[13px] font-semibold text-[#e6edf3]">{getNodeLabel(nodeType)}</h3>
 			</div>
 
 			<div className="space-y-3">
 				<div>
-					<Label htmlFor="node-label" className="text-xs text-zinc-400 mb-1">Label</Label>
+					<Label htmlFor="node-label" className="text-xs text-[#8b949e] mb-1">Label</Label>
 					<Input
 						id="node-label"
 						value={node.data.label as string || ""}
@@ -47,7 +47,7 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 			</div>
 
 			{!isFlowNode && (
-				<div className="mt-6 pt-4 border-t border-zinc-800">
+				<div className="mt-6 pt-4 border-t border-[#21262d]">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -72,7 +72,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Prompt</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Prompt</Label>
 						<Textarea
 							value={config.prompt}
 							onChange={(e) => updateConfig({ prompt: e.target.value })}
@@ -86,13 +86,13 @@ function renderConfigFields(
 								type="checkbox"
 								checked={config.includeWorkflowOutput ?? true}
 								onChange={(e) => updateConfig({ includeWorkflowOutput: e.target.checked })}
-								className="rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500/30 h-3.5 w-3.5"
+								className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
 							/>
-							<span className="text-xs text-zinc-400">Include prior workflow output</span>
+							<span className="text-xs text-[#8b949e]">Include prior workflow output</span>
 						</label>
 					</div>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Timeout (ms)</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Timeout (ms)</Label>
 						<Input
 							type="number"
 							value={config.timeoutMs ?? 60000}
@@ -106,7 +106,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Script</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Script</Label>
 						<Textarea
 							value={config.script}
 							onChange={(e) => updateConfig({ script: e.target.value })}
@@ -115,18 +115,18 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Interpreter</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Interpreter</Label>
 						<select
 							value={config.interpreter ?? "bun"}
 							onChange={(e) => updateConfig({ interpreter: e.target.value })}
-							className="w-full h-8 text-sm bg-zinc-800 border border-zinc-700 rounded-md px-2 text-zinc-200"
+							className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
 						>
 							<option value="bun">Bun</option>
 							<option value="sh">Shell</option>
 						</select>
 					</div>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Timeout (ms)</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Timeout (ms)</Label>
 						<Input
 							type="number"
 							value={config.timeoutMs ?? 30000}
@@ -140,7 +140,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Title</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Title</Label>
 						<Input
 							value={config.title}
 							onChange={(e) => updateConfig({ title: e.target.value })}
@@ -148,7 +148,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Body</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Body</Label>
 						<Textarea
 							value={config.body}
 							onChange={(e) => updateConfig({ body: e.target.value })}
@@ -160,7 +160,7 @@ function renderConfigFields(
 		case "waitForApproval":
 			return (
 				<div>
-					<Label className="text-xs text-zinc-400 mb-1">Message</Label>
+					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
 					<Textarea
 						value={config.message}
 						onChange={(e) => updateConfig({ message: e.target.value })}
@@ -172,14 +172,14 @@ function renderConfigFields(
 		case "moveToLane":
 			return (
 				<div>
-					<Label className="text-xs text-zinc-400 mb-1">Target Lane</Label>
+					<Label className="text-xs text-[#8b949e] mb-1">Target Lane</Label>
 					<select
 						value={config.laneId}
 						onChange={(e) => {
 							const lane = lanes.find((l) => l.id === e.target.value);
 							updateConfig({ laneId: e.target.value, laneName: lane?.name ?? "" });
 						}}
-						className="w-full h-8 text-sm bg-zinc-800 border border-zinc-700 rounded-md px-2 text-zinc-200"
+						className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
 					>
 						<option value="">Select lane...</option>
 						{lanes.map((lane) => (
@@ -191,7 +191,7 @@ function renderConfigFields(
 		case "condition":
 			return (
 				<div>
-					<Label className="text-xs text-zinc-400 mb-1">Expression</Label>
+					<Label className="text-xs text-[#8b949e] mb-1">Expression</Label>
 					<Textarea
 						value={config.expression}
 						onChange={(e) => updateConfig({ expression: e.target.value })}
@@ -204,7 +204,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Key</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Key</Label>
 						<Input
 							value={config.key}
 							onChange={(e) => updateConfig({ key: e.target.value })}
@@ -212,7 +212,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-zinc-400 mb-1">Value</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Value</Label>
 						<Input
 							value={config.value}
 							onChange={(e) => updateConfig({ value: e.target.value })}
@@ -224,7 +224,7 @@ function renderConfigFields(
 		case "log":
 			return (
 				<div>
-					<Label className="text-xs text-zinc-400 mb-1">Message</Label>
+					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
 					<Textarea
 						value={config.message}
 						onChange={(e) => updateConfig({ message: e.target.value })}
@@ -235,6 +235,6 @@ function renderConfigFields(
 			);
 		case "start":
 		case "end":
-			return <p className="text-xs text-zinc-500">No configuration needed.</p>;
+			return <p className="text-xs text-[#8b949e]">No configuration needed.</p>;
 	}
 }

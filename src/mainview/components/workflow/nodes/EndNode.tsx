@@ -7,7 +7,7 @@ function EndNodeInner({ data, selected }: NodeProps) {
 		<WorkflowNodeShell selected={selected} accentColor="#ef4444" showSourceHandle={false} runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<div className="w-2 h-2 rounded-full bg-red-500" />
-				<span className="text-sm font-medium text-zinc-200">End</span>
+				<span className="text-sm font-medium text-[#e6edf3]">End</span>
 			</div>
 		</WorkflowNodeShell>
 	);

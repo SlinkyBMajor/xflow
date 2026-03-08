@@ -105,7 +105,7 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 										className={`w-6 h-6 rounded-full border-2 transition-all ${
 											color === c
 												? "border-white scale-110"
-												: "border-transparent hover:border-zinc-600"
+												: "border-transparent hover:border-[#6e7681]"
 										}`}
 										style={{ backgroundColor: c }}
 									/>
@@ -128,16 +128,16 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 					</div>
 
 					{/* Workflow section */}
-					<div className="mt-4 pt-4 border-t border-zinc-800">
+					<div className="mt-4 pt-4 border-t border-[#21262d]">
 						<Label className="mb-2">Workflow</Label>
 						{lane.workflowId && workflow ? (
-							<div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-3">
+							<div className="rounded-lg border border-[#21262d] bg-[#161b22]/50 p-3">
 								<div className="flex items-start justify-between gap-2">
 									<div className="min-w-0">
-										<p className="text-sm font-medium text-zinc-200 truncate">
+										<p className="text-sm font-medium text-[#e6edf3] truncate">
 											{workflow.name}
 										</p>
-										<p className="text-[11px] text-zinc-600 font-mono mt-0.5">
+										<p className="text-[11px] text-[#6e7681] font-mono mt-0.5">
 											Updated {relativeTime(workflow.updatedAt)}
 										</p>
 									</div>
@@ -150,7 +150,7 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 											onClose();
 											onEditWorkflow(lane.id, lane.name, lane.workflowId!);
 										}}
-										className="text-violet-400 hover:text-violet-300 h-7 text-xs"
+										className="text-[#58a6ff] hover:text-[#79c0ff] h-7 text-xs"
 									>
 										Edit
 									</Button>
@@ -161,18 +161,18 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 											await attachWorkflowToLane(lane.id, null);
 											setWorkflow(null);
 										}}
-										className="text-zinc-500 hover:text-red-400 h-7 text-xs"
+										className="text-[#8b949e] hover:text-red-400 h-7 text-xs"
 									>
 										Detach
 									</Button>
 								</div>
 							</div>
 						) : (
-							<div className="rounded-lg border border-dashed border-zinc-800 p-3">
+							<div className="rounded-lg border border-dashed border-[#30363d] p-3">
 								{allWorkflows.length > 0 ? (
 									<>
 										<select
-											className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500 mb-2"
+											className="w-full bg-[#0d1117] border border-[#30363d] rounded-md px-2 py-1.5 text-sm text-[#e6edf3] focus:outline-none focus:border-[#58a6ff] mb-2"
 											defaultValue=""
 											onChange={async (e) => {
 												const id = e.target.value;
@@ -189,13 +189,13 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 											))}
 										</select>
 										<div className="text-center">
-											<span className="text-[11px] text-zinc-600">or </span>
+											<span className="text-[11px] text-[#6e7681]">or </span>
 											<button
 												onClick={async () => {
 													onClose();
 													await onCreateWorkflowForLane(lane.id, lane.name);
 												}}
-												className="text-[11px] text-violet-400 hover:text-violet-300"
+												className="text-[11px] text-[#58a6ff] hover:text-[#79c0ff]"
 											>
 												create a new workflow
 											</button>
@@ -203,14 +203,14 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 									</>
 								) : (
 									<div className="text-center">
-										<p className="text-xs text-zinc-600 mb-2">No workflows yet</p>
+										<p className="text-xs text-[#6e7681] mb-2">No workflows yet</p>
 										<Button
 											size="sm"
 											onClick={async () => {
 												onClose();
 												await onCreateWorkflowForLane(lane.id, lane.name);
 											}}
-											className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-7"
+											className="bg-[#238636] hover:bg-[#2ea043] text-white text-xs h-7"
 										>
 											Create Workflow
 										</Button>
@@ -225,14 +225,14 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 							variant="ghost"
 							size="sm"
 							onClick={onDelete}
-							className="mr-auto text-zinc-500 hover:text-red-400 hover:bg-red-900/20"
+							className="mr-auto text-[#8b949e] hover:text-red-400 hover:bg-red-900/20"
 						>
 							Delete lane
 						</Button>
 						<Button variant="ghost" size="sm" onClick={onClose}>
 							Cancel
 						</Button>
-						<Button size="sm" onClick={handleSubmit} className="bg-violet-600 hover:bg-violet-500 text-white">
+						<Button size="sm" onClick={handleSubmit} className="bg-[#238636] hover:bg-[#2ea043] text-white">
 							Save
 						</Button>
 					</DialogFooter>

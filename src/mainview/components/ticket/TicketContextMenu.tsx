@@ -45,7 +45,7 @@ export function TicketContextMenu({ ticket, lanes, onDelete, onMove, children }:
 					<>
 						<ContextMenuSub>
 							<ContextMenuSubTrigger>
-								<span className="text-zinc-300">Move to</span>
+								<span className="text-[#e6edf3]">Move to</span>
 							</ContextMenuSubTrigger>
 							<ContextMenuSubContent>
 								{otherLanes
@@ -55,7 +55,7 @@ export function TicketContextMenu({ ticket, lanes, onDelete, onMove, children }:
 											key={lane.id}
 											onClick={() => onMove(ticket.id, lane.id)}
 										>
-											<span className="flex items-center gap-2 text-zinc-300">
+											<span className="flex items-center gap-2 text-[#e6edf3]">
 												{lane.color && (
 													<span
 														className="h-2 w-2 rounded-full flex-shrink-0"

@@ -66,7 +66,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleAction}
-							className={isDanger ? undefined : "bg-violet-600 hover:bg-violet-700 focus:ring-violet-500"}
+							className={isDanger ? undefined : "bg-[#238636] hover:bg-[#2ea043] focus:ring-[#238636]"}
 						>
 							{options?.confirmLabel ?? "Confirm"}
 						</AlertDialogAction>

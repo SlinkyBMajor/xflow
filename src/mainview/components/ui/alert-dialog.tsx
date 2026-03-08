@@ -33,7 +33,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
@@ -70,7 +70,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn("text-sm font-semibold text-zinc-200", className)}
+    className={cn("text-sm font-semibold text-[#e6edf3]", className)}
     {...props}
   />
 ))
@@ -82,7 +82,7 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-zinc-500", className)}
+    className={cn("text-sm text-[#8b949e]", className)}
     {...props}
   />
 ))
@@ -95,7 +95,7 @@ const AlertDialogAction = React.forwardRef<
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 items-center justify-center rounded-md bg-red-600 px-4 text-[12px] font-medium text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-zinc-900",
+      "inline-flex h-8 items-center justify-center rounded-md bg-red-600 px-4 text-[12px] font-medium text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#161b22]",
       className
     )}
     {...props}
@@ -110,7 +110,7 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      "inline-flex h-8 items-center justify-center rounded-md border border-zinc-700 bg-zinc-800 px-4 text-[12px] font-medium text-zinc-300 hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900",
+      "inline-flex h-8 items-center justify-center rounded-md border border-[#30363d] bg-[#21262d] px-4 text-[12px] font-medium text-[#e6edf3] hover:bg-[#30363d] transition-colors focus:outline-none focus:ring-2 focus:ring-[#484f58] focus:ring-offset-2 focus:ring-offset-[#161b22]",
       className
     )}
     {...props}

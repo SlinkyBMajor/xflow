@@ -35,29 +35,29 @@ export function RecentProjectList({ projects, onSelect, onRemove }: RecentProjec
 			{projects.map((project) => (
 				<div
 					key={project.path}
-					className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 cursor-pointer transition-colors duration-100"
+					className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#161b22] cursor-pointer transition-colors duration-100"
 					onClick={() => onSelect(project.path)}
 				>
-					<div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/50 flex items-center justify-center flex-shrink-0">
-						<span className="text-xs font-semibold text-zinc-400" style={{ fontFamily: "var(--font-display)" }}>
+					<div className="w-7 h-7 rounded-md bg-[#21262d] border border-[#30363d] flex items-center justify-center flex-shrink-0">
+						<span className="text-xs font-semibold text-[#8b949e]" style={{ fontFamily: "var(--font-display)" }}>
 							{project.name.charAt(0).toUpperCase()}
 						</span>
 					</div>
 					<div className="flex-1 min-w-0">
-						<div className="text-[13px] font-medium text-zinc-200 truncate">
+						<div className="text-[13px] font-medium text-[#e6edf3] truncate">
 							{project.name}
 						</div>
-						<div className="text-[11px] text-zinc-600 truncate font-mono">
+						<div className="text-[11px] text-[#6e7681] truncate font-mono">
 							{shortenPath(project.path)}
 						</div>
 					</div>
-					<span className="text-[11px] text-zinc-600 flex-shrink-0 group-hover:hidden">
+					<span className="text-[11px] text-[#6e7681] flex-shrink-0 group-hover:hidden">
 						{formatDate(project.lastOpened)}
 					</span>
 					<Button
 						variant="ghost"
 						size="icon"
-						className="hidden group-hover:flex h-6 w-6 text-zinc-500 hover:text-zinc-300"
+						className="hidden group-hover:flex h-6 w-6 text-[#8b949e] hover:text-[#e6edf3]"
 						onClick={(e) => {
 							e.stopPropagation();
 							onRemove(project.path);

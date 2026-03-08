@@ -84,7 +84,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 				const isActiveEdge = sourceCompleted && runState.currentNodeId === e.target;
 
 				if (isActiveEdge) {
-					return { ...e, animated: true, style: { stroke: "#8b5cf6", strokeWidth: 2 } };
+					return { ...e, animated: true, style: { stroke: "#58a6ff", strokeWidth: 2 } };
 				}
 				if (sourceCompleted && targetCompleted) {
 					return { ...e, animated: false, style: { stroke: "#10b981", strokeWidth: 2 } };
@@ -262,9 +262,9 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	}, [handleSave]);
 
 	return (
-		<div className="flex-1 flex flex-col bg-zinc-950">
+		<div className="flex-1 flex flex-col bg-[#0d1117]">
 			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/40 bg-zinc-950/60">
+			<div className="flex items-center justify-between px-4 py-2 border-b border-[#21262d] bg-[#0d1117]/60">
 				<div className="flex items-center gap-2">
 					{editingName ? (
 						<input
@@ -277,12 +277,12 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 								if (e.key === "Escape") setEditingName(false);
 								if (e.metaKey || e.ctrlKey) e.stopPropagation();
 							}}
-							className="text-sm font-semibold text-zinc-200 bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 outline-none focus:border-violet-500 w-56"
+							className="text-sm font-semibold text-[#e6edf3] bg-[#0d1117] border border-[#30363d] rounded px-2 py-0.5 outline-none focus:border-[#58a6ff] w-56"
 						/>
 					) : (
 						<button
 							onClick={() => setEditingName(true)}
-							className="text-sm font-semibold text-zinc-200 hover:text-zinc-50 transition-colors"
+							className="text-sm font-semibold text-[#e6edf3] hover:text-white transition-colors"
 						>
 							{workflowName || "Untitled Workflow"}
 						</button>
@@ -290,8 +290,8 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 				</div>
 				<div className="flex items-center gap-2">
 					{isRunning && (
-						<span className="flex items-center gap-1.5 text-xs text-violet-400 mr-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+						<span className="flex items-center gap-1.5 text-xs text-[#58a6ff] mr-2">
+							<span className="w-1.5 h-1.5 rounded-full bg-[#58a6ff] animate-pulse" />
 							Run in progress
 						</span>
 					)}
@@ -302,7 +302,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowHistory((prev) => !prev)}
-						className={showHistory ? "text-violet-400" : "text-zinc-400 hover:text-zinc-200"}
+						className={showHistory ? "text-[#58a6ff]" : "text-[#8b949e] hover:text-[#e6edf3]"}
 					>
 						History
 					</Button>
@@ -310,7 +310,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 						size="sm"
 						onClick={handleSave}
 						disabled={!isDirty || isRunning}
-						className={isDirty && !isRunning ? "bg-violet-600 hover:bg-violet-500 text-white" : ""}
+						className={isDirty && !isRunning ? "bg-[#238636] hover:bg-[#2ea043] text-white" : ""}
 					>
 						{isDirty ? "Save" : "Saved"}
 					</Button>
@@ -343,11 +343,11 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 							style: { stroke: "#52525b", strokeWidth: 2 },
 						}}
 					>
-						<Background color="#27272a" gap={20} />
+						<Background color="#21262d" gap={20} />
 						<Controls />
 						<MiniMap
-							style={{ backgroundColor: "#18181b" }}
-							nodeColor="#3f3f46"
+							style={{ backgroundColor: "#161b22" }}
+							nodeColor="#30363d"
 							maskColor="rgba(0, 0, 0, 0.6)"
 						/>
 					</ReactFlow>

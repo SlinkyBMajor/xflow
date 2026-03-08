@@ -7,7 +7,7 @@ function StartNodeInner({ data, selected }: NodeProps) {
 		<WorkflowNodeShell selected={selected} accentColor="#22c55e" showTargetHandle={false} runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<div className="w-2 h-2 rounded-full bg-green-500" />
-				<span className="text-sm font-medium text-zinc-200">Entry</span>
+				<span className="text-sm font-medium text-[#e6edf3]">Entry</span>
 			</div>
 		</WorkflowNodeShell>
 	);

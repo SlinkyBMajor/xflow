@@ -9,10 +9,10 @@ function LogNodeInner({ data, selected }: NodeProps) {
 	return (
 		<WorkflowNodeShell selected={selected} accentColor="#71717a" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
-				<span className="text-zinc-400 text-xs font-mono font-bold">Aa</span>
-				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>
+				<span className="text-[#8b949e] text-xs font-mono font-bold">Aa</span>
+				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
-			{preview && <p className="text-xs text-zinc-500 mt-1 truncate">{preview}</p>}
+			{preview && <p className="text-xs text-[#8b949e] mt-1 truncate">{preview}</p>}
 		</WorkflowNodeShell>
 	);
 }

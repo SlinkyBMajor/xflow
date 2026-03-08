@@ -57,13 +57,13 @@ export function BoardHeader({
 	};
 
 	return (
-		<header className="flex items-center h-12 border-b border-zinc-800/80 flex-shrink-0 bg-zinc-950/80 backdrop-blur-sm app-drag-region">
+		<header className="flex items-center h-12 border-b border-[#21262d] flex-shrink-0 bg-[#0d1117]/80 backdrop-blur-sm app-drag-region">
 			{/* Left section: logo + project + board name */}
 			<div className="flex items-center gap-3 px-4 min-w-0 flex-1 app-no-drag">
 				{/* Logo mark */}
-				<div className="flex items-center gap-2 pr-3 border-r border-zinc-800/60">
-					<div className="w-5 h-5 rounded bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-						<svg width="10" height="10" viewBox="0 0 16 16" fill="none" className="text-violet-400">
+				<div className="flex items-center gap-2 pr-3 border-r border-[#21262d]">
+					<div className="w-5 h-5 rounded bg-[#58a6ff]/15 border border-[#58a6ff]/25 flex items-center justify-center">
+						<svg width="10" height="10" viewBox="0 0 16 16" fill="none" className="text-[#58a6ff]">
 							<path d="M2 4h4v4H2V4zm0 6h4v4H2v-4zm6-6h4v4H8V4zm0 6h4v4H8v-4z" fill="currentColor" opacity="0.6" />
 							<path d="M14 2h-2v2h2V2z" fill="currentColor" />
 						</svg>
@@ -73,9 +73,9 @@ export function BoardHeader({
 				{/* Project switcher */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<button className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200 font-mono tracking-wide transition-colors rounded px-1.5 py-1 -mx-1.5 hover:bg-zinc-800/60">
+						<button className="flex items-center gap-1.5 text-[11px] text-[#8b949e] hover:text-[#e6edf3] font-mono tracking-wide transition-colors rounded px-1.5 py-1 -mx-1.5 hover:bg-[#21262d]">
 							{projectName}
-							<svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-zinc-600">
+							<svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-[#6e7681]">
 								<path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
 							</svg>
 						</button>
@@ -87,27 +87,27 @@ export function BoardHeader({
 								key={p.path}
 								onClick={() => onSwitchProject(p.path)}
 							>
-								<div className="w-5 h-5 rounded bg-zinc-800 border border-zinc-700/50 flex items-center justify-center flex-shrink-0">
-									<span className="text-[9px] font-semibold text-zinc-400" style={{ fontFamily: "var(--font-display)" }}>
+								<div className="w-5 h-5 rounded bg-[#21262d] border border-[#30363d] flex items-center justify-center flex-shrink-0">
+									<span className="text-[9px] font-semibold text-[#8b949e]" style={{ fontFamily: "var(--font-display)" }}>
 										{p.name.charAt(0).toUpperCase()}
 									</span>
 								</div>
 								<div className="flex-1 min-w-0">
-									<div className="text-[12px] font-medium text-zinc-300 truncate">{p.name}</div>
+									<div className="text-[12px] font-medium text-[#e6edf3] truncate">{p.name}</div>
 								</div>
 								{p.name === projectName && (
-									<div className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
+									<div className="w-1.5 h-1.5 rounded-full bg-[#58a6ff] flex-shrink-0" />
 								)}
 							</DropdownMenuItem>
 						))}
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={onOpenProjectPicker} className="text-zinc-400 hover:text-zinc-200">
+						<DropdownMenuItem onClick={onOpenProjectPicker} className="text-[#8b949e] hover:text-[#e6edf3]">
 							<svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="ml-0.5">
 								<path d="M2 3.5A1.5 1.5 0 013.5 2h2.379a1.5 1.5 0 011.06.44l.622.62a.5.5 0 00.354.147H10.5A1.5 1.5 0 0112 4.707V10.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 012 10.5v-7z" stroke="currentColor" strokeWidth="1.2" fill="none" />
 							</svg>
 							Open another project...
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={onCloseProject} className="text-zinc-500 hover:text-zinc-300">
+						<DropdownMenuItem onClick={onCloseProject} className="text-[#6e7681] hover:text-[#8b949e]">
 							<svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="ml-0.5">
 								<path d="M9 5L5 9M5 5l4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
 							</svg>
@@ -116,7 +116,7 @@ export function BoardHeader({
 					</DropdownMenuContent>
 				</DropdownMenu>
 
-				<span className="text-zinc-700">/</span>
+				<span className="text-[#30363d]">/</span>
 
 				{/* Board name (editable) */}
 				{editing ? (
@@ -138,7 +138,7 @@ export function BoardHeader({
 				) : (
 					<button
 						onClick={() => setEditing(true)}
-						className="text-sm font-semibold text-zinc-200 hover:text-zinc-50 transition-colors"
+						className="text-sm font-semibold text-[#e6edf3] hover:text-white transition-colors"
 					>
 						{board.name}
 					</button>
@@ -147,7 +147,7 @@ export function BoardHeader({
 
 			{/* Center: View switcher — GitHub Desktop style */}
 			<div className="flex items-center app-no-drag">
-				<div className="flex items-center bg-zinc-900/80 rounded-lg p-0.5 border border-zinc-800/60">
+				<div className="flex items-center bg-[#161b22] rounded-lg p-0.5 border border-[#21262d]">
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<button
@@ -165,7 +165,7 @@ export function BoardHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" className="text-xs">
-							Board view <span className="text-zinc-500 ml-1">⌘1</span>
+							Board view <span className="text-[#6e7681] ml-1">⌘1</span>
 						</TooltipContent>
 					</Tooltip>
 
@@ -187,7 +187,7 @@ export function BoardHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" className="text-xs">
-							Workflows view <span className="text-zinc-500 ml-1">⌘2</span>
+							Workflows view <span className="text-[#6e7681] ml-1">⌘2</span>
 						</TooltipContent>
 					</Tooltip>
 				</div>

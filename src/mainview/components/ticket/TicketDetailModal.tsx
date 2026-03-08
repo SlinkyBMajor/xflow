@@ -54,9 +54,9 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 				<div className="flex min-h-[360px] max-h-[85vh]">
 					{/* Left pane — editing */}
-					<div className="flex-1 p-5 min-w-0 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+					<div className="flex-1 p-5 min-w-0 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
 						<div className="flex items-start justify-between mb-5">
-							<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
+							<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 								Ticket
 							</span>
 							<Button
@@ -64,7 +64,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								variant="ghost"
 								size="sm"
 								onClick={onDelete}
-								className="text-[11px] text-zinc-600 hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
+								className="text-[11px] text-[#6e7681] hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
 							>
 								Delete
 							</Button>
@@ -80,8 +80,8 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 						{/* Workflow output */}
 						{outputEntries.length > 0 && (
-							<div className="mt-6 pt-4 border-t border-zinc-800/60">
-								<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-3">
+							<div className="mt-6 pt-4 border-t border-[#21262d]">
+								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
 									Workflow Output
 								</span>
 								<div className="space-y-3">
@@ -94,8 +94,8 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 						{/* Live event log */}
 						{activeRun && (
-							<div className="mt-6 pt-4 border-t border-zinc-800/60">
-								<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-3">
+							<div className="mt-6 pt-4 border-t border-[#21262d]">
+								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
 									Workflow Activity
 								</span>
 								<RunEventLog events={events} isActive={true} />
@@ -104,8 +104,8 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 					</div>
 
 					{/* Right pane — metadata */}
-					<div className="w-64 flex-shrink-0 border-l border-zinc-800 bg-zinc-900/30 p-5 overflow-y-auto">
-						<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
+					<div className="w-64 flex-shrink-0 border-l border-[#21262d] bg-[#161b22]/50 p-5 overflow-y-auto">
+						<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 							Details
 						</span>
 
@@ -119,7 +119,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 											style={{ backgroundColor: laneColor }}
 										/>
 									)}
-									<span className="text-[13px] text-zinc-300">{laneName}</span>
+									<span className="text-[13px] text-[#e6edf3]">{laneName}</span>
 								</div>
 							</MetadataRow>
 
@@ -128,23 +128,23 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								<MetadataRow label="Workflow">
 									<div className="flex items-center gap-2">
 										<span className="relative flex h-1.5 w-1.5">
-											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-											<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+											<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
 										</span>
-										<span className="text-[12px] text-violet-400 font-mono">Running</span>
+										<span className="text-[12px] text-[#58a6ff] font-mono">Running</span>
 									</div>
 								</MetadataRow>
 							)}
 
 							{/* Timestamps */}
 							<MetadataRow label="Created">
-								<span className="text-[12px] text-zinc-400 font-mono">
+								<span className="text-[12px] text-[#8b949e] font-mono">
 									{formatDate(ticket.createdAt)}
 								</span>
 							</MetadataRow>
 
 							<MetadataRow label="Updated">
-								<span className="text-[12px] text-zinc-400 font-mono">
+								<span className="text-[12px] text-[#8b949e] font-mono">
 									{formatDate(ticket.updatedAt)}
 								</span>
 							</MetadataRow>
@@ -153,7 +153,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							<MetadataRow label="ID">
 								<button
 									onClick={copyId}
-									className="text-[11px] text-zinc-500 font-mono hover:text-zinc-300 transition-colors truncate max-w-full text-left"
+									className="text-[11px] text-[#6e7681] font-mono hover:text-[#e6edf3] transition-colors truncate max-w-full text-left"
 									title="Click to copy"
 								>
 									{copied ? "Copied!" : ticket.id.slice(0, 12) + "..."}
@@ -167,7 +167,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 										{ticket.tags.map((tag) => (
 											<span
 												key={tag}
-												className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50"
+												className="text-[11px] px-1.5 py-0.5 rounded bg-[#21262d] text-[#8b949e] border border-[#30363d]"
 											>
 												{tag}
 											</span>
@@ -179,14 +179,14 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							{/* Custom metadata */}
 							{metadataEntries.length > 0 && (
 								<>
-									<div className="border-t border-zinc-800/60 pt-4">
-										<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
+									<div className="border-t border-[#21262d] pt-4">
+										<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 											Metadata
 										</span>
 									</div>
 									{metadataEntries.map(([key, value]) => (
 										<MetadataRow key={key} label={key}>
-											<span className="text-[12px] text-zinc-400 font-mono break-all">
+											<span className="text-[12px] text-[#8b949e] font-mono break-all">
 												{typeof value === "string" ? value : JSON.stringify(value)}
 											</span>
 										</MetadataRow>
@@ -207,21 +207,21 @@ function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: Workflo
 	const isLong = lines.length > 12;
 
 	return (
-		<div className="bg-zinc-900/60 border border-zinc-800/50 rounded-lg overflow-hidden">
+		<div className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden">
 			<button
 				onClick={() => setExpanded(!expanded)}
-				className="w-full flex items-center justify-between px-3 py-2 hover:bg-zinc-800/30 transition-colors"
+				className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#21262d]/50 transition-colors"
 			>
-				<span className="text-[11px] font-mono text-zinc-500">
+				<span className="text-[11px] font-mono text-[#8b949e]">
 					{expanded ? "▾" : "▸"} {nodeId.slice(0, 8)}
 				</span>
-				<span className="text-[10px] text-zinc-600 font-mono">
+				<span className="text-[10px] text-[#6e7681] font-mono">
 					{formatDate(entry.completedAt)}
 				</span>
 			</button>
 			{expanded && (
 				<div className="px-3 pb-3">
-					<pre className="text-[12px] text-zinc-300 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+					<pre className="text-[12px] text-[#e6edf3] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
 						{entry.output || "(no output)"}
 					</pre>
 				</div>
@@ -233,7 +233,7 @@ function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: Workflo
 function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div>
-			<span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider block mb-1">
+			<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-1">
 				{label}
 			</span>
 			{children}

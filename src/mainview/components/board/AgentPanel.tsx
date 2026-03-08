@@ -27,23 +27,23 @@ function AgentTab({ run, isSelected, onClick, onClose }: {
 			onClick={onClick}
 			className={`group flex items-center gap-2 px-3 py-1.5 text-[11px] font-mono border-b-2 transition-colors shrink-0 ${
 				isSelected
-					? "border-violet-500 text-zinc-200 bg-zinc-900/50"
-					: "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30"
+					? "border-[#58a6ff] text-[#e6edf3] bg-[#161b22]/50"
+					: "border-transparent text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]/30"
 			}`}
 		>
 			{isActive && (
 				<span className="relative flex h-1.5 w-1.5 shrink-0">
-					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-					<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+					<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
 				</span>
 			)}
 			{!isActive && (
-				<span className="h-1.5 w-1.5 rounded-full bg-zinc-600 shrink-0" />
+				<span className="h-1.5 w-1.5 rounded-full bg-[#484f58] shrink-0" />
 			)}
 			<span className="truncate max-w-[140px]">{run.ticketTitle}</span>
 			<span
 				onClick={onClose}
-				className="ml-1 text-zinc-600 hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+				className="ml-1 text-[#6e7681] hover:text-[#e6edf3] opacity-0 group-hover:opacity-100 transition-opacity"
 			>
 				&times;
 			</span>
@@ -144,26 +144,26 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	if (tabCount === 0 && !open) return null;
 
 	return (
-		<div className="flex flex-col border-t border-zinc-800 bg-zinc-950">
+		<div className="flex flex-col border-t border-[#21262d] bg-[#0d1117]">
 			{/* Header bar — always visible when there are tabs */}
 			<button
 				onClick={() => setOpen((prev) => !prev)}
-				className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-mono text-zinc-500 uppercase tracking-wider hover:bg-zinc-900/50 transition-colors cursor-pointer select-none"
+				className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-mono text-[#6e7681] uppercase tracking-wider hover:bg-[#161b22]/50 transition-colors cursor-pointer select-none"
 			>
 				<span className={`transition-transform ${open ? "" : "-rotate-90"}`}>
 					&#9662;
 				</span>
 				<span>Agents</span>
 				{tabCount > 0 && (
-					<span className="text-zinc-600">({tabCount})</span>
+					<span className="text-[#6e7681]">({tabCount})</span>
 				)}
 				{hasActiveRuns && (
 					<span className="relative flex h-1.5 w-1.5 ml-1">
-						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
 					</span>
 				)}
-				<span className="ml-auto text-zinc-700 text-[9px] normal-case tracking-normal">
+				<span className="ml-auto text-[#484f58] text-[9px] normal-case tracking-normal">
 					⌘J
 				</span>
 			</button>
@@ -172,13 +172,13 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 			{open && (
 				<div className="flex flex-col h-[280px]">
 					{tabCount === 0 ? (
-						<div className="flex-1 flex items-center justify-center text-[11px] font-mono text-zinc-700 italic">
+						<div className="flex-1 flex items-center justify-center text-[11px] font-mono text-[#484f58] italic">
 							No agent runs to display
 						</div>
 					) : (
 						<>
 							{/* Tab bar */}
-							<div className="flex border-b border-zinc-800/60 overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+							<div className="flex border-b border-[#21262d]/60 overflow-x-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
 								{tabs.map((tab) => (
 									<AgentTab
 										key={tab.run.id}

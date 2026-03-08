@@ -9,9 +9,9 @@ function SetMetadataNodeInner({ data, selected }: NodeProps) {
 		<WorkflowNodeShell selected={selected} accentColor="#10b981" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
 				<span className="text-emerald-400 text-xs font-bold">#</span>
-				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>
+				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
-			{key && <p className="text-xs text-zinc-500 mt-1 font-mono truncate">{key}</p>}
+			{key && <p className="text-xs text-[#8b949e] mt-1 font-mono truncate">{key}</p>}
 		</WorkflowNodeShell>
 	);
 }

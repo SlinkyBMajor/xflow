@@ -70,7 +70,7 @@ export default function App() {
 	if (activeTab === "workflows") {
 		return (
 			<ConfirmProvider><TooltipProvider>
-				<div className="h-screen flex flex-col bg-zinc-950">
+				<div className="h-screen flex flex-col bg-[#0d1117]">
 					<BoardHeader
 						board={boardData.board}
 						projectName={project.name}

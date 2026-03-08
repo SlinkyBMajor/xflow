@@ -41,18 +41,18 @@ export function NodePalette() {
 	};
 
 	return (
-		<div className="w-48 bg-zinc-900/50 border-r border-zinc-800/50 p-3 overflow-y-auto">
-			<h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3 font-mono">Nodes</h3>
+		<div className="w-48 bg-[#161b22]/50 border-r border-[#21262d] p-3 overflow-y-auto">
+			<h3 className="text-[10px] font-semibold text-[#6e7681] uppercase tracking-widest mb-3 font-mono">Nodes</h3>
 			{GROUPS.map((group) => (
 				<div key={group.label} className="mb-4">
-					<h4 className="text-[9px] font-semibold text-zinc-700 uppercase tracking-widest mb-1.5 font-mono">{group.label}</h4>
+					<h4 className="text-[9px] font-semibold text-[#484f58] uppercase tracking-widest mb-1.5 font-mono">{group.label}</h4>
 					<div className="space-y-0.5">
 						{group.items.map((item) => (
 							<div
 								key={item.type}
 								draggable
 								onDragStart={(e) => onDragStart(e, item.type)}
-								className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-zinc-800/30 border border-zinc-800/40 cursor-grab hover:border-zinc-600/50 hover:bg-zinc-800/60 active:scale-[0.98] transition-all text-[12px] text-zinc-400 hover:text-zinc-300"
+								className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#21262d]/30 border border-[#21262d]/40 cursor-grab hover:border-[#484f58]/50 hover:bg-[#21262d]/60 active:scale-[0.98] transition-all text-[12px] text-[#8b949e] hover:text-[#e6edf3]"
 							>
 								<div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
 								{getNodeLabel(item.type)}

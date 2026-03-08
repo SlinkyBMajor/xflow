@@ -36,11 +36,11 @@ export function InterruptedRunsBanner({
 	};
 
 	return (
-		<div className="flex-shrink-0 border-b border-zinc-800/60">
+		<div className="flex-shrink-0 border-b border-[#21262d]/60">
 			{/* Header bar */}
 			<button
 				onClick={() => setCollapsed((c) => !c)}
-				className="w-full flex items-center gap-2.5 px-5 py-2 bg-zinc-900/70 border-l-2 border-l-violet-500 hover:bg-zinc-900 transition-colors"
+				className="w-full flex items-center gap-2.5 px-5 py-2 bg-[#161b22]/70 border-l-2 border-l-[#58a6ff] hover:bg-[#161b22] transition-colors"
 			>
 				{/* Warning pulse dot */}
 				<div className="relative flex-shrink-0">
@@ -48,7 +48,7 @@ export function InterruptedRunsBanner({
 					<div className="absolute inset-0 w-2 h-2 rounded-full bg-amber-400 animate-ping opacity-40" />
 				</div>
 
-				<span className="text-[11px] font-mono tracking-wide text-zinc-300">
+				<span className="text-[11px] font-mono tracking-wide text-[#e6edf3]">
 					{interruptedRuns.length} interrupted workflow run{interruptedRuns.length !== 1 ? "s" : ""}
 				</span>
 
@@ -59,7 +59,7 @@ export function InterruptedRunsBanner({
 					height="10"
 					viewBox="0 0 10 10"
 					fill="none"
-					className={`text-zinc-500 transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
+					className={`text-[#8b949e] transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
 				>
 					<path
 						d="M2.5 4L5 6.5L7.5 4"
@@ -73,33 +73,33 @@ export function InterruptedRunsBanner({
 
 			{/* Run list */}
 			{!collapsed && (
-				<div className="bg-zinc-900/40 border-l-2 border-l-violet-500/30">
+				<div className="bg-[#161b22]/40 border-l-2 border-l-[#58a6ff]/30">
 					{interruptedRuns.map((info, i) => {
 						const isActing = acting.has(info.run.id);
 						return (
 							<div
 								key={info.run.id}
 								className={`flex items-center gap-3 px-5 py-2 ${
-									i < interruptedRuns.length - 1 ? "border-b border-zinc-800/40" : ""
+									i < interruptedRuns.length - 1 ? "border-b border-[#21262d]/40" : ""
 								}`}
 							>
 								{/* Status indicator */}
-								<div className="w-1 h-1 rounded-full bg-zinc-600 flex-shrink-0" />
+								<div className="w-1 h-1 rounded-full bg-[#484f58] flex-shrink-0" />
 
 								{/* Run info */}
 								<div className="flex-1 min-w-0 flex items-center gap-3">
-									<span className="text-[12px] font-medium text-zinc-300 truncate max-w-[160px]">
+									<span className="text-[12px] font-medium text-[#e6edf3] truncate max-w-[160px]">
 										{info.ticketTitle}
 									</span>
-									<span className="text-zinc-700">/</span>
-									<span className="text-[11px] font-mono tracking-wide text-zinc-500 truncate max-w-[120px]">
+									<span className="text-[#484f58]">/</span>
+									<span className="text-[11px] font-mono tracking-wide text-[#8b949e] truncate max-w-[120px]">
 										{info.workflowName}
 									</span>
 									{info.interruptedNodeLabel && (
 										<>
-											<span className="text-zinc-700">/</span>
-											<span className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-500 bg-zinc-800/60 border border-zinc-700/30 rounded px-1.5 py-0.5">
-												<svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-zinc-600">
+											<span className="text-[#484f58]">/</span>
+											<span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#8b949e] bg-[#21262d]/60 border border-[#30363d]/30 rounded px-1.5 py-0.5">
+												<svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-[#6e7681]">
 													<rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="0.8" />
 												</svg>
 												{info.interruptedNodeLabel}
@@ -109,7 +109,7 @@ export function InterruptedRunsBanner({
 								</div>
 
 								{/* Timestamp */}
-								<span className="text-[10px] font-mono text-zinc-600 flex-shrink-0 tabular-nums">
+								<span className="text-[10px] font-mono text-[#6e7681] flex-shrink-0 tabular-nums">
 									{formatTimestamp(info.run.startedAt)}
 								</span>
 
@@ -121,7 +121,7 @@ export function InterruptedRunsBanner({
 											handleAction(info.run.id, onRetry);
 										}}
 										disabled={isActing}
-										className="text-[10px] font-mono tracking-wide px-2.5 py-1 rounded bg-violet-500/15 text-violet-400 border border-violet-500/20 hover:bg-violet-500/25 hover:border-violet-500/35 transition-colors disabled:opacity-40"
+										className="text-[10px] font-mono tracking-wide px-2.5 py-1 rounded bg-[#58a6ff]/15 text-[#58a6ff] border border-[#58a6ff]/20 hover:bg-[#58a6ff]/25 hover:border-[#58a6ff]/35 transition-colors disabled:opacity-40"
 									>
 										Retry
 									</button>
@@ -131,7 +131,7 @@ export function InterruptedRunsBanner({
 											handleAction(info.run.id, onAbort);
 										}}
 										disabled={isActing}
-										className="text-[10px] font-mono tracking-wide px-2.5 py-1 rounded bg-zinc-800/60 text-zinc-500 border border-zinc-700/30 hover:bg-red-900/20 hover:text-red-400 hover:border-red-800/30 transition-colors disabled:opacity-40"
+										className="text-[10px] font-mono tracking-wide px-2.5 py-1 rounded bg-[#21262d]/60 text-[#8b949e] border border-[#30363d]/30 hover:bg-red-900/20 hover:text-red-400 hover:border-red-800/30 transition-colors disabled:opacity-40"
 									>
 										Abort
 									</button>

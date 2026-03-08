@@ -30,7 +30,7 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 		return (
 			<button
 				onClick={() => setActive(true)}
-				className="flex items-center gap-2 w-72 flex-shrink-0 px-1 py-1.5 text-zinc-600 hover:text-zinc-400 text-[12px] font-medium transition-colors"
+				className="flex items-center gap-2 w-72 flex-shrink-0 px-1 py-1.5 text-[#6e7681] hover:text-[#8b949e] text-[12px] font-medium transition-colors"
 			>
 				<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
 					<path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

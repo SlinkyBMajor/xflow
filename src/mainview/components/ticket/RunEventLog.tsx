@@ -32,10 +32,10 @@ export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) 
 			{isActive && (
 				<div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
 					<span className="relative flex h-1.5 w-1.5">
-						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
 					</span>
-					<span className="text-[9px] font-mono text-violet-400/70 uppercase tracking-widest">
+					<span className="text-[9px] font-mono text-[#58a6ff]/70 uppercase tracking-widest">
 						live
 					</span>
 				</div>
@@ -44,12 +44,12 @@ export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) 
 			<div
 				ref={scrollRef}
 				onScroll={handleScroll}
-				className={`overflow-y-auto bg-zinc-950 p-3 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent ${
-				fullHeight ? "flex-1 min-h-0" : "max-h-80 border border-zinc-800/60 rounded-lg"
+				className={`overflow-y-auto bg-[#0d1117] p-3 scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${
+				fullHeight ? "flex-1 min-h-0" : "max-h-80 border border-[#21262d] rounded-lg"
 			}`}
 			>
 				{events.length === 0 ? (
-					<div className="text-[11px] font-mono text-zinc-700 italic">
+					<div className="text-[11px] font-mono text-[#484f58] italic">
 						Waiting for events...
 					</div>
 				) : (
@@ -66,7 +66,7 @@ export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) 
 
 function EventLine({ event }: { event: RunEvent }) {
 	const time = formatTime(event.timestamp);
-	const prefix = <span className="text-zinc-700 select-none mr-2">{time}</span>;
+	const prefix = <span className="text-[#484f58] select-none mr-2">{time}</span>;
 
 	switch (event.type) {
 		case "AGENT_OUTPUT":
@@ -76,7 +76,7 @@ function EventLine({ event }: { event: RunEvent }) {
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-violet-400">&#9654; Agent started</span>
+					<span className="text-[#58a6ff]">&#9654; Agent started</span>
 				</div>
 			);
 
@@ -101,10 +101,10 @@ function EventLine({ event }: { event: RunEvent }) {
 			return (
 				<div className="text-[11px] font-mono leading-relaxed flex items-center gap-1.5">
 					{prefix}
-					<span className="inline-flex items-center rounded px-1 py-px bg-zinc-800/80 text-zinc-500 text-[10px]">
+					<span className="inline-flex items-center rounded px-1 py-px bg-[#21262d]/80 text-[#8b949e] text-[10px]">
 						{event.type === "NODE_STARTED" ? "started" : "completed"}
 					</span>
-					<span className="text-zinc-600">
+					<span className="text-[#6e7681]">
 						{(event.payload as any)?.nodeId ?? ""}
 					</span>
 				</div>
@@ -114,7 +114,7 @@ function EventLine({ event }: { event: RunEvent }) {
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-zinc-400">
+					<span className="text-[#8b949e]">
 						{(event.payload as any)?.message ?? ""}
 					</span>
 				</div>
@@ -135,7 +135,7 @@ function EventLine({ event }: { event: RunEvent }) {
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-zinc-500 italic">Run resumed</span>
+					<span className="text-[#8b949e] italic">Run resumed</span>
 				</div>
 			);
 
@@ -151,7 +151,7 @@ function EventLine({ event }: { event: RunEvent }) {
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-zinc-600">{event.type}</span>
+					<span className="text-[#6e7681]">{event.type}</span>
 				</div>
 			);
 	}
@@ -173,7 +173,7 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 						return (
 							<div className="text-[11px] font-mono leading-relaxed">
 								{prefix}
-								<span className="text-violet-400/90">{describeToolUse(block.name, block.input)}</span>
+								<span className="text-[#58a6ff]/90">{describeToolUse(block.name, block.input)}</span>
 							</div>
 						);
 					}
@@ -184,7 +184,7 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-zinc-300">{texts}</span>
+					<span className="text-[#e6edf3]">{texts}</span>
 				</div>
 			);
 		}
@@ -194,7 +194,7 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-violet-400/90">{summary}</span>
+					<span className="text-[#58a6ff]/90">{summary}</span>
 				</div>
 			);
 		}
@@ -233,17 +233,17 @@ function CollapsibleToolResult({ prefix, data }: { prefix: React.ReactNode; data
 	return (
 		<div className="text-[11px] font-mono leading-relaxed">
 			<div
-				className="cursor-pointer hover:bg-zinc-900/50 rounded -mx-1 px-1 transition-colors"
+				className="cursor-pointer hover:bg-[#161b22]/50 rounded -mx-1 px-1 transition-colors"
 				onClick={() => setOpen(!open)}
 			>
 				{prefix}
-				<span className="text-zinc-600 select-none mr-1">{open ? "▾" : "▸"}</span>
-				<span className="text-zinc-500">
+				<span className="text-[#6e7681] select-none mr-1">{open ? "▾" : "▸"}</span>
+				<span className="text-[#8b949e]">
 					{open ? "output" : preview ? `${preview}${content.length > 80 ? "…" : ""}` : "output"}
 				</span>
 			</div>
 			{open && (
-				<pre className="mt-0.5 ml-[4.5rem] text-[10px] text-zinc-600 whitespace-pre-wrap break-all max-h-32 overflow-y-auto bg-zinc-900/30 rounded px-2 py-1 border border-zinc-800/40">
+				<pre className="mt-0.5 ml-[4.5rem] text-[10px] text-[#6e7681] whitespace-pre-wrap break-all max-h-32 overflow-y-auto bg-[#161b22]/30 rounded px-2 py-1 border border-[#21262d]">
 					{content}
 				</pre>
 			)}

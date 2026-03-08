@@ -15,7 +15,7 @@ interface WorkflowNodeShellProps {
 function getRunStatusClasses(runStatus?: NodeRunStatus): string {
 	switch (runStatus) {
 		case "active":
-			return "border-violet-500 animate-pulse shadow-lg shadow-violet-500/30";
+			return "border-[#58a6ff] animate-pulse shadow-lg shadow-[#58a6ff]/30";
 		case "completed":
 			return "border-emerald-500/60";
 		case "error":
@@ -37,14 +37,14 @@ function WorkflowNodeShellInner({
 	const runClasses = getRunStatusClasses(runStatus);
 	const selectionClasses = !runClasses
 		? selected
-			? "border-violet-500 shadow-lg shadow-violet-500/20"
-			: "border-zinc-700 hover:border-zinc-600"
+			? "border-[#58a6ff] shadow-lg shadow-[#58a6ff]/20"
+			: "border-[#30363d] hover:border-[#484f58]"
 		: runClasses;
 
 	return (
 		<div
 			className={`
-				relative bg-zinc-900 border rounded-lg px-4 py-3 min-w-[180px] max-w-[220px]
+				relative bg-[#161b22] border rounded-lg px-4 py-3 min-w-[180px] max-w-[220px]
 				transition-colors
 				${selectionClasses}
 			`}
@@ -61,7 +61,7 @@ function WorkflowNodeShellInner({
 				</div>
 			)}
 			{showTargetHandle && (
-				<Handle type="target" position={Position.Top} className="!bg-zinc-600 !border-zinc-500 !w-2.5 !h-2.5" />
+				<Handle type="target" position={Position.Top} className="!bg-[#484f58] !border-[#484f58] !w-2.5 !h-2.5" />
 			)}
 			{children}
 			{sourceHandles ? (
@@ -71,11 +71,11 @@ function WorkflowNodeShellInner({
 							type="source"
 							position={Position.Bottom}
 							id={h.id}
-							className="!bg-zinc-600 !border-zinc-500 !w-2.5 !h-2.5"
+							className="!bg-[#484f58] !border-[#484f58] !w-2.5 !h-2.5"
 							style={{ left: `${((i + 1) / (sourceHandles.length + 1)) * 100}%` }}
 						/>
 						<span
-							className="absolute text-[9px] text-zinc-500 font-mono"
+							className="absolute text-[9px] text-[#8b949e] font-mono"
 							style={{
 								bottom: -16,
 								left: `${((i + 1) / (sourceHandles.length + 1)) * 100}%`,
@@ -87,7 +87,7 @@ function WorkflowNodeShellInner({
 					</div>
 				))
 			) : showSourceHandle ? (
-				<Handle type="source" position={Position.Bottom} className="!bg-zinc-600 !border-zinc-500 !w-2.5 !h-2.5" />
+				<Handle type="source" position={Position.Bottom} className="!bg-[#484f58] !border-[#484f58] !w-2.5 !h-2.5" />
 			) : null}
 		</div>
 	);

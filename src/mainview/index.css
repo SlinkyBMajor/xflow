@@ -6,39 +6,39 @@
 
 @layer base {
   :root {
-    --color-surface-0: #09090b;
-    --color-surface-1: #18181b;
-    --color-surface-2: #27272a;
-    --color-surface-3: #3f3f46;
-    --color-border: #27272a;
-    --color-border-hover: #3f3f46;
-    --color-text-primary: #fafafa;
-    --color-text-secondary: #a1a1aa;
-    --color-text-muted: #71717a;
-    --color-accent: #a78bfa;
+    --color-surface-0: #0d1117;
+    --color-surface-1: #161b22;
+    --color-surface-2: #21262d;
+    --color-surface-3: #30363d;
+    --color-border: #21262d;
+    --color-border-hover: #30363d;
+    --color-text-primary: #e6edf3;
+    --color-text-secondary: #8b949e;
+    --color-text-muted: #6e7681;
+    --color-accent: #58a6ff;
     --font-display: 'JetBrains Mono', monospace;
     --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
 
-    /* shadcn CSS variables - dark theme */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 263 70% 50%;
+    /* shadcn CSS variables - dark theme (GitHub dark) */
+    --background: 215 21% 7%;
+    --foreground: 210 17% 90%;
+    --card: 215 19% 11%;
+    --card-foreground: 210 17% 90%;
+    --popover: 215 19% 11%;
+    --popover-foreground: 210 17% 90%;
+    --primary: 212 100% 67%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --secondary: 215 14% 17%;
+    --secondary-foreground: 210 17% 90%;
+    --muted: 215 14% 17%;
+    --muted-foreground: 215 10% 55%;
+    --accent: 215 14% 17%;
+    --accent-foreground: 210 17% 90%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 263 70% 50%;
+    --destructive-foreground: 210 17% 90%;
+    --border: 215 14% 17%;
+    --input: 215 14% 17%;
+    --ring: 212 100% 67%;
     --radius: 0.5rem;
   }
 }
@@ -74,7 +74,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #484f58;
 }
 
 /* Drag overlay styles */
@@ -134,7 +134,7 @@ body {
 .view-tab-active {
   background: var(--color-surface-2);
   color: var(--color-text-primary);
-  border-color: rgba(63, 63, 70, 0.5);
+  border-color: var(--color-surface-3);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -144,7 +144,7 @@ body {
 
 .view-tab-inactive:hover {
   color: var(--color-text-secondary);
-  background: rgba(39, 39, 42, 0.4);
+  background: rgba(33, 38, 45, 0.5);
 }
 
 .view-tab-kbd {
@@ -154,16 +154,16 @@ body {
   letter-spacing: 0.02em;
   padding: 1px 4px;
   border-radius: 3px;
-  background: rgba(39, 39, 42, 0.6);
+  background: rgba(33, 38, 45, 0.6);
   color: var(--color-text-muted);
-  border: 1px solid rgba(63, 63, 70, 0.3);
+  border: 1px solid rgba(48, 54, 61, 0.4);
   line-height: 1.4;
 }
 
 .view-tab-active .view-tab-kbd {
-  background: rgba(24, 24, 27, 0.8);
+  background: rgba(13, 17, 23, 0.8);
   color: var(--color-text-secondary);
-  border-color: rgba(63, 63, 70, 0.5);
+  border-color: rgba(48, 54, 61, 0.6);
 }
 
 /* ── Electrobun window drag regions ─────────────────── */

@@ -13,19 +13,19 @@ interface LaneHeaderProps {
 
 export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflow }: LaneHeaderProps) {
 	return (
-		<div className="group flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/40">
+		<div className="group flex items-center gap-2 px-3 py-2.5 border-b border-[#21262d]">
 			<div
 				className="w-2 h-2 rounded-full flex-shrink-0"
 				style={{ backgroundColor: lane.color || "#71717a" }}
 			/>
 
-			<span className="text-[13px] font-medium text-zinc-300 flex-1 truncate">
+			<span className="text-[13px] font-medium text-[#e6edf3] flex-1 truncate">
 				{lane.name}
 			</span>
 
 			<span
 				className={`text-[10px] font-mono tabular-nums ${
-					isOverWip ? "text-red-400 font-semibold" : "text-zinc-600"
+					isOverWip ? "text-red-400 font-semibold" : "text-[#6e7681]"
 				}`}
 			>
 				{ticketCount}
@@ -37,7 +37,7 @@ export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflo
 					<TooltipTrigger asChild>
 						<button
 							onClick={onOpenWorkflow}
-							className="flex-shrink-0 text-violet-400/50 hover:text-violet-400 transition-colors"
+							className="flex-shrink-0 text-[#58a6ff]/50 hover:text-[#58a6ff] transition-colors"
 						>
 							<Workflow size={13} />
 						</button>
@@ -53,7 +53,7 @@ export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflo
 							variant="ghost"
 							size="icon"
 							onClick={onEdit}
-							className="h-5 w-5 text-zinc-600 hover:text-zinc-300"
+							className="h-5 w-5 text-[#6e7681] hover:text-[#e6edf3]"
 						>
 							<Pencil size={11} />
 						</Button>

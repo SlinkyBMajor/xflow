@@ -67,7 +67,7 @@ export function TicketForm({ initialTitle, initialBody, initialTags, onSave, onC
 					size="sm"
 					onClick={handleSubmit}
 					disabled={!title.trim()}
-					className="bg-violet-600 hover:bg-violet-500 text-white"
+					className="bg-[#238636] hover:bg-[#2ea043] text-white"
 				>
 					Save
 				</Button>

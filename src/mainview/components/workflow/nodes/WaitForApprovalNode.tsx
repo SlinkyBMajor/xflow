@@ -17,9 +17,9 @@ function WaitForApprovalNodeInner({ data, selected }: NodeProps) {
 		>
 			<div className="flex items-center gap-2">
 				<span className="text-orange-400 text-sm font-bold">&#9646;&#9646;</span>
-				<span className="text-sm font-medium text-zinc-200">{String(data.label)}</span>
+				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
-			{message && <p className="text-xs text-zinc-500 mt-1 truncate">{message}</p>}
+			{message && <p className="text-xs text-[#8b949e] mt-1 truncate">{message}</p>}
 		</WorkflowNodeShell>
 	);
 }
