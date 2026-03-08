@@ -20,6 +20,7 @@ import { useWorkflow } from "../../hooks/useWorkflow";
 import { rpc } from "../../rpc";
 import { useWorkflowRunState } from "../../hooks/useWorkflowRunState";
 import { irToReactFlow, reactFlowToIR, validateIR, getDefaultConfig, getNodeLabel } from "../../lib/workflow-ir";
+import { applyDagreLayout } from "../../lib/dagre-layout";
 import { nodeTypes } from "./nodes";
 import { NodePalette } from "./NodePalette";
 import { NodeConfigPanel } from "./NodeConfigPanel";
@@ -54,7 +55,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 		panOnScroll: false,
 	});
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
-	const { screenToFlowPosition } = useReactFlow();
+	const { screenToFlowPosition, fitView } = useReactFlow();
 	const { runState, isRunning, getNodeRunStatus } = useWorkflowRunState(workflowId);
 
 	// Inject runStatus into node data when running
@@ -253,6 +254,16 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 		setSelectedNode(null);
 	}, [workflowId, setNodes, setEdges]);
 
+	// Auto layout
+	const handleAutoLayout = useCallback(() => {
+		setNodes((nds) => {
+			const layouted = applyDagreLayout(nds, edges);
+			return layouted;
+		});
+		markDirty();
+		window.requestAnimationFrame(() => fitView({ padding: 0.2 }));
+	}, [edges, setNodes, markDirty, fitView]);
+
 	// Toolbox change handler — update existing edges when edge type changes
 	const handleToolboxChange = useCallback((next: WorkflowToolboxState) => {
 		if (next.edgeType !== toolbox.edgeType) {
@@ -373,7 +384,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 							/>
 						)}
 					</ReactFlow>
-					<WorkflowToolbox state={toolbox} onChange={handleToolboxChange} />
+					<WorkflowToolbox state={toolbox} onChange={handleToolboxChange} onAutoLayout={!isRunning ? handleAutoLayout : undefined} />
 				</div>
 				{showHistory ? (
 					<VersionHistory

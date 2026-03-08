@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings2 } from "lucide-react";
+import { Settings2, LayoutGrid } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import {
@@ -23,9 +23,10 @@ export interface WorkflowToolboxState {
 interface WorkflowToolboxProps {
 	state: WorkflowToolboxState;
 	onChange: (state: WorkflowToolboxState) => void;
+	onAutoLayout?: () => void;
 }
 
-export function WorkflowToolbox({ state, onChange }: WorkflowToolboxProps) {
+export function WorkflowToolbox({ state, onChange, onAutoLayout }: WorkflowToolboxProps) {
 	const [open, setOpen] = useState(false);
 
 	const update = <K extends keyof WorkflowToolboxState>(
@@ -36,7 +37,16 @@ export function WorkflowToolbox({ state, onChange }: WorkflowToolboxProps) {
 	};
 
 	return (
-		<div className="absolute top-3 right-3 z-10">
+		<div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+			{onAutoLayout && (
+				<button
+					onClick={onAutoLayout}
+					className="p-2 rounded-lg border transition-colors bg-[#161b22]/90 border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]"
+					title="Auto Layout"
+				>
+					<LayoutGrid className="w-4 h-4" />
+				</button>
+			)}
 			<button
 				onClick={() => setOpen((v) => !v)}
 				className={`p-2 rounded-lg border transition-colors ${
