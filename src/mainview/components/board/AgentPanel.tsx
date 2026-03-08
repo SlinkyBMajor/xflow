@@ -55,7 +55,7 @@ function AgentTabContent({ runId, isActive }: { runId: string; isActive: boolean
 	const { events } = useRunEvents(runId);
 
 	return (
-		<div className="flex-1 overflow-hidden min-h-0">
+		<div className="flex flex-col flex-1 overflow-hidden min-h-0">
 			<RunEventLog events={events} isActive={isActive} fullHeight />
 		</div>
 	);
