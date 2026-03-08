@@ -44,7 +44,7 @@ export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) 
 			<div
 				ref={scrollRef}
 				onScroll={handleScroll}
-				className={`overflow-y-auto bg-[#0d1117] p-3 scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${
+				className={`overflow-y-auto bg-[#0d1117] p-3 pb-6 scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${
 				fullHeight ? "flex-1 min-h-0" : "max-h-80 border border-[#21262d] rounded-lg"
 			}`}
 			>
