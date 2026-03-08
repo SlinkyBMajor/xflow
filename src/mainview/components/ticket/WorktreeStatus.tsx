@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { GitBranch, GitPullRequest, GitMerge, ExternalLink, Copy, Check, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone, openExternal } from "../../rpc";
 import type { WorkflowRun, MergeResult } from "../../../shared/types";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
@@ -245,68 +246,98 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 					{/* Actions — pending */}
 					{state === "pending" && showActions && (
 						<div className="flex items-center gap-1.5 pt-0.5">
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleViewDiff}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
-							>
-								{showDiff ? "Hide Diff" : "View Diff"}
-							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleMerge("auto")}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
-							>
-								Merge
-							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleMerge("pr")}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
-							>
-								Create PR
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={handleViewDiff}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+									>
+										{showDiff ? "Hide Diff" : "View Diff"}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Show uncommitted changes in the worktree</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => handleMerge("auto")}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+									>
+										Merge
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Auto-merge worktree branch into the base branch</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => handleMerge("pr")}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+									>
+										Create PR
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Open a pull request from the worktree branch</TooltipContent>
+							</Tooltip>
 							<div className="flex-1" />
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleCleanup}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
-							>
-								Cleanup
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={handleCleanup}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+									>
+										Cleanup
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Delete the worktree and its branch permanently</TooltipContent>
+							</Tooltip>
 						</div>
 					)}
 
 					{/* Actions — conflict */}
 					{state === "conflict" && showActions && (
 						<div className="flex items-center gap-1.5 pt-0.5">
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => handleMerge("auto")}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
-							>
-								Retry Merge
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => handleMerge("auto")}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
+									>
+										Retry Merge
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Retry the merge after resolving conflicts</TooltipContent>
+							</Tooltip>
 							<div className="flex-1" />
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleCleanup}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
-							>
-								Cleanup
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={handleCleanup}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+									>
+										Cleanup
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Delete the worktree and its branch permanently</TooltipContent>
+							</Tooltip>
 						</div>
 					)}
 
@@ -326,15 +357,20 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 								Mark as Merged
 							</Button>
 							<div className="flex-1" />
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleCleanup}
-								disabled={loading}
-								className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
-							>
-								Cleanup
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={handleCleanup}
+										disabled={loading}
+										className="text-[11px] h-7 px-2.5 text-[#6e7681] hover:text-red-400 hover:bg-red-900/20"
+									>
+										Cleanup
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Delete the worktree and its branch permanently</TooltipContent>
+							</Tooltip>
 						</div>
 					)}
 

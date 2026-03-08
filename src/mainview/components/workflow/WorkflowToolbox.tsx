@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Settings2, LayoutGrid } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import {
 	Select,
 	SelectContent,
@@ -39,24 +40,33 @@ export function WorkflowToolbox({ state, onChange, onAutoLayout }: WorkflowToolb
 	return (
 		<div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
 			{onAutoLayout && (
-				<button
-					onClick={onAutoLayout}
-					className="p-2 rounded-lg border transition-colors bg-[#161b22]/90 border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]"
-					title="Auto Layout"
-				>
-					<LayoutGrid className="w-4 h-4" />
-				</button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={onAutoLayout}
+							className="p-2 rounded-lg border transition-colors bg-[#161b22]/90 border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]"
+						>
+							<LayoutGrid className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>Arrange nodes automatically using a tree layout</TooltipContent>
+				</Tooltip>
 			)}
-			<button
-				onClick={() => setOpen((v) => !v)}
-				className={`p-2 rounded-lg border transition-colors ${
-					open
-						? "bg-[#21262d] border-[#30363d] text-[#e6edf3]"
-						: "bg-[#161b22]/90 border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]"
-				}`}
-			>
-				<Settings2 className="w-4 h-4" />
-			</button>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						onClick={() => setOpen((v) => !v)}
+						className={`p-2 rounded-lg border transition-colors ${
+							open
+								? "bg-[#21262d] border-[#30363d] text-[#e6edf3]"
+								: "bg-[#161b22]/90 border-[#21262d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#30363d]"
+						}`}
+					>
+						<Settings2 className="w-4 h-4" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent>Canvas display settings</TooltipContent>
+			</Tooltip>
 
 			{open && (
 				<div className="absolute top-10 right-0 w-56 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl p-3 space-y-3">

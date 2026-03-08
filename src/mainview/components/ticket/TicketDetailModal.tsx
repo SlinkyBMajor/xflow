@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { TicketForm } from "./TicketForm";
 import { TicketView } from "./TicketView";
 import { RunEventLog } from "./RunEventLog";
@@ -107,13 +108,17 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 										Workflow Output
 									</span>
-									<button
-										onClick={() => setAllCollapsed((c) => !c)}
-										className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
-										title={allCollapsed ? "Expand all" : "Collapse all"}
-									>
-										{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
-									</button>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<button
+												onClick={() => setAllCollapsed((c) => !c)}
+												className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+											>
+												{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
+											</button>
+										</TooltipTrigger>
+										<TooltipContent>{allCollapsed ? "Expand all workflow output sections" : "Collapse all workflow output sections"}</TooltipContent>
+									</Tooltip>
 								</div>
 								<div className="space-y-3">
 									{outputEntries.map(([nodeId, entry]) => (
@@ -190,13 +195,17 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 							{/* Ticket ID */}
 							<MetadataRow label="ID">
-								<button
-									onClick={() => copyId(ticket.id)}
-									className="text-[11px] text-[#6e7681] font-mono hover:text-[#e6edf3] transition-colors truncate max-w-full text-left"
-									title="Click to copy"
-								>
-									{idCopied ? "Copied!" : ticket.id.slice(0, 12) + "..."}
-								</button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<button
+											onClick={() => copyId(ticket.id)}
+											className="text-[11px] text-[#6e7681] font-mono hover:text-[#e6edf3] transition-colors truncate max-w-full text-left"
+										>
+											{idCopied ? "Copied!" : ticket.id.slice(0, 12) + "..."}
+										</button>
+									</TooltipTrigger>
+									<TooltipContent>Copy ticket ID</TooltipContent>
+								</Tooltip>
 							</MetadataRow>
 
 							{/* Tags preview */}
@@ -222,13 +231,17 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 										<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 											Metadata
 										</span>
-										<button
-											onClick={() => copyMeta(formatMetadataForClipboard(metadataEntries))}
-											className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
-											title="Copy all metadata"
-										>
-											{metaCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-										</button>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<button
+													onClick={() => copyMeta(formatMetadataForClipboard(metadataEntries))}
+													className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+												>
+													{metaCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+												</button>
+											</TooltipTrigger>
+											<TooltipContent>Copy all metadata</TooltipContent>
+										</Tooltip>
 									</div>
 									<div className="space-y-1">
 										{metadataEntries.map(([key, value]) => (
