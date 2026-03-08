@@ -2,8 +2,16 @@ import { describe, it, expect } from "vitest";
 import { applyDagreLayout } from "./dagre-layout";
 import type { Node, Edge } from "@xyflow/react";
 
-function node(id: string): Node {
-	return { id, type: "default", position: { x: 0, y: 0 }, data: {} };
+function node(id: string, width?: number, height?: number): Node {
+	return {
+		id,
+		type: "default",
+		position: { x: 0, y: 0 },
+		data: {},
+		...(width || height
+			? { measured: { width: width ?? 200, height: height ?? 80 } }
+			: {}),
+	};
 }
 
 function edge(source: string, target: string): Edge {
@@ -43,5 +51,21 @@ describe("applyDagreLayout", () => {
 	it("handles empty input without error", () => {
 		const result = applyDagreLayout([], []);
 		expect(result).toEqual([]);
+	});
+
+	it("centers nodes with different widths on the same vertical axis", () => {
+		const nodes = [node("a", 180, 80), node("b", 220, 80), node("c", 200, 80)];
+		const edges = [edge("a", "b"), edge("b", "c")];
+		const result = applyDagreLayout(nodes, edges);
+
+		const centerX = (n: Node) =>
+			n.position.x + (n.measured?.width ?? 200) / 2;
+
+		const cxA = centerX(result.find((n) => n.id === "a")!);
+		const cxB = centerX(result.find((n) => n.id === "b")!);
+		const cxC = centerX(result.find((n) => n.id === "c")!);
+
+		expect(cxA).toBe(cxB);
+		expect(cxB).toBe(cxC);
 	});
 });

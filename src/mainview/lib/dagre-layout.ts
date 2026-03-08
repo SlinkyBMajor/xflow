@@ -10,7 +10,9 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 	g.setGraph({ rankdir: "TB", nodesep: 50, ranksep: 80 });
 
 	for (const node of nodes) {
-		g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+		const w = node.measured?.width ?? NODE_WIDTH;
+		const h = node.measured?.height ?? NODE_HEIGHT;
+		g.setNode(node.id, { width: w, height: h });
 	}
 
 	for (const edge of edges) {
@@ -21,11 +23,13 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 
 	return nodes.map((node) => {
 		const pos = g.node(node.id);
+		const nodeW = node.measured?.width ?? NODE_WIDTH;
+		const nodeH = node.measured?.height ?? NODE_HEIGHT;
 		return {
 			...node,
 			position: {
-				x: pos.x - NODE_WIDTH / 2,
-				y: pos.y - NODE_HEIGHT / 2,
+				x: pos.x - nodeW / 2,
+				y: pos.y - nodeH / 2,
 			},
 		};
 	});
