@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Copy, Check } from "lucide-react";
 import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus } from "../../../shared/types";
 import {
 	Dialog,
@@ -11,6 +12,7 @@ import { TicketForm } from "./TicketForm";
 import { RunEventLog } from "./RunEventLog";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -23,7 +25,8 @@ interface TicketDetailModalProps {
 }
 
 export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete }: TicketDetailModalProps) {
-	const [copied, setCopied] = useState(false);
+	const { copied: idCopied, copy: copyId } = useCopyFeedback();
+	const { copied: metaCopied, copy: copyMeta } = useCopyFeedback();
 	const { runs } = useWorkflowRuns(open ? ticket.id : null);
 	const activeRun = runs.find((r) => r.status === "active");
 	const { events } = useRunEvents(activeRun?.id ?? null);
@@ -32,15 +35,9 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
 	const outputEntries = Object.entries(workflowOutput);
 
-	const copyId = () => {
-		navigator.clipboard.writeText(ticket.id);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1500);
-	};
-
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-			<DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
+			<DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden">
 				<DialogTitle className="sr-only">Edit Ticket</DialogTitle>
 				<DialogDescription className="sr-only">
 					Edit ticket details
@@ -103,7 +100,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							Details
 						</span>
 
-						<div className="mt-4 space-y-5">
+						<div className="mt-4 space-y-3">
 							{/* Lane / Status */}
 							<MetadataRow label="Lane">
 								<div className="flex items-center gap-2">
@@ -146,11 +143,11 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							{/* Ticket ID */}
 							<MetadataRow label="ID">
 								<button
-									onClick={copyId}
+									onClick={() => copyId(ticket.id)}
 									className="text-[11px] text-[#6e7681] font-mono hover:text-[#e6edf3] transition-colors truncate max-w-full text-left"
 									title="Click to copy"
 								>
-									{copied ? "Copied!" : ticket.id.slice(0, 12) + "..."}
+									{idCopied ? "Copied!" : ticket.id.slice(0, 12) + "..."}
 								</button>
 							</MetadataRow>
 
@@ -173,18 +170,30 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							{/* Custom metadata */}
 							{metadataEntries.length > 0 && (
 								<>
-									<div className="border-t border-[#21262d] pt-4">
+									<div className="border-t border-[#21262d] pt-3 flex items-center justify-between">
 										<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 											Metadata
 										</span>
+										<button
+											onClick={() => copyMeta(formatMetadataForClipboard(metadataEntries))}
+											className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+											title="Copy all metadata"
+										>
+											{metaCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+										</button>
 									</div>
-									{metadataEntries.map(([key, value]) => (
-										<MetadataRow key={key} label={key}>
-											<span className="text-[12px] text-[#8b949e] font-mono break-all">
-												{typeof value === "string" ? value : JSON.stringify(value)}
-											</span>
-										</MetadataRow>
-									))}
+									<div className="space-y-1">
+										{metadataEntries.map(([key, value]) => (
+											<div key={key} className="flex items-baseline justify-between gap-2 py-0.5">
+												<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider shrink-0">
+													{key}
+												</span>
+												<span className="text-[12px] text-[#8b949e] font-mono break-all text-right">
+													{typeof value === "string" ? value : JSON.stringify(value)}
+												</span>
+											</div>
+										))}
+									</div>
 								</>
 							)}
 						</div>
@@ -267,4 +276,11 @@ function MetadataRow({ label, children }: { label: string; children: React.React
 function formatDate(iso: string): string {
 	const d = new Date(iso);
 	return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatMetadataForClipboard(entries: [string, unknown][]): string {
+	return entries.map(([key, value]) => {
+		const display = typeof value === "string" ? value : JSON.stringify(value);
+		return `${key}: ${display}`;
+	}).join("\n");
 }
