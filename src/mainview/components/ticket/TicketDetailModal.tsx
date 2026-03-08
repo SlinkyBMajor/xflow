@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
 import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus } from "../../../shared/types";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { TicketForm } from "./TicketForm";
+import { TicketView } from "./TicketView";
 import { RunEventLog } from "./RunEventLog";
 import { WorktreeStatus } from "./WorktreeStatus";
 import { WorktreeSidebarIndicator } from "./WorktreeSidebarIndicator";
@@ -27,6 +28,8 @@ interface TicketDetailModalProps {
 }
 
 export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete }: TicketDetailModalProps) {
+	const isNew = !ticket.body;
+	const [editing, setEditing] = useState(isNew);
 	const { copied: idCopied, copy: copyId } = useCopyFeedback();
 	const { copied: metaCopied, copy: copyMeta } = useCopyFeedback();
 	const { runs } = useWorkflowRuns(open ? ticket.id : null);
@@ -37,6 +40,11 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
 	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
 	const outputEntries = Object.entries(workflowOutput);
+
+	// Reset editing state when ticket changes
+	useEffect(() => {
+		setEditing(!ticket.body);
+	}, [ticket.id]);
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
@@ -64,13 +72,25 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							</Button>
 						</div>
 
-						<TicketForm
-							initialTitle={ticket.title}
-							initialBody={ticket.body || ""}
-							initialTags={ticket.tags}
-							onSave={onSave}
-							onCancel={onClose}
-						/>
+						{editing || isNew ? (
+							<TicketForm
+								initialTitle={ticket.title}
+								initialBody={ticket.body || ""}
+								initialTags={ticket.tags}
+								onSave={(updates) => {
+									onSave(updates);
+									setEditing(false);
+								}}
+								onCancel={isNew ? onClose : () => setEditing(false)}
+							/>
+						) : (
+							<TicketView
+								title={ticket.title}
+								body={ticket.body || ""}
+								tags={ticket.tags}
+								onEdit={() => setEditing(true)}
+							/>
+						)}
 
 						{/* Workflow output */}
 						{outputEntries.length > 0 && (
