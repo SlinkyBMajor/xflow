@@ -319,16 +319,20 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			},
 
 			mergeWorktreeBranch: async ({ runId, strategy }) => {
+				console.log(`[RPC] mergeWorktreeBranch called: runId=${runId}, strategy=${strategy}`);
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
 				if (!run) throw new Error(`Run ${runId} not found`);
 				if (!run.worktreeBranch) throw new Error("Run has no worktree branch");
 				if (!activeProjectPath) throw new Error("No project open");
 
+				console.log(`[RPC] Run worktree: path=${run.worktreePath}, branch=${run.worktreeBranch}`);
 				const { getCurrentBranch } = await import("./git/worktree");
 				const baseBranch = await getCurrentBranch(activeProjectPath);
 				const mergeStrategy = strategy ?? "auto";
-				const result = await mergeWorktreeBranch(activeProjectPath, run.worktreeBranch, mergeStrategy, baseBranch);
+				const result = await mergeWorktreeBranch(activeProjectPath, run.worktreeBranch, mergeStrategy, baseBranch, run.worktreePath ?? undefined);
+
+				console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
 				if (result.success && mergeStrategy === "auto" && run.worktreePath) {
 					await removeWorktree(activeProjectPath, run.worktreePath);

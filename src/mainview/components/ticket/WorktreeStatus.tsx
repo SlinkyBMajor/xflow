@@ -56,11 +56,17 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 
 	const handleMerge = async (strategy?: "auto" | "pr") => {
 		setLoading(true);
+		setMergeResult(null);
 		try {
 			const result = await rpc.request.mergeWorktreeBranch({ runId: run.id, strategy });
 			setMergeResult(result);
+			if (!result.success) {
+				console.error("Merge returned failure:", result);
+			}
 		} catch (err) {
-			console.error("Merge failed:", err);
+			const message = err instanceof Error ? err.message : String(err);
+			console.error("Merge RPC failed:", message);
+			setMergeResult({ success: false, strategy: strategy ?? "auto", conflicted: false, error: message });
 		} finally {
 			setLoading(false);
 		}
@@ -113,13 +119,17 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 				</div>
 			)}
 
+			{mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl && (
+				<p className="text-xs text-green-400">Merged successfully</p>
+			)}
+
 			{mergeResult?.prUrl && (
 				<p className="text-xs text-green-400">
 					PR created: <span className="font-mono">{mergeResult.prUrl}</span>
 				</p>
 			)}
 
-			{mergeResult?.error && (
+			{mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error && (
 				<p className="text-xs text-red-400">{mergeResult.error}</p>
 			)}
 

@@ -10,6 +10,7 @@ export interface MergeResult {
 }
 
 async function runGit(cwd: string, args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+	console.log(`[Git] Running: git ${args.join(" ")} (cwd: ${cwd})`);
 	const proc = Bun.spawn(["git", ...args], {
 		cwd,
 		stdout: "pipe",
@@ -22,11 +23,14 @@ async function runGit(cwd: string, args: string[]): Promise<{ stdout: string; st
 	]);
 	await proc.exited;
 
-	return { stdout: stdout.trim(), stderr: stderr.trim(), exitCode: proc.exitCode ?? 1 };
+	const result = { stdout: stdout.trim(), stderr: stderr.trim(), exitCode: proc.exitCode ?? 1 };
+	if (result.exitCode !== 0) {
+		console.log(`[Git] Exit ${result.exitCode}: ${result.stderr || "(no stderr)"}`);
+	}
+	return result;
 }
 
 export async function getWorktreeDiff(worktreePath: string): Promise<string> {
-	// Stage all changes first so diff captures everything
 	const staged = await runGit(worktreePath, ["diff", "--cached"]);
 	const unstaged = await runGit(worktreePath, ["diff"]);
 	const untracked = await runGit(worktreePath, ["ls-files", "--others", "--exclude-standard"]);
@@ -44,27 +48,32 @@ export async function mergeWorktreeBranch(
 	branch: string,
 	strategy: MergeStrategy,
 	baseBranch: string,
+	worktreePath?: string,
 ): Promise<MergeResult> {
+	console.log(`[Merge] Strategy: ${strategy}, branch: ${branch}, base: ${baseBranch}, worktree: ${worktreePath ?? "n/a"}`);
 	switch (strategy) {
 		case "auto":
 			return autoMerge(projectPath, branch, baseBranch);
 		case "pr":
-			return createPR(projectPath, branch);
+			return createPR(projectPath, branch, worktreePath);
 		case "manual":
 			return { success: true, strategy: "manual", conflicted: false };
 	}
 }
 
 async function autoMerge(projectPath: string, branch: string, baseBranch: string): Promise<MergeResult> {
-	// Checkout base branch first
+	console.log(`[Merge] Auto-merging ${branch} into ${baseBranch}`);
+
 	const checkout = await runGit(projectPath, ["checkout", baseBranch]);
 	if (checkout.exitCode !== 0) {
-		return { success: false, strategy: "auto", conflicted: false, error: `Failed to checkout ${baseBranch}: ${checkout.stderr}` };
+		const error = `Failed to checkout ${baseBranch}: ${checkout.stderr}`;
+		console.error(`[Merge] ${error}`);
+		return { success: false, strategy: "auto", conflicted: false, error };
 	}
 
-	// Attempt merge
 	const merge = await runGit(projectPath, ["merge", "--no-ff", branch]);
 	if (merge.exitCode === 0) {
+		console.log(`[Merge] Auto-merge succeeded`);
 		return { success: true, strategy: "auto", conflicted: false };
 	}
 
@@ -72,24 +81,73 @@ async function autoMerge(projectPath: string, branch: string, baseBranch: string
 	const status = await runGit(projectPath, ["diff", "--name-only", "--diff-filter=U"]);
 	if (status.stdout) {
 		const conflictFiles = status.stdout.split("\n").filter(Boolean);
-		// Abort the merge so the repo isn't left in a conflicted state
+		console.error(`[Merge] Conflicts in: ${conflictFiles.join(", ")}`);
 		await runGit(projectPath, ["merge", "--abort"]);
 		return { success: false, strategy: "auto", conflicted: true, conflictFiles };
 	}
 
 	// Non-conflict merge failure
+	const error = merge.stderr;
+	console.error(`[Merge] Auto-merge failed: ${error}`);
 	await runGit(projectPath, ["merge", "--abort"]);
-	return { success: false, strategy: "auto", conflicted: false, error: merge.stderr };
+	return { success: false, strategy: "auto", conflicted: false, error };
 }
 
-async function createPR(projectPath: string, branch: string): Promise<MergeResult> {
-	// Push branch to origin
-	const push = await runGit(projectPath, ["push", "origin", branch]);
-	if (push.exitCode !== 0) {
-		return { success: false, strategy: "pr", conflicted: false, error: `Failed to push: ${push.stderr}` };
+async function commitWorktreeChanges(worktreePath: string): Promise<boolean> {
+	// Check for any uncommitted changes (staged, unstaged, or untracked)
+	const status = await runGit(worktreePath, ["status", "--porcelain"]);
+	if (!status.stdout) {
+		console.log(`[Merge] No uncommitted changes in worktree`);
+		return true; // nothing to commit, but that's fine
 	}
 
-	// Create PR via gh CLI
+	console.log(`[Merge] Committing uncommitted changes in worktree:\n${status.stdout}`);
+
+	// Stage everything
+	const add = await runGit(worktreePath, ["add", "-A"]);
+	if (add.exitCode !== 0) {
+		console.error(`[Merge] Failed to stage changes: ${add.stderr}`);
+		return false;
+	}
+
+	// Commit
+	const commit = await runGit(worktreePath, ["commit", "-m", "xflow: agent changes"]);
+	if (commit.exitCode !== 0) {
+		console.error(`[Merge] Failed to commit: ${commit.stderr}`);
+		return false;
+	}
+
+	console.log(`[Merge] Committed agent changes`);
+	return true;
+}
+
+async function createPR(projectPath: string, branch: string, worktreePath?: string): Promise<MergeResult> {
+	console.log(`[Merge] Creating PR for branch ${branch}`);
+
+	// The worktree is where the branch HEAD lives — commit and push from there
+	const pushCwd = worktreePath ?? projectPath;
+
+	// Commit any uncommitted changes first
+	if (worktreePath) {
+		const committed = await commitWorktreeChanges(worktreePath);
+		if (!committed) {
+			const error = "Failed to commit agent changes in worktree before push";
+			console.error(`[Merge] ${error}`);
+			return { success: false, strategy: "pr", conflicted: false, error };
+		}
+	}
+
+	// Push branch to origin (from the worktree so the branch ref is current)
+	const push = await runGit(pushCwd, ["push", "-u", "origin", branch]);
+	if (push.exitCode !== 0) {
+		const error = `Failed to push: ${push.stderr}`;
+		console.error(`[Merge] ${error}`);
+		return { success: false, strategy: "pr", conflicted: false, error };
+	}
+	console.log(`[Merge] Pushed ${branch} to origin`);
+
+	// Create PR via gh CLI (run from project root so gh finds the repo config)
+	console.log(`[Merge] Creating PR via gh CLI`);
 	const pr = Bun.spawn(
 		["gh", "pr", "create", "--head", branch, "--fill"],
 		{ cwd: projectPath, stdout: "pipe", stderr: "pipe" },
@@ -102,9 +160,12 @@ async function createPR(projectPath: string, branch: string): Promise<MergeResul
 	await pr.exited;
 
 	if (pr.exitCode !== 0) {
-		return { success: false, strategy: "pr", conflicted: false, error: `Failed to create PR: ${prStderr.trim()}` };
+		const error = `Failed to create PR: ${prStderr.trim()}`;
+		console.error(`[Merge] ${error}`);
+		return { success: false, strategy: "pr", conflicted: false, error };
 	}
 
 	const prUrl = prStdout.trim();
+	console.log(`[Merge] PR created: ${prUrl}`);
 	return { success: true, strategy: "pr", conflicted: false, prUrl };
 }
