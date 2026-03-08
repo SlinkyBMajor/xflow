@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
-import { rpc } from "../../rpc";
+import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone } from "../../rpc";
 import type { WorkflowRun, MergeResult } from "../../../shared/types";
 
 interface WorktreeStatusProps {
@@ -34,53 +34,51 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	const [diffText, setDiffText] = useState<string | null>(null);
 	const [showDiff, setShowDiff] = useState(false);
 	const [loading, setLoading] = useState(false);
+	const [cleaned, setCleaned] = useState(false);
 
-	const state = mergeResult?.conflicted ? "conflict" : getWorktreeState(run);
+	// Listen for async results from the backend
+	useEffect(() => {
+		const unsubMerge = onWorktreeMergeResult(({ runId, result }) => {
+			if (runId !== run.id) return;
+			setMergeResult(result);
+			setLoading(false);
+		});
+		const unsubDiff = onWorktreeDiffResult(({ runId, diff }) => {
+			if (runId !== run.id) return;
+			setDiffText(diff);
+			setShowDiff(true);
+			setLoading(false);
+		});
+		const unsubCleanup = onWorktreeCleanupDone(({ runId }) => {
+			if (runId !== run.id) return;
+			setCleaned(true);
+			setLoading(false);
+		});
+		return () => { unsubMerge(); unsubDiff(); unsubCleanup(); };
+	}, [run.id]);
 
-	const handleViewDiff = async () => {
+	const state = cleaned ? "merged"
+		: mergeResult?.conflicted ? "conflict"
+		: getWorktreeState(run);
+
+	const handleViewDiff = () => {
 		if (showDiff) {
 			setShowDiff(false);
 			return;
 		}
 		setLoading(true);
-		try {
-			const diff = await rpc.request.getWorktreeDiff({ runId: run.id });
-			setDiffText(diff);
-			setShowDiff(true);
-		} catch (err) {
-			console.error("Failed to get diff:", err);
-		} finally {
-			setLoading(false);
-		}
+		rpc.request.getWorktreeDiff({ runId: run.id });
 	};
 
-	const handleMerge = async (strategy?: "auto" | "pr") => {
+	const handleMerge = (strategy?: "auto" | "pr") => {
 		setLoading(true);
 		setMergeResult(null);
-		try {
-			const result = await rpc.request.mergeWorktreeBranch({ runId: run.id, strategy });
-			setMergeResult(result);
-			if (!result.success) {
-				console.error("Merge returned failure:", result);
-			}
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			console.error("Merge RPC failed:", message);
-			setMergeResult({ success: false, strategy: strategy ?? "auto", conflicted: false, error: message });
-		} finally {
-			setLoading(false);
-		}
+		rpc.request.mergeWorktreeBranch({ runId: run.id, strategy });
 	};
 
-	const handleCleanup = async () => {
+	const handleCleanup = () => {
 		setLoading(true);
-		try {
-			await rpc.request.cleanupWorktree({ runId: run.id });
-		} catch (err) {
-			console.error("Cleanup failed:", err);
-		} finally {
-			setLoading(false);
-		}
+		rpc.request.cleanupWorktree({ runId: run.id });
 	};
 
 	const copyBranch = () => {
@@ -88,6 +86,8 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			navigator.clipboard.writeText(run.worktreeBranch);
 		}
 	};
+
+	const showActions = run.worktreePath && !cleaned;
 
 	return (
 		<div className="space-y-3">
@@ -133,7 +133,11 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 				<p className="text-xs text-red-400">{mergeResult.error}</p>
 			)}
 
-			{run.worktreePath && (
+			{loading && (
+				<p className="text-xs text-[#8b949e]">Working...</p>
+			)}
+
+			{showActions && (
 				<div className="flex flex-wrap gap-1.5">
 					<Button
 						variant="ghost"

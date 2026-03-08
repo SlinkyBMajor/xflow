@@ -426,11 +426,11 @@ export type XFlowRPC = {
 			};
 			mergeWorktreeBranch: {
 				params: { runId: string; strategy?: MergeStrategy };
-				response: MergeResult;
+				response: void;
 			};
 			getWorktreeDiff: {
 				params: { runId: string };
-				response: string;
+				response: void;
 			};
 			cleanupWorktree: {
 				params: { runId: string };
@@ -454,6 +454,9 @@ export type XFlowRPC = {
 			workflowRunUpdated: WorkflowRun;
 			interruptedRunsDetected: InterruptedRunInfo[];
 			runEventAdded: RunEvent;
+			worktreeMergeResult: { runId: string; result: MergeResult };
+			worktreeDiffResult: { runId: string; diff: string };
+			worktreeCleanupDone: { runId: string };
 		};
 	}>;
 };

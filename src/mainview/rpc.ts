@@ -1,5 +1,5 @@
 import { Electroview } from "electrobun/view";
-import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent } from "../shared/types";
+import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult } from "../shared/types";
 
 type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
 type ProjectOpenedListener = (data: ProjectOpenResult) => void;
@@ -7,6 +7,9 @@ type PickerResultListener = (path: string | null) => void;
 type WorkflowRunUpdateListener = (run: WorkflowRun) => void;
 type InterruptedRunsListener = (runs: InterruptedRunInfo[]) => void;
 type RunEventListener = (event: RunEvent) => void;
+type WorktreeMergeResultListener = (data: { runId: string; result: MergeResult }) => void;
+type WorktreeDiffResultListener = (data: { runId: string; diff: string }) => void;
+type WorktreeCleanupDoneListener = (data: { runId: string }) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
@@ -14,6 +17,9 @@ const pickerListeners = new Set<PickerResultListener>();
 const workflowRunListeners = new Set<WorkflowRunUpdateListener>();
 const interruptedRunsListeners = new Set<InterruptedRunsListener>();
 const runEventListeners = new Set<RunEventListener>();
+const worktreeMergeResultListeners = new Set<WorktreeMergeResultListener>();
+const worktreeDiffResultListeners = new Set<WorktreeDiffResultListener>();
+const worktreeCleanupDoneListeners = new Set<WorktreeCleanupDoneListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
 	handlers: {
@@ -36,6 +42,15 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			runEventAdded: (data) => {
 				for (const listener of runEventListeners) listener(data);
+			},
+			worktreeMergeResult: (data) => {
+				for (const listener of worktreeMergeResultListeners) listener(data);
+			},
+			worktreeDiffResult: (data) => {
+				for (const listener of worktreeDiffResultListeners) listener(data);
+			},
+			worktreeCleanupDone: (data) => {
+				for (const listener of worktreeCleanupDoneListeners) listener(data);
 			},
 		},
 	},
@@ -68,6 +83,21 @@ export function onInterruptedRunsDetected(listener: InterruptedRunsListener): ()
 export function onRunEventAdded(listener: RunEventListener): () => void {
 	runEventListeners.add(listener);
 	return () => runEventListeners.delete(listener);
+}
+
+export function onWorktreeMergeResult(listener: WorktreeMergeResultListener): () => void {
+	worktreeMergeResultListeners.add(listener);
+	return () => worktreeMergeResultListeners.delete(listener);
+}
+
+export function onWorktreeDiffResult(listener: WorktreeDiffResultListener): () => void {
+	worktreeDiffResultListeners.add(listener);
+	return () => worktreeDiffResultListeners.delete(listener);
+}
+
+export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): () => void {
+	worktreeCleanupDoneListeners.add(listener);
+	return () => worktreeCleanupDoneListeners.delete(listener);
 }
 
 export function requestProjectPicker(): Promise<string | null> {

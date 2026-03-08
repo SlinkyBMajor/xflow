@@ -318,7 +318,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				sendEventToRun(runId, "REJECTED");
 			},
 
-			mergeWorktreeBranch: async ({ runId, strategy }) => {
+			mergeWorktreeBranch: ({ runId, strategy }) => {
 				console.log(`[RPC] mergeWorktreeBranch called: runId=${runId}, strategy=${strategy}`);
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
@@ -326,28 +326,52 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				if (!run.worktreeBranch) throw new Error("Run has no worktree branch");
 				if (!activeProjectPath) throw new Error("No project open");
 
+				const projectPath = activeProjectPath;
 				console.log(`[RPC] Run worktree: path=${run.worktreePath}, branch=${run.worktreeBranch}`);
-				const { getCurrentBranch } = await import("./git/worktree");
-				const baseBranch = await getCurrentBranch(activeProjectPath);
-				const mergeStrategy = strategy ?? "auto";
-				const result = await mergeWorktreeBranch(activeProjectPath, run.worktreeBranch, mergeStrategy, baseBranch, run.worktreePath ?? undefined);
 
-				console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
+				// Run async — send result via message to avoid RPC timeout
+				(async () => {
+					try {
+						const { getCurrentBranch } = await import("./git/worktree");
+						const baseBranch = await getCurrentBranch(projectPath);
+						const mergeStrategy = strategy ?? "auto";
+						const result = await mergeWorktreeBranch(projectPath, run.worktreeBranch!, mergeStrategy, baseBranch, run.worktreePath ?? undefined);
 
-				if (result.success && mergeStrategy === "auto" && run.worktreePath) {
-					await removeWorktree(activeProjectPath, run.worktreePath);
-					runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
-				}
+						console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
-				return result;
+						if (result.success && mergeStrategy === "auto" && run.worktreePath) {
+							await removeWorktree(projectPath, run.worktreePath);
+							runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+						}
+
+						mainWindow?.webview.rpc.send.worktreeMergeResult({ runId, result });
+					} catch (err) {
+						console.error(`[RPC] mergeWorktreeBranch error:`, err);
+						mainWindow?.webview.rpc.send.worktreeMergeResult({
+							runId,
+							result: { success: false, strategy: strategy ?? "auto", conflicted: false, error: String(err) },
+						});
+					}
+				})();
 			},
 
-			getWorktreeDiff: async ({ runId }) => {
+			getWorktreeDiff: ({ runId }) => {
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
 				if (!run) throw new Error(`Run ${runId} not found`);
 				if (!run.worktreePath) throw new Error("Run has no worktree");
-				return getWorktreeDiff(run.worktreePath);
+
+				const worktreePath = run.worktreePath;
+				// Run async — send result via message
+				(async () => {
+					try {
+						const diff = await getWorktreeDiff(worktreePath);
+						mainWindow?.webview.rpc.send.worktreeDiffResult({ runId, diff });
+					} catch (err) {
+						console.error(`[RPC] getWorktreeDiff error:`, err);
+						mainWindow?.webview.rpc.send.worktreeDiffResult({ runId, diff: `Error: ${err}` });
+					}
+				})();
 			},
 
 			updateBoardSettings: ({ settings }) => {
@@ -356,13 +380,23 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return boardQueries.updateBoardSettings(db, board.id, settings);
 			},
 
-			cleanupWorktree: async ({ runId }) => {
+			cleanupWorktree: ({ runId }) => {
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
 				if (!run) throw new Error(`Run ${runId} not found`);
 				if (!run.worktreePath || !activeProjectPath) return;
-				await removeWorktree(activeProjectPath, run.worktreePath);
-				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+
+				const projectPath = activeProjectPath;
+				const worktreePath = run.worktreePath;
+				(async () => {
+					try {
+						await removeWorktree(projectPath, worktreePath);
+						runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+						mainWindow?.webview.rpc.send.worktreeCleanupDone({ runId });
+					} catch (err) {
+						console.error(`[RPC] cleanupWorktree error:`, err);
+					}
+				})();
 			},
 		},
 		messages: {

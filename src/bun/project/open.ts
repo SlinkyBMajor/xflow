@@ -5,7 +5,7 @@ import { runMigrations } from "../db/migrate";
 import { createBoard, getFirstBoard } from "../db/queries/boards";
 import { createLane, getLanesByBoard } from "../db/queries/lanes";
 import { getTicketsByBoard } from "../db/queries/tickets";
-import { getActiveRuns } from "../db/queries/runs";
+import { getRunsWithWorktrees } from "../db/queries/runs";
 import { addRecent } from "./recents";
 import { detectInterruptedRuns } from "../engine/recovery";
 import { resumeRun } from "../engine/runner";
@@ -89,9 +89,9 @@ export function openProject(
 	// Ensure worktrees dir exists for existing projects
 	mkdirSync(`${xflowDir}/worktrees`, { recursive: true });
 
-	// Prune orphaned worktrees from interrupted runs
-	const activeRuns = getActiveRuns(db);
-	const activeRunIds = activeRuns.map((r) => r.id);
+	// Prune orphaned worktrees — preserve any run that still has a worktreePath
+	const runsWithWorktrees = getRunsWithWorktrees(db);
+	const activeRunIds = runsWithWorktrees.map((r) => r.id);
 	isGitRepo(projectPath).then((isRepo) => {
 		if (isRepo) pruneOrphanedWorktrees(projectPath, activeRunIds);
 	}).catch((err) => {

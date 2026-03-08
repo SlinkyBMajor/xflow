@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
-import { rpc } from "../../rpc";
+import { rpc, onWorktreeMergeResult, onWorktreeCleanupDone } from "../../rpc";
 
 interface MergeConflictPanelProps {
 	runId: string;
@@ -11,28 +11,28 @@ interface MergeConflictPanelProps {
 export function MergeConflictPanel({ runId, conflictFiles, onResolved }: MergeConflictPanelProps) {
 	const [loading, setLoading] = useState(false);
 
-	const handleRetryMerge = async () => {
-		setLoading(true);
-		try {
-			const result = await rpc.request.mergeWorktreeBranch({ runId, strategy: "auto" });
-			if (result.success) onResolved?.();
-		} catch (err) {
-			console.error("Retry merge failed:", err);
-		} finally {
+	useEffect(() => {
+		const unsubMerge = onWorktreeMergeResult(({ runId: id, result }) => {
+			if (id !== runId) return;
 			setLoading(false);
-		}
+			if (result.success) onResolved?.();
+		});
+		const unsubCleanup = onWorktreeCleanupDone(({ runId: id }) => {
+			if (id !== runId) return;
+			setLoading(false);
+			onResolved?.();
+		});
+		return () => { unsubMerge(); unsubCleanup(); };
+	}, [runId, onResolved]);
+
+	const handleRetryMerge = () => {
+		setLoading(true);
+		rpc.request.mergeWorktreeBranch({ runId, strategy: "auto" });
 	};
 
-	const handleCleanup = async () => {
+	const handleCleanup = () => {
 		setLoading(true);
-		try {
-			await rpc.request.cleanupWorktree({ runId });
-			onResolved?.();
-		} catch (err) {
-			console.error("Cleanup failed:", err);
-		} finally {
-			setLoading(false);
-		}
+		rpc.request.cleanupWorktree({ runId });
 	};
 
 	return (
@@ -59,7 +59,7 @@ export function MergeConflictPanel({ runId, conflictFiles, onResolved }: MergeCo
 					disabled={loading}
 					className="text-xs h-7 text-[#58a6ff] hover:text-[#79c0ff]"
 				>
-					Retry Merge
+					{loading ? "Working..." : "Retry Merge"}
 				</Button>
 				<Button
 					variant="ghost"

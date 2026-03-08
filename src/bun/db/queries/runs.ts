@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNotNull } from "drizzle-orm";
 import type { DB } from "../connection";
 import { workflowRuns, runEvents } from "../schema";
 import type { WorkflowRun, RunEvent } from "../../../shared/types";
@@ -106,6 +106,15 @@ export function getActiveRuns(db: DB): WorkflowRun[] {
 		.select()
 		.from(workflowRuns)
 		.where(eq(workflowRuns.status, "active"))
+		.all()
+		.map(rowToRun);
+}
+
+export function getRunsWithWorktrees(db: DB): WorkflowRun[] {
+	return db
+		.select()
+		.from(workflowRuns)
+		.where(isNotNull(workflowRuns.worktreePath))
 		.all()
 		.map(rowToRun);
 }
