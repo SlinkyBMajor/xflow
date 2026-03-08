@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
+import { Bell } from "lucide-react";
 import { WorkflowNodeShell } from "./WorkflowNodeShell";
 
 function NotifyNodeInner({ data, selected }: NodeProps) {
@@ -8,7 +9,7 @@ function NotifyNodeInner({ data, selected }: NodeProps) {
 	return (
 		<WorkflowNodeShell selected={selected} accentColor="#06b6d4" runStatus={data.runStatus as any}>
 			<div className="flex items-center gap-2">
-				<span className="text-cyan-400 text-sm">&#9883;</span>
+				<Bell className="w-3.5 h-3.5 text-cyan-400" />
 				<span className="text-sm font-medium text-[#e6edf3]">{String(data.label)}</span>
 			</div>
 			{title && <p className="text-xs text-[#8b949e] mt-1 truncate">{title}</p>}

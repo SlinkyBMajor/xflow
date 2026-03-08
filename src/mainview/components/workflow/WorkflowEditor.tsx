@@ -24,6 +24,7 @@ import { nodeTypes } from "./nodes";
 import { NodePalette } from "./NodePalette";
 import { NodeConfigPanel } from "./NodeConfigPanel";
 import { VersionHistory } from "./VersionHistory";
+import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
 
 interface WorkflowEditorProps {
@@ -45,6 +46,13 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	const [savedName, setSavedName] = useState("");
 	const [editingName, setEditingName] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
+	const [toolbox, setToolbox] = useState<WorkflowToolboxState>({
+		edgeType: "smoothstep",
+		snapToGrid: false,
+		snapGrid: 20,
+		showMinimap: true,
+		panOnScroll: false,
+	});
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
 	const { screenToFlowPosition } = useReactFlow();
 	const { runState, isRunning, getNodeRunStatus } = useWorkflowRunState(workflowId);
@@ -133,12 +141,12 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 			target: connection.target,
 			sourceHandle: connection.sourceHandle,
 			targetHandle: connection.targetHandle,
-			type: "smoothstep",
+			type: toolbox.edgeType,
 			style: { stroke: "#52525b" },
 		};
 		setEdges((eds) => addEdge(newEdge, eds));
 		markDirty();
-	}, [setEdges, markDirty]);
+	}, [setEdges, markDirty, toolbox.edgeType]);
 
 	// Edge validation
 	const isValidConnection = useCallback((connection: Edge | Connection) => {
@@ -245,6 +253,15 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 		setSelectedNode(null);
 	}, [workflowId, setNodes, setEdges]);
 
+	// Toolbox change handler — update existing edges when edge type changes
+	const handleToolboxChange = useCallback((next: WorkflowToolboxState) => {
+		if (next.edgeType !== toolbox.edgeType) {
+			setEdges((eds) => eds.map((e) => ({ ...e, type: next.edgeType })));
+			markDirty();
+		}
+		setToolbox(next);
+	}, [toolbox.edgeType, setEdges, markDirty]);
+
 	// Keyboard shortcuts
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
@@ -320,7 +337,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 			{/* Editor */}
 			<div className="flex-1 flex overflow-hidden">
 				{!isRunning && <NodePalette />}
-				<div className="flex-1" ref={reactFlowWrapper}>
+				<div className="flex-1 relative" ref={reactFlowWrapper}>
 					<ReactFlow
 						nodes={nodes}
 						edges={edges}
@@ -336,21 +353,27 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 						nodesConnectable={!isRunning}
 						nodesDraggable={!isRunning}
 						elementsSelectable={!isRunning}
+						snapToGrid={toolbox.snapToGrid}
+						snapGrid={[toolbox.snapGrid, toolbox.snapGrid]}
+						panOnScroll={toolbox.panOnScroll}
 						fitView
 						proOptions={{ hideAttribution: true }}
 						defaultEdgeOptions={{
-							type: "smoothstep",
+							type: toolbox.edgeType,
 							style: { stroke: "#52525b", strokeWidth: 2 },
 						}}
 					>
-						<Background color="#21262d" gap={20} />
+						<Background color="#21262d" gap={toolbox.snapToGrid ? toolbox.snapGrid : 20} />
 						<Controls />
-						<MiniMap
-							style={{ backgroundColor: "#161b22" }}
-							nodeColor="#30363d"
-							maskColor="rgba(0, 0, 0, 0.6)"
-						/>
+						{toolbox.showMinimap && (
+							<MiniMap
+								style={{ backgroundColor: "#161b22" }}
+								nodeColor="#30363d"
+								maskColor="rgba(0, 0, 0, 0.6)"
+							/>
+						)}
 					</ReactFlow>
+					<WorkflowToolbox state={toolbox} onChange={handleToolboxChange} />
 				</div>
 				{showHistory ? (
 					<VersionHistory

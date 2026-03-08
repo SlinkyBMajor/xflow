@@ -49,10 +49,6 @@ function WorkflowNodeShellInner({
 				${selectionClasses}
 			`}
 		>
-			<div
-				className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg"
-				style={{ backgroundColor: runStatus === "completed" ? "#10b981" : runStatus === "error" ? "#ef4444" : accentColor }}
-			/>
 			{runStatus === "completed" && (
 				<div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
 					<svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
