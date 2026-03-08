@@ -234,7 +234,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 					}
 
 					// Claude CLI stream-json: final result text is in event.result (string)
-					if (event.type === "result" && typeof event.result === "string") {
+					if (event.type === "result" && typeof event.result === "string" && event.result.trim()) {
 						// Result contains the full final text; replace accumulated
 						// partial assistant text to avoid duplication
 						outputText = event.result;
