@@ -92,9 +92,9 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return laneQueries.createLane(db, id, board.id, name, color ?? null);
 			},
 
-			updateLane: ({ id, name, color, wipLimit }) => {
+			updateLane: ({ id, name, color, wipLimit, allowTicketCreation }) => {
 				const db = getDb();
-				return laneQueries.updateLane(db, id, { name, color, wipLimit });
+				return laneQueries.updateLane(db, id, { name, color, wipLimit, allowTicketCreation });
 			},
 
 			deleteLane: ({ id }) => {

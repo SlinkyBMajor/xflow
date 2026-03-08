@@ -13,7 +13,7 @@ interface LaneProps {
 	lanes: LaneType[];
 	tickets: Ticket[];
 	laneActions: {
-		updateLane: (id: string, updates: { name?: string; color?: string; wipLimit?: number | null }) => Promise<void>;
+		updateLane: (id: string, updates: { name?: string; color?: string; wipLimit?: number | null; allowTicketCreation?: boolean }) => Promise<void>;
 		deleteLane: (id: string) => Promise<void>;
 	};
 	ticketActions: {
@@ -74,11 +74,13 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 					))}
 				</div>
 
+				{lane.allowTicketCreation !== false && (
 				<div className="px-2 pb-2">
 					<AddTicketButton
 						onAdd={(title) => ticketActions.createTicket(lane.id, title)}
 					/>
 				</div>
+			)}
 			</div>
 
 			<LaneSettingsModal

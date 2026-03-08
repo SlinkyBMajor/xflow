@@ -12,12 +12,13 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
+import { Switch } from "../ui/switch";
 
 interface LaneSettingsModalProps {
 	open: boolean;
 	lane: Lane;
 	onClose: () => void;
-	onSave: (updates: { name?: string; color?: string; wipLimit?: number | null }) => void;
+	onSave: (updates: { name?: string; color?: string; wipLimit?: number | null; allowTicketCreation?: boolean }) => void;
 	onDelete: () => void;
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
@@ -48,6 +49,7 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 	const [wipLimit, setWipLimit] = useState<string>(
 		lane.wipLimit !== null ? String(lane.wipLimit) : "",
 	);
+	const [allowTicketCreation, setAllowTicketCreation] = useState(lane.allowTicketCreation !== false);
 	const { getWorkflow, listWorkflows, attachWorkflowToLane } = useWorkflow();
 	const [workflow, setWorkflow] = useState<Workflow | null>(null);
 	const [allWorkflows, setAllWorkflows] = useState<Workflow[]>([]);
@@ -71,6 +73,7 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 			name: name.trim() || lane.name,
 			color,
 			wipLimit: wipLimit ? parseInt(wipLimit, 10) : null,
+			allowTicketCreation,
 		});
 	};
 
@@ -123,6 +126,15 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 								onChange={(e) => setWipLimit(e.target.value)}
 								placeholder="No limit"
 								className="w-24"
+							/>
+						</div>
+
+						<div className="flex items-center justify-between">
+							<Label htmlFor="allow-ticket-creation">Allow ticket creation</Label>
+							<Switch
+								id="allow-ticket-creation"
+								checked={allowTicketCreation}
+								onCheckedChange={setAllowTicketCreation}
 							/>
 						</div>
 					</div>
