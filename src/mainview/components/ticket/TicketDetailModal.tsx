@@ -49,7 +49,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-			<DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden">
+			<DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden">
 				<DialogTitle className="sr-only">Edit Ticket</DialogTitle>
 				<DialogDescription className="sr-only">
 					Edit ticket details
