@@ -1,4 +1,5 @@
 import type { DB } from "../db/connection";
+import type { WorkflowOutputStatus } from "../../shared/types";
 import * as ticketQueries from "../db/queries/tickets";
 import * as runQueries from "../db/queries/runs";
 import { interpolate, type WorkflowContext } from "./interpolate";
@@ -86,6 +87,7 @@ export function persistNodeOutput(
 	nodeId: string,
 	runId: string,
 	output: string,
+	status?: WorkflowOutputStatus,
 ): void {
 	const ticket = ticketQueries.getTicket(db, ticketId);
 	if (!ticket) return;
@@ -99,6 +101,7 @@ export function persistNodeOutput(
 				output: output.slice(0, 10_000),
 				runId,
 				completedAt: new Date().toISOString(),
+				...(status && { status }),
 			},
 		},
 	};

@@ -239,7 +239,7 @@ function buildState(
 								}),
 							}),
 							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""));
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success");
 								ctx.notifyBoardChanged?.();
 							},
 						],
@@ -249,8 +249,9 @@ function buildState(
 						actions: [
 							({ event }: { event: any }) => {
 								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown agent error");
+								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
 								console.error(`[Workflow ${ctx.runId}] Agent node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`);
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
 								ctx.notifyBoardChanged?.();
 							},
 						],
@@ -291,7 +292,7 @@ function buildState(
 								}),
 							}),
 							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""));
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success");
 								ctx.notifyBoardChanged?.();
 							},
 						],
@@ -301,8 +302,9 @@ function buildState(
 						actions: [
 							({ event }: { event: any }) => {
 								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown script error");
+								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
 								console.error(`[Workflow ${ctx.runId}] Script node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`);
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
 								ctx.notifyBoardChanged?.();
 							},
 						],

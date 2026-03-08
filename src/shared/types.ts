@@ -73,6 +73,17 @@ export type ProjectOpenResult = {
 	interruptedRuns: InterruptedRunInfo[];
 };
 
+// ── Workflow Output Types ──
+
+export type WorkflowOutputStatus = "success" | "error" | "timeout" | "partial";
+
+export interface WorkflowOutputEntry {
+	output: string;
+	runId: string;
+	completedAt: string;
+	status?: WorkflowOutputStatus;
+}
+
 // ── Workflow IR Types ──
 
 export type IRNodeType =

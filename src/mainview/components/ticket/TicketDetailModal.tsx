@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Ticket } from "../../../shared/types";
+import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus } from "../../../shared/types";
 import {
 	Dialog,
 	DialogContent,
@@ -20,12 +20,6 @@ interface TicketDetailModalProps {
 	onClose: () => void;
 	onSave: (updates: { title?: string; body?: string; tags?: string[] }) => void;
 	onDelete: () => void;
-}
-
-interface WorkflowOutputEntry {
-	output: string;
-	runId: string;
-	completedAt: string;
 }
 
 export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete }: TicketDetailModalProps) {
@@ -201,19 +195,48 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	);
 }
 
+function deriveOutputStatus(entry: WorkflowOutputEntry): WorkflowOutputStatus | "empty" {
+	if (entry.status) return entry.status;
+	if (!entry.output) return "empty";
+	if (entry.output.startsWith("[Error]")) return "error";
+	return "success";
+}
+
+const STATUS_STYLES: Record<WorkflowOutputStatus | "empty", {
+	border: string;
+	text: string;
+	bg: string;
+	icon: string;
+	label: string;
+}> = {
+	success: { border: "border-l-emerald-600", text: "text-[#e6edf3]", bg: "", icon: "\u2713", label: "Success" },
+	error:   { border: "border-l-red-600", text: "text-red-300", bg: "bg-red-900/10", icon: "\u2717", label: "Error" },
+	timeout: { border: "border-l-red-600", text: "text-red-300", bg: "bg-red-900/10", icon: "\u2717", label: "Timeout" },
+	partial: { border: "border-l-amber-600", text: "text-amber-200", bg: "bg-amber-900/10", icon: "\u26A0", label: "Partial" },
+	empty:   { border: "border-l-[#30363d]", text: "text-[#6e7681]", bg: "", icon: "\u2014", label: "No output" },
+};
+
 function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: WorkflowOutputEntry }) {
 	const [expanded, setExpanded] = useState(true);
-	const lines = entry.output.split("\n");
-	const isLong = lines.length > 12;
+	const status = deriveOutputStatus(entry);
+	const style = STATUS_STYLES[status];
+
+	// Strip redundant [Error] prefix when status already indicates error
+	const displayOutput = (status === "error" || status === "timeout") && entry.output.startsWith("[Error] ")
+		? entry.output.slice(8)
+		: entry.output;
 
 	return (
-		<div className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden">
+		<div className={`bg-[#161b22] border border-[#21262d] border-l-2 ${style.border} rounded-lg overflow-hidden ${style.bg}`}>
 			<button
 				onClick={() => setExpanded(!expanded)}
 				className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#21262d]/50 transition-colors"
 			>
-				<span className="text-[11px] font-mono text-[#8b949e]">
-					{expanded ? "▾" : "▸"} {nodeId.slice(0, 8)}
+				<span className="text-[11px] font-mono text-[#8b949e] flex items-center gap-1.5">
+					<span className={status === "error" || status === "timeout" ? "text-red-400" : status === "partial" ? "text-amber-400" : status === "success" ? "text-emerald-400" : "text-[#6e7681]"}>
+						{style.icon}
+					</span>
+					{expanded ? "\u25BE" : "\u25B8"} {nodeId.slice(0, 8)}
 				</span>
 				<span className="text-[10px] text-[#6e7681] font-mono">
 					{formatDate(entry.completedAt)}
@@ -221,8 +244,8 @@ function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: Workflo
 			</button>
 			{expanded && (
 				<div className="px-3 pb-3">
-					<pre className="text-[12px] text-[#e6edf3] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
-						{entry.output || "(no output)"}
+					<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${style.text}`}>
+						{displayOutput || "(no output)"}
 					</pre>
 				</div>
 			)}

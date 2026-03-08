@@ -110,6 +110,16 @@ function EventLine({ event }: { event: RunEvent }) {
 				</div>
 			);
 
+		case "NODE_ERROR":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-red-400">
+						&#10005; {(event.payload as any)?.message ?? (event.payload as any)?.error ?? "Node error"}
+					</span>
+				</div>
+			);
+
 		case "NODE_LOG":
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
@@ -210,10 +220,13 @@ function AgentOutputLine({ prefix, payload }: { prefix: React.ReactNode; payload
 			const contentText = extractTextContent(data.content);
 			const texts = resultText || contentText;
 			if (!texts) return null;
+			const isError = data.is_error === true;
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
-					<span className="text-emerald-400">{texts}</span>
+					<span className={isError ? "text-red-400" : "text-emerald-400"}>
+						{isError ? "\u2717 " : ""}{texts}
+					</span>
 				</div>
 			);
 		}
