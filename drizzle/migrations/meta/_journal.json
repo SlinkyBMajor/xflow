@@ -22,6 +22,20 @@
       "when": 1772930923900,
       "tag": "0002_zippy_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772989743295,
+      "tag": "0003_sour_skaar",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772990170022,
+      "tag": "0004_sturdy_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

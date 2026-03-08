@@ -4,6 +4,7 @@ export const boards = sqliteTable("boards", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	createdAt: text("created_at").notNull(),
+	settings: text("settings"),
 });
 
 export const lanes = sqliteTable("lanes", {
@@ -70,6 +71,8 @@ export const workflowRuns = sqliteTable("workflow_runs", {
 	startedAt: text("started_at").notNull(),
 	finishedAt: text("finished_at"),
 	lastCheckpoint: text("last_checkpoint_at"),
+	worktreePath: text("worktree_path"),
+	worktreeBranch: text("worktree_branch"),
 });
 
 export const runEvents = sqliteTable("run_events", {

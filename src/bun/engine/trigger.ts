@@ -15,6 +15,7 @@ export function triggerWorkflowIfAttached(
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
+	apiPort?: number,
 ): void {
 	const lane = db.select().from(lanes).where(eq(lanes.id, targetLaneId)).get();
 	if (!lane?.workflowId) return;
@@ -23,7 +24,7 @@ export function triggerWorkflowIfAttached(
 	const existingRuns = runQueries.getRunsByTicket(db, ticketId);
 	for (const run of existingRuns) {
 		if (run.status === "active") {
-			abortRun(db, run.id);
+			abortRun(db, run.id, projectPath);
 		}
 	}
 
@@ -33,5 +34,5 @@ export function triggerWorkflowIfAttached(
 	const ticket = ticketQueries.getTicket(db, ticketId);
 	if (!ticket) return;
 
-	startRun(db, ticket, workflow.id, workflow.definition, notifyFrontend, projectPath, notifyEvent, notifyBoardChanged);
+	startRun(db, ticket, workflow.id, workflow.definition, notifyFrontend, projectPath, notifyEvent, notifyBoardChanged, apiPort);
 }

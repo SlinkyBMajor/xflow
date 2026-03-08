@@ -4,6 +4,7 @@ import type { Ticket, WorkflowIR, WorkflowRun, RunEvent } from "../../shared/typ
 import { compileWorkflow } from "./compiler";
 import { killAgentProcess } from "./agent";
 import { killScriptProcess } from "./script";
+import { removeWorktree } from "../git/worktree";
 import * as runQueries from "../db/queries/runs";
 import * as workflowQueries from "../db/queries/workflows";
 import * as ticketQueries from "../db/queries/tickets";
@@ -19,6 +20,7 @@ export function startRun(
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
+	apiPort?: number,
 ): string {
 	const runId = crypto.randomUUID();
 	const now = new Date().toISOString();
@@ -41,7 +43,7 @@ export function startRun(
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
-	}, undefined, projectPath, notifyEvent, notifyBoardChanged);
+	}, undefined, projectPath, notifyEvent, notifyBoardChanged, apiPort);
 
 	const actor = createActor(machine);
 
@@ -109,6 +111,7 @@ export function resumeRun(
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
+	apiPort?: number,
 ): WorkflowRun {
 	const run = runQueries.getRunById(db, runId);
 	if (!run) throw new Error(`Run ${runId} not found`);
@@ -135,6 +138,7 @@ export function resumeRun(
 		projectPath,
 		notifyEvent,
 		notifyBoardChanged,
+		apiPort,
 	);
 
 	const actor = createActor(machine);
@@ -207,7 +211,7 @@ export function resumeRun(
 	return runQueries.getRunById(db, runId)!;
 }
 
-export function abortRun(db: DB, runId: string): void {
+export function abortRun(db: DB, runId: string, projectPath?: string): void {
 	killAgentProcess(runId);
 	killScriptProcess(runId);
 	const actor = activeActors.get(runId);
@@ -220,6 +224,13 @@ export function abortRun(db: DB, runId: string): void {
 	const run = runQueries.getRunById(db, runId);
 	if (run) {
 		ticketQueries.incrementMetadataCounter(db, run.ticketId, "abortCount");
+
+		// Clean up worktree if one was created
+		if (run.worktreePath && projectPath) {
+			removeWorktree(projectPath, run.worktreePath).catch((err) => {
+				console.error(`[Workflow ${runId}] Failed to clean up worktree:`, err);
+			});
+		}
 	}
 
 	runQueries.updateRun(db, runId, {

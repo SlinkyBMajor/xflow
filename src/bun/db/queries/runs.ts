@@ -25,12 +25,16 @@ export function createRun(db: DB, run: {
 	nodeStatus: string;
 	currentNodeId: string | null;
 	startedAt: string;
+	worktreePath?: string | null;
+	worktreeBranch?: string | null;
 }): WorkflowRun {
 	const row = {
 		...run,
 		actorSnapshot: null,
 		finishedAt: null,
 		lastCheckpoint: null,
+		worktreePath: run.worktreePath ?? null,
+		worktreeBranch: run.worktreeBranch ?? null,
 	};
 	db.insert(workflowRuns).values(row).run();
 	return rowToRun(row);
@@ -46,6 +50,8 @@ export function updateRun(
 		actorSnapshot?: unknown;
 		finishedAt?: string | null;
 		lastCheckpoint?: string | null;
+		worktreePath?: string | null;
+		worktreeBranch?: string | null;
 	},
 ): void {
 	const setValues: Record<string, unknown> = {};
@@ -56,6 +62,8 @@ export function updateRun(
 		setValues.actorSnapshot = JSON.stringify(updates.actorSnapshot);
 	if (updates.finishedAt !== undefined) setValues.finishedAt = updates.finishedAt;
 	if (updates.lastCheckpoint !== undefined) setValues.lastCheckpoint = updates.lastCheckpoint;
+	if (updates.worktreePath !== undefined) setValues.worktreePath = updates.worktreePath;
+	if (updates.worktreeBranch !== undefined) setValues.worktreeBranch = updates.worktreeBranch;
 
 	db.update(workflowRuns).set(setValues).where(eq(workflowRuns.id, id)).run();
 }

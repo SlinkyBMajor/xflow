@@ -28,6 +28,7 @@ export function compileWorkflow(
 	projectPath?: string,
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
+	apiPort?: number,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
@@ -55,6 +56,7 @@ export function compileWorkflow(
 			projectPath,
 			notifyEvent,
 			notifyBoardChanged,
+			apiPort,
 		});
 	}
 
@@ -89,6 +91,7 @@ function buildState(
 		projectPath?: string;
 		notifyEvent?: (event: RunEvent) => void;
 		notifyBoardChanged?: () => void;
+		apiPort?: number;
 	},
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
@@ -218,10 +221,14 @@ function buildState(
 							prompt: config.prompt,
 							timeoutMs: config.timeoutMs,
 							includeWorkflowOutput: config.includeWorkflowOutput,
+							worktreeEnabled: config.worktreeEnabled,
+							mergeStrategy: config.mergeStrategy,
+							baseBranch: config.baseBranch,
 							ticket: ctx.ticket,
 							context: input.context,
 							db: ctx.db,
 							projectPath: ctx.projectPath,
+							apiPort: ctx.apiPort,
 							onEvent: (event: RunEvent) => {
 								ctx.notifyEvent?.(event);
 								ctx.notifyFrontend();

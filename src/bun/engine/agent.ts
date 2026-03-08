@@ -5,6 +5,10 @@ import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
+import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch } from "../git/worktree";
+import { mergeWorktreeBranch } from "../git/merge";
+import type { MergeStrategy } from "../../shared/types";
+import { createToken, revokeToken } from "../server/agent-tokens";
 
 interface ClaudeAgentParams {
 	runId: string;
@@ -12,10 +16,14 @@ interface ClaudeAgentParams {
 	prompt: string;
 	timeoutMs?: number;
 	includeWorkflowOutput?: boolean;
+	worktreeEnabled?: boolean;
+	mergeStrategy?: MergeStrategy;
+	baseBranch?: string;
 	ticket: Ticket;
 	context: WorkflowContext;
 	db: DB;
 	projectPath?: string;
+	apiPort?: number;
 	onEvent?: (event: RunEvent) => void;
 }
 
@@ -54,15 +62,38 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		prompt,
 		timeoutMs = 10 * 60 * 1000,
 		includeWorkflowOutput = true,
+		worktreeEnabled = false,
+		mergeStrategy,
+		baseBranch: configBaseBranch,
 		ticket,
 		context,
 		db,
 		projectPath,
+		apiPort,
 		onEvent,
 	} = params;
 
-	const cwd = projectPath ?? process.cwd();
-	const runDir = `${cwd}/.xflow/runs/${runId}`;
+	const baseCwd = projectPath ?? process.cwd();
+	let agentCwd = baseCwd;
+	let worktreeBranch: string | null = null;
+	let worktreePath: string | null = null;
+	let resolvedBaseBranch: string | null = null;
+
+	// Create worktree for isolated execution if enabled
+	if (worktreeEnabled && projectPath) {
+		const isRepo = await isGitRepo(projectPath);
+		if (isRepo) {
+			resolvedBaseBranch = configBaseBranch ?? await getCurrentBranch(projectPath);
+			const wt = await createWorktree(projectPath, runId, ticket.id);
+			agentCwd = wt.path;
+			worktreeBranch = wt.branch;
+			worktreePath = wt.path;
+			runQueries.updateRun(db, runId, { worktreePath: wt.path, worktreeBranch: wt.branch });
+			insertAndEmit(db, runId, "WORKTREE_CREATED", { path: wt.path, branch: wt.branch }, onEvent);
+		}
+	}
+
+	const runDir = `${baseCwd}/.xflow/runs/${runId}`;
 	mkdirSync(runDir, { recursive: true });
 
 	// Re-fetch ticket to get latest metadata (e.g. output from a previous lane's workflow)
@@ -96,6 +127,31 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 	sections.push(`\n## Instructions\n${resolvedPrompt}`);
 
+	if (apiPort) {
+		sections.push(`\n## XFlow API
+Set ticket metadata during this run:
+\`\`\`bash
+curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/metadata \\
+  -H "Authorization: Bearer $XFLOW_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"key": "complexity", "value": "high"}'
+\`\`\`
+
+Get current ticket data:
+\`\`\`bash
+curl $XFLOW_API_URL/runs/$XFLOW_RUN_ID/ticket \\
+  -H "Authorization: Bearer $XFLOW_API_TOKEN"
+\`\`\`
+
+Post a comment to the run log:
+\`\`\`bash
+curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
+  -H "Authorization: Bearer $XFLOW_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Found 3 issues to fix"}'
+\`\`\``);
+	}
+
 	const contextDoc = sections.join("\n");
 
 	writeFileSync(`${runDir}/context.md`, contextDoc);
@@ -104,12 +160,24 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 	const fullPrompt = `${contextDoc}`;
 
+	// Build environment with API details if available
+	let apiToken: string | undefined;
+	const spawnEnv: Record<string, string | undefined> = { ...process.env };
+	if (apiPort) {
+		apiToken = createToken(runId);
+		spawnEnv.XFLOW_API_URL = `http://127.0.0.1:${apiPort}`;
+		spawnEnv.XFLOW_RUN_ID = runId;
+		spawnEnv.XFLOW_API_TOKEN = apiToken;
+		spawnEnv.XFLOW_TICKET_ID = ticket.id;
+	}
+
 	const proc = Bun.spawn(
 		["claude", "-p", fullPrompt, "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"],
 		{
-			cwd,
+			cwd: agentCwd,
 			stdout: "pipe",
 			stderr: "pipe",
+			env: spawnEnv,
 		},
 	);
 
@@ -192,6 +260,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	} finally {
 		clearTimeout(timeout);
 		activeProcesses.delete(runId);
+		if (apiPort) revokeToken(runId);
 	}
 
 	if (timedOut) {
@@ -208,6 +277,32 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 	writeFileSync(`${runDir}/output.md`, outputText || "(no output)");
 	insertAndEmit(db, runId, "AGENT_COMPLETED", { nodeId, outputLength: outputText.length }, onEvent);
+
+	// Handle worktree merge after successful agent execution
+	if (worktreePath && worktreeBranch && projectPath) {
+		// Commit any changes in the worktree first
+		const hasChanges = await worktreeHasChanges(worktreePath);
+		if (hasChanges && mergeStrategy === "auto" && resolvedBaseBranch) {
+			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch);
+			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
+			if (result.success) {
+				await removeWorktree(projectPath, worktreePath);
+				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+			}
+		} else if (!hasChanges) {
+			// No changes — clean up the worktree
+			await removeWorktree(projectPath, worktreePath);
+			runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+			insertAndEmit(db, runId, "WORKTREE_CLEANUP", { reason: "no_changes" }, onEvent);
+		} else {
+			// pr or manual strategy, or no strategy set — leave for user
+			insertAndEmit(db, runId, "WORKTREE_READY", {
+				path: worktreePath,
+				branch: worktreeBranch,
+				strategy: mergeStrategy ?? "manual",
+			}, onEvent);
+		}
+	}
 
 	return outputText;
 }

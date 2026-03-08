@@ -2,10 +2,28 @@ import type { RPCSchema } from "electrobun/bun";
 
 // ── Data Types ──
 
+export type MergeStrategy = "auto" | "pr" | "manual";
+
+export interface MergeResult {
+	success: boolean;
+	strategy: MergeStrategy;
+	conflicted: boolean;
+	conflictFiles?: string[];
+	prUrl?: string;
+	error?: string;
+}
+
+export interface BoardSettings {
+	defaultWorktreeEnabled?: boolean;
+	defaultMergeStrategy?: MergeStrategy;
+	defaultBaseBranch?: string;
+}
+
 export interface Board {
 	id: string;
 	name: string;
 	createdAt: string;
+	settings?: BoardSettings | null;
 }
 
 export interface Lane {
@@ -102,6 +120,9 @@ export interface ClaudeAgentConfig {
 	prompt: string;
 	timeoutMs?: number;
 	includeWorkflowOutput?: boolean;
+	worktreeEnabled?: boolean;
+	mergeStrategy?: MergeStrategy;
+	baseBranch?: string;
 }
 
 export interface CustomScriptConfig {
@@ -191,6 +212,8 @@ export interface WorkflowRun {
 	startedAt: string;
 	finishedAt: string | null;
 	lastCheckpoint: string | null;
+	worktreePath?: string | null;
+	worktreeBranch?: string | null;
 }
 
 export interface RunEvent {
@@ -400,6 +423,22 @@ export type XFlowRPC = {
 			rejectRun: {
 				params: { runId: string };
 				response: void;
+			};
+			mergeWorktreeBranch: {
+				params: { runId: string; strategy?: MergeStrategy };
+				response: MergeResult;
+			};
+			getWorktreeDiff: {
+				params: { runId: string };
+				response: string;
+			};
+			cleanupWorktree: {
+				params: { runId: string };
+				response: void;
+			};
+			updateBoardSettings: {
+				params: { settings: BoardSettings };
+				response: Board;
 			};
 		};
 		messages: {

@@ -1,13 +1,16 @@
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
 import { basename } from "path";
 import { getConnection, enableForeignKeys } from "../db/connection";
 import { runMigrations } from "../db/migrate";
 import { createBoard, getFirstBoard } from "../db/queries/boards";
 import { createLane, getLanesByBoard } from "../db/queries/lanes";
 import { getTicketsByBoard } from "../db/queries/tickets";
+import { getActiveRuns } from "../db/queries/runs";
 import { addRecent } from "./recents";
 import { detectInterruptedRuns } from "../engine/recovery";
 import { resumeRun } from "../engine/runner";
+import { isGitRepo, pruneOrphanedWorktrees } from "../git/worktree";
+import { startAgentApi, getAgentApiPort } from "../server/agent-api";
 import type { ProjectOpenResult, BoardWithLanesAndTickets, WorkflowRun, RunEvent } from "../../shared/types";
 
 function scaffoldXFlowDir(projectPath: string): void {
@@ -16,6 +19,20 @@ function scaffoldXFlowDir(projectPath: string): void {
 	mkdirSync(`${xflowDir}/workflows`, { recursive: true });
 	mkdirSync(`${xflowDir}/tickets`, { recursive: true });
 	mkdirSync(`${xflowDir}/runs`, { recursive: true });
+	mkdirSync(`${xflowDir}/worktrees`, { recursive: true });
+	ensureGitignore(projectPath);
+}
+
+function ensureGitignore(projectPath: string): void {
+	const gitignorePath = `${projectPath}/.gitignore`;
+	const entry = ".xflow/";
+	if (existsSync(gitignorePath)) {
+		const content = readFileSync(gitignorePath, "utf-8");
+		if (content.split("\n").some((line) => line.trim() === entry)) return;
+		appendFileSync(gitignorePath, `\n${entry}\n`);
+	} else {
+		writeFileSync(gitignorePath, `${entry}\n`);
+	}
 }
 
 function createDefaultBoard(projectPath: string): void {
@@ -39,6 +56,7 @@ export function openProject(
 	projectPath: string,
 	notifyFrontend?: (run: WorkflowRun) => void,
 	notifyEvent?: (event: RunEvent) => void,
+	notifyBoardChanged?: () => void,
 ): ProjectOpenResult {
 	const xflowDir = `${projectPath}/.xflow`;
 	const isNew = !existsSync(xflowDir);
@@ -61,6 +79,24 @@ export function openProject(
 
 	const projectName = basename(projectPath);
 	addRecent(projectPath, projectName);
+
+	// Start the agent callback API server
+	startAgentApi({
+		getDb: () => getConnection(projectPath),
+		notifyBoardChanged: notifyBoardChanged ?? (() => {}),
+	});
+
+	// Ensure worktrees dir exists for existing projects
+	mkdirSync(`${xflowDir}/worktrees`, { recursive: true });
+
+	// Prune orphaned worktrees from interrupted runs
+	const activeRuns = getActiveRuns(db);
+	const activeRunIds = activeRuns.map((r) => r.id);
+	isGitRepo(projectPath).then((isRepo) => {
+		if (isRepo) pruneOrphanedWorktrees(projectPath, activeRunIds);
+	}).catch((err) => {
+		console.error("[Recovery] Failed to prune worktrees:", err);
+	});
 
 	const interrupted = detectInterruptedRuns(db);
 

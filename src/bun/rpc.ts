@@ -15,6 +15,9 @@ import { triggerWorkflowIfAttached } from "./engine/trigger";
 import * as templates from "./project/templates";
 import { getInterruptedRuns } from "./engine/recovery";
 import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
+import { getAgentApiPort } from "./server/agent-api";
+import { removeWorktree } from "./git/worktree";
+import { mergeWorktreeBranch, getWorktreeDiff } from "./git/merge";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -43,11 +46,14 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			openProject: ({ path }) => {
 				console.log("[RPC] openProject called with path:", path);
 				try {
+					const notifyBoardChanged = () => {
+						mainWindow?.webview.rpc.send.boardUpdated(getBoard());
+					};
 					const result = openProject(path, (run) => {
 						mainWindow?.webview.rpc.send.workflowRunUpdated(run);
 					}, (event) => {
 						mainWindow?.webview.rpc.send.runEventAdded(event);
-					});
+					}, notifyBoardChanged);
 					activeProjectPath = path;
 					console.log("[RPC] openProject success:", result.project);
 					if (result.interruptedRuns.length > 0) {
@@ -163,7 +169,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					mainWindow?.webview.rpc.send.runEventAdded(event);
 				}, () => {
 					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
-				});
+				}, getAgentApiPort());
 			},
 
 			reorderTicketsInLane: ({ laneId, ticketIds }) => {
@@ -291,7 +297,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					mainWindow?.webview.rpc.send.runEventAdded(event);
 				}, () => {
 					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
-				});
+				}, getAgentApiPort());
 			},
 
 			getTicketDerivedData: ({ ticketId }) => {
@@ -301,7 +307,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 			abortInterruptedRun: ({ runId }) => {
 				const db = getDb();
-				abortRun(db, runId);
+				abortRun(db, runId, activeProjectPath ?? undefined);
 			},
 
 			approveRun: ({ runId }) => {
@@ -310,6 +316,49 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 			rejectRun: ({ runId }) => {
 				sendEventToRun(runId, "REJECTED");
+			},
+
+			mergeWorktreeBranch: async ({ runId, strategy }) => {
+				const db = getDb();
+				const run = runQueries.getRunById(db, runId);
+				if (!run) throw new Error(`Run ${runId} not found`);
+				if (!run.worktreeBranch) throw new Error("Run has no worktree branch");
+				if (!activeProjectPath) throw new Error("No project open");
+
+				const { getCurrentBranch } = await import("./git/worktree");
+				const baseBranch = await getCurrentBranch(activeProjectPath);
+				const mergeStrategy = strategy ?? "auto";
+				const result = await mergeWorktreeBranch(activeProjectPath, run.worktreeBranch, mergeStrategy, baseBranch);
+
+				if (result.success && mergeStrategy === "auto" && run.worktreePath) {
+					await removeWorktree(activeProjectPath, run.worktreePath);
+					runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+				}
+
+				return result;
+			},
+
+			getWorktreeDiff: async ({ runId }) => {
+				const db = getDb();
+				const run = runQueries.getRunById(db, runId);
+				if (!run) throw new Error(`Run ${runId} not found`);
+				if (!run.worktreePath) throw new Error("Run has no worktree");
+				return getWorktreeDiff(run.worktreePath);
+			},
+
+			updateBoardSettings: ({ settings }) => {
+				const db = getDb();
+				const board = boardQueries.getFirstBoard(db)!;
+				return boardQueries.updateBoardSettings(db, board.id, settings);
+			},
+
+			cleanupWorktree: async ({ runId }) => {
+				const db = getDb();
+				const run = runQueries.getRunById(db, runId);
+				if (!run) throw new Error(`Run ${runId} not found`);
+				if (!run.worktreePath || !activeProjectPath) return;
+				await removeWorktree(activeProjectPath, run.worktreePath);
+				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
 			},
 		},
 		messages: {

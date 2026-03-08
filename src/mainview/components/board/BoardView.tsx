@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
-import type { BoardWithLanesAndTickets, RecentProject } from "../../../shared/types";
+import type { BoardWithLanesAndTickets, BoardSettings, RecentProject } from "../../../shared/types";
 import { useBoard } from "../../hooks/useBoard";
 import { useLanes } from "../../hooks/useLanes";
 import { useTickets } from "../../hooks/useTickets";
 import { useInterruptedRuns } from "../../hooks/useInterruptedRuns";
 import { useActiveRuns } from "../../hooks/useActiveRuns";
 import { BoardHeader } from "./BoardHeader";
+import { BoardSettingsModal } from "./BoardSettingsModal";
 import { InterruptedRunsBanner } from "./InterruptedRunsBanner";
 import { KanbanBoard } from "./KanbanBoard";
 import { TemplateManager } from "../templates/TemplateManager";
 import { AgentPanel } from "./AgentPanel";
+import { rpc } from "../../rpc";
 
 interface BoardViewProps {
 	boardData: BoardWithLanesAndTickets;
@@ -44,6 +46,12 @@ export function BoardView({
 	const { interruptedRuns, retryRun, abortRun } = useInterruptedRuns();
 	const activeRuns = useActiveRuns();
 	const [showTemplates, setShowTemplates] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
+
+	const handleSaveSettings = async (settings: BoardSettings) => {
+		await rpc.request.updateBoardSettings({ settings });
+		refreshBoard();
+	};
 
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
@@ -68,6 +76,13 @@ export function BoardView({
 				onOpenProjectPicker={onOpenProjectPicker}
 				onCloseProject={onCloseProject}
 				onSetTab={onSetTab}
+				onOpenSettings={() => setShowSettings(true)}
+			/>
+			<BoardSettingsModal
+				open={showSettings}
+				onOpenChange={setShowSettings}
+				settings={boardData.board.settings}
+				onSave={handleSaveSettings}
 			/>
 			<InterruptedRunsBanner
 				interruptedRuns={interruptedRuns}

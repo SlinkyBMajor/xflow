@@ -10,6 +10,7 @@ import {
 import { Button } from "../ui/button";
 import { TicketForm } from "./TicketForm";
 import { RunEventLog } from "./RunEventLog";
+import { WorktreeStatus } from "./WorktreeStatus";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
@@ -29,6 +30,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const { copied: metaCopied, copy: copyMeta } = useCopyFeedback();
 	const { runs } = useWorkflowRuns(open ? ticket.id : null);
 	const activeRun = runs.find((r) => r.status === "active");
+	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch);
 	const { events } = useRunEvents(activeRun?.id ?? null);
 
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
@@ -125,6 +127,13 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 										<span className="text-[12px] text-[#58a6ff] font-mono">Running</span>
 									</div>
 								</MetadataRow>
+							)}
+
+							{/* Worktree status for runs with worktree info */}
+							{worktreeRun && (
+								<div className="border-t border-[#21262d] pt-3">
+									<WorktreeStatus run={worktreeRun} />
+								</div>
 							)}
 
 							{/* Timestamps */}

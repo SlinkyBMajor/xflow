@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import type { Board, RecentProject } from "../../../shared/types";
+import { Settings } from "lucide-react";
+import type { Board, BoardSettings, RecentProject } from "../../../shared/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -21,6 +22,7 @@ interface BoardHeaderProps {
 	onOpenProjectPicker: () => void;
 	onCloseProject: () => void;
 	onSetTab: (tab: "board" | "workflows") => void;
+	onOpenSettings?: () => void;
 }
 
 export function BoardHeader({
@@ -33,6 +35,7 @@ export function BoardHeader({
 	onOpenProjectPicker,
 	onCloseProject,
 	onSetTab,
+	onOpenSettings,
 }: BoardHeaderProps) {
 	const [editing, setEditing] = useState(false);
 	const [name, setName] = useState(board.name);
@@ -193,8 +196,24 @@ export function BoardHeader({
 				</div>
 			</div>
 
-			{/* Right section: spacer for balance */}
-			<div className="flex-1" />
+			{/* Right section: settings */}
+			<div className="flex-1 flex justify-end items-center pr-4 app-no-drag">
+				{onOpenSettings && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={onOpenSettings}
+								className="p-1.5 rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] transition-colors"
+							>
+								<Settings size={14} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" className="text-xs">
+							Board settings
+						</TooltipContent>
+					</Tooltip>
+				)}
+			</div>
 		</header>
 	);
 }

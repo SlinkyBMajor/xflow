@@ -104,6 +104,42 @@ function renderConfigFields(
 							className="h-8 text-sm w-28"
 						/>
 					</div>
+					<div>
+						<label className="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={config.worktreeEnabled ?? false}
+								onChange={(e) => updateConfig({ worktreeEnabled: e.target.checked })}
+								className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
+							/>
+							<span className="text-xs text-[#8b949e]">Use git worktree (isolate from other agents)</span>
+						</label>
+					</div>
+					{config.worktreeEnabled && (
+						<>
+							<div>
+								<Label className="text-xs text-[#8b949e] mb-1">After completion</Label>
+								<select
+									value={config.mergeStrategy ?? "manual"}
+									onChange={(e) => updateConfig({ mergeStrategy: e.target.value })}
+									className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+								>
+									<option value="auto">Auto-merge</option>
+									<option value="pr">Create PR</option>
+									<option value="manual">Manual</option>
+								</select>
+							</div>
+							<div>
+								<Label className="text-xs text-[#8b949e] mb-1">Base branch (optional)</Label>
+								<Input
+									value={config.baseBranch ?? ""}
+									onChange={(e) => updateConfig({ baseBranch: e.target.value || undefined })}
+									className="h-8 text-sm"
+									placeholder="Defaults to current branch"
+								/>
+							</div>
+						</>
+					)}
 				</>
 			);
 		case "customScript":
