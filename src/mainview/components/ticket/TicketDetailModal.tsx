@@ -11,6 +11,7 @@ import { Button } from "../ui/button";
 import { TicketForm } from "./TicketForm";
 import { RunEventLog } from "./RunEventLog";
 import { WorktreeStatus } from "./WorktreeStatus";
+import { WorktreeSidebarIndicator } from "./WorktreeSidebarIndicator";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
@@ -94,6 +95,13 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								<RunEventLog events={events} isActive={true} />
 							</div>
 						)}
+
+						{/* Worktree controls — full width in left pane */}
+						{worktreeRun && (
+							<div className="mt-6 pt-4 border-t border-[#21262d]">
+								<WorktreeStatus run={worktreeRun} />
+							</div>
+						)}
 					</div>
 
 					{/* Right pane — metadata */}
@@ -129,10 +137,10 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								</MetadataRow>
 							)}
 
-							{/* Worktree status for runs with worktree info */}
+							{/* Worktree indicator — compact sidebar version */}
 							{worktreeRun && (
 								<div className="border-t border-[#21262d] pt-3">
-									<WorktreeStatus run={worktreeRun} />
+									<WorktreeSidebarIndicator run={worktreeRun} />
 								</div>
 							)}
 

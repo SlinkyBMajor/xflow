@@ -5,6 +5,7 @@ import { useLanes } from "../../hooks/useLanes";
 import { useTickets } from "../../hooks/useTickets";
 import { useInterruptedRuns } from "../../hooks/useInterruptedRuns";
 import { useActiveRuns } from "../../hooks/useActiveRuns";
+import { useWorktreeRuns } from "../../hooks/useWorktreeRuns";
 import { BoardHeader } from "./BoardHeader";
 import { BoardSettingsModal } from "./BoardSettingsModal";
 import { InterruptedRunsBanner } from "./InterruptedRunsBanner";
@@ -45,6 +46,7 @@ export function BoardView({
 	const tickets = useTickets(refreshBoard);
 	const { interruptedRuns, retryRun, abortRun } = useInterruptedRuns();
 	const activeRuns = useActiveRuns();
+	const { worktreeRuns } = useWorktreeRuns();
 	const [showTemplates, setShowTemplates] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 
@@ -98,6 +100,7 @@ export function BoardView({
 					onEditWorkflow={onEditWorkflow}
 					onCreateWorkflowForLane={onCreateWorkflowForLane}
 					activeRuns={activeRuns}
+					worktreeRuns={worktreeRuns}
 				/>
 				<AgentPanel
 					activeRuns={activeRuns}

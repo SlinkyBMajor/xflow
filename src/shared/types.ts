@@ -275,6 +275,20 @@ export interface WorkflowRunState {
 	errorNodeId: string | null;
 }
 
+// ── Git / Worktree Types ──
+
+export interface GitChangeSummary {
+	added: number;
+	modified: number;
+	deleted: number;
+	total: number;
+}
+
+export interface WorktreeRunInfo {
+	run: WorkflowRun;
+	changeSummary: GitChangeSummary;
+}
+
 // ── RPC Schema ──
 
 export type XFlowRPC = {
@@ -435,6 +449,10 @@ export type XFlowRPC = {
 			cleanupWorktree: {
 				params: { runId: string };
 				response: void;
+			};
+			getWorktreeRuns: {
+				params: {};
+				response: WorktreeRunInfo[];
 			};
 			updateBoardSettings: {
 				params: { settings: BoardSettings };

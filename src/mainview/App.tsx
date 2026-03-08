@@ -7,6 +7,7 @@ import { BoardHeader } from "./components/board/BoardHeader";
 import { WorkflowListView } from "./components/workflow/WorkflowListView";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ConfirmProvider } from "./hooks/useConfirm";
+import { Toaster } from "./components/ui/sonner";
 
 export default function App() {
 	const {
@@ -64,6 +65,7 @@ export default function App() {
 					onSelectRecent={openProject}
 					onRemoveRecent={removeRecentProject}
 				/>
+				<Toaster position="bottom-right" />
 			</TooltipProvider></ConfirmProvider>
 		);
 	}
@@ -90,6 +92,7 @@ export default function App() {
 						onSelectWorkflow={setSelectedWorkflowId}
 					/>
 				</div>
+				<Toaster position="bottom-right" />
 			</TooltipProvider></ConfirmProvider>
 		);
 	}
@@ -109,6 +112,7 @@ export default function App() {
 				onSetTab={setActiveTab}
 				onCreateWorkflowForLane={handleCreateWorkflowForLane}
 			/>
+			<Toaster position="bottom-right" />
 		</TooltipProvider></ConfirmProvider>
 	);
 }

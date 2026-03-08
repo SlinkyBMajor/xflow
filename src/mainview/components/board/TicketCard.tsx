@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import type { Ticket } from "../../../shared/types";
+import { GitBranch } from "lucide-react";
+import type { Ticket, WorktreeRunInfo } from "../../../shared/types";
 import { Badge } from "../ui/badge";
 
 interface TicketCardProps {
@@ -7,10 +8,11 @@ interface TicketCardProps {
 	index: number;
 	laneId: string;
 	isRunning?: boolean;
+	worktreeInfo?: WorktreeRunInfo | null;
 	onClick: () => void;
 }
 
-export function TicketCard({ ticket, index, laneId, isRunning, onClick }: TicketCardProps) {
+export function TicketCard({ ticket, index, laneId, isRunning, worktreeInfo, onClick }: TicketCardProps) {
 	const { ref, isDragging } = useSortable({
 		id: ticket.id,
 		index,
@@ -51,6 +53,27 @@ export function TicketCard({ ticket, index, laneId, isRunning, onClick }: Ticket
 					{ticket.tags.map((tag) => (
 						<Badge key={tag}>{tag}</Badge>
 					))}
+				</div>
+			)}
+
+			{worktreeInfo && (
+				<div className="mt-2 flex items-center gap-1.5">
+					<span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#8b949e] bg-[#0d1117] border border-[#21262d] rounded-full px-2 py-0.5">
+						<GitBranch size={10} className="text-[#58a6ff]" />
+						{worktreeInfo.changeSummary.total > 0 ? (
+							<>
+								{worktreeInfo.changeSummary.added > 0 && (
+									<span className="text-emerald-400">+{worktreeInfo.changeSummary.added}</span>
+								)}
+								{worktreeInfo.changeSummary.modified > 0 && (
+									<span className="text-yellow-400">~{worktreeInfo.changeSummary.modified}</span>
+								)}
+								{worktreeInfo.changeSummary.deleted > 0 && (
+									<span className="text-red-400">-{worktreeInfo.changeSummary.deleted}</span>
+								)}
+							</>
+						) : null}
+					</span>
 				</div>
 			)}
 		</div>

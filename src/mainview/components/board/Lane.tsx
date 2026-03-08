@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/react";
-import type { Lane as LaneType, Ticket, WorkflowRun } from "../../../shared/types";
+import type { Lane as LaneType, Ticket, WorkflowRun, WorktreeRunInfo } from "../../../shared/types";
 import { LaneHeader } from "./LaneHeader";
 import { TicketCard } from "./TicketCard";
 import { AddTicketButton } from "./AddTicketButton";
@@ -25,9 +25,10 @@ interface LaneProps {
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
 	onCreateWorkflowForLane: (laneId: string, laneName: string) => Promise<void>;
 	activeRuns: Map<string, WorkflowRun>;
+	worktreeRuns?: Map<string, WorktreeRunInfo>;
 }
 
-export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane, activeRuns }: LaneProps) {
+export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane, activeRuns, worktreeRuns }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -66,6 +67,7 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 								index={index}
 								laneId={lane.id}
 								isRunning={activeRuns.has(ticket.id)}
+								worktreeInfo={worktreeRuns?.get(ticket.id) ?? null}
 								onClick={() => setSelectedTicket(ticket)}
 							/>
 						</TicketContextMenu>

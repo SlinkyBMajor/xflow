@@ -18,6 +18,7 @@ import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
 import { getAgentApiPort } from "./server/agent-api";
 import { removeWorktree } from "./git/worktree";
 import { mergeWorktreeBranch, getWorktreeDiff } from "./git/merge";
+import { getChangeSummary } from "./git/status";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -376,6 +377,30 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						mainWindow?.webview.rpc.send.worktreeDiffResult({ runId, diff: `Error: ${err}` });
 					}
 				})();
+			},
+
+			getWorktreeRuns: async () => {
+				const db = getDb();
+				const runs = runQueries.getRunsWithWorktrees(db);
+				const results = await Promise.all(
+					runs.map(async (run) => {
+						let changeSummary = { added: 0, modified: 0, deleted: 0, total: 0 };
+						if (run.worktreePath) {
+							try {
+								changeSummary = await Promise.race([
+									getChangeSummary(run.worktreePath),
+									new Promise<typeof changeSummary>((_, reject) =>
+										setTimeout(() => reject(new Error("timeout")), 2000)
+									),
+								]);
+							} catch {
+								// timeout or error — use zeroed summary
+							}
+						}
+						return { run, changeSummary };
+					})
+				);
+				return results;
 			},
 
 			updateBoardSettings: ({ settings }) => {

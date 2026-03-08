@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { GitBranch } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone } from "../../rpc";
 import type { WorkflowRun, MergeResult } from "../../../shared/types";
@@ -29,6 +31,19 @@ const stateLabels: Record<WorktreeState, string> = {
 	pending: "Pending",
 };
 
+function DiffLine({ line }: { line: string }) {
+	if (line.startsWith("+") && !line.startsWith("+++")) {
+		return <span className="text-emerald-400">{line}</span>;
+	}
+	if (line.startsWith("-") && !line.startsWith("---")) {
+		return <span className="text-red-400">{line}</span>;
+	}
+	if (line.startsWith("@@")) {
+		return <span className="text-[#58a6ff]">{line}</span>;
+	}
+	return <span className="text-[#8b949e]">{line}</span>;
+}
+
 export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
 	const [diffText, setDiffText] = useState<string | null>(null);
@@ -36,12 +51,21 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	const [loading, setLoading] = useState(false);
 	const [cleaned, setCleaned] = useState(false);
 
-	// Listen for async results from the backend
 	useEffect(() => {
 		const unsubMerge = onWorktreeMergeResult(({ runId, result }) => {
 			if (runId !== run.id) return;
 			setMergeResult(result);
 			setLoading(false);
+
+			if (result.success && result.prUrl) {
+				toast.success("Pull request created");
+			} else if (result.success) {
+				toast.success("Branch merged successfully");
+			} else if (result.conflicted) {
+				toast.error("Merge conflicts detected");
+			} else if (result.error) {
+				toast.error(`Merge failed: ${result.error}`);
+			}
 		});
 		const unsubDiff = onWorktreeDiffResult(({ runId, diff }) => {
 			if (runId !== run.id) return;
@@ -53,6 +77,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			if (runId !== run.id) return;
 			setCleaned(true);
 			setLoading(false);
+			toast.success("Worktree cleaned up");
 		});
 		return () => { unsubMerge(); unsubDiff(); unsubCleanup(); };
 	}, [run.id]);
@@ -90,9 +115,14 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	const showActions = run.worktreePath && !cleaned;
 
 	return (
-		<div className="space-y-3">
-			<div className="flex items-center justify-between">
-				<h4 className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Worktree</h4>
+		<div className="space-y-4">
+			<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2">
+					<GitBranch size={14} className="text-[#8b949e]" />
+					<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
+						Worktree
+					</span>
+				</div>
 				<span className={`text-[10px] px-1.5 py-0.5 rounded border ${stateStyles[state]}`}>
 					{stateLabels[state]}
 				</span>
@@ -101,7 +131,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			{run.worktreeBranch && (
 				<button
 					onClick={copyBranch}
-					className="w-full text-left text-xs font-mono text-[#58a6ff] bg-[#0d1117] rounded px-2 py-1.5 border border-[#21262d] hover:border-[#58a6ff]/50 transition-colors truncate"
+					className="text-left text-xs font-mono text-[#58a6ff] bg-[#0d1117] rounded px-3 py-2 border border-[#21262d] hover:border-[#58a6ff]/50 transition-colors truncate max-w-md"
 					title="Click to copy branch name"
 				>
 					{run.worktreeBranch}
@@ -138,13 +168,13 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			)}
 
 			{showActions && (
-				<div className="flex flex-wrap gap-1.5">
+				<div className="flex gap-2">
 					<Button
 						variant="ghost"
 						size="sm"
 						onClick={handleViewDiff}
 						disabled={loading}
-						className="text-xs h-7 text-[#8b949e] hover:text-[#e6edf3]"
+						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
 					>
 						{showDiff ? "Hide Diff" : "View Diff"}
 					</Button>
@@ -153,7 +183,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 						size="sm"
 						onClick={() => handleMerge("auto")}
 						disabled={loading}
-						className="text-xs h-7 text-[#8b949e] hover:text-[#e6edf3]"
+						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
 					>
 						Merge
 					</Button>
@@ -162,7 +192,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 						size="sm"
 						onClick={() => handleMerge("pr")}
 						disabled={loading}
-						className="text-xs h-7 text-[#8b949e] hover:text-[#e6edf3]"
+						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
 					>
 						Create PR
 					</Button>
@@ -171,7 +201,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 						size="sm"
 						onClick={handleCleanup}
 						disabled={loading}
-						className="text-xs h-7 text-red-400 hover:text-red-300"
+						className="text-xs h-8 text-red-400 hover:text-red-300"
 					>
 						Cleanup
 					</Button>
@@ -179,8 +209,13 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			)}
 
 			{showDiff && diffText && (
-				<pre className="text-[10px] font-mono text-[#8b949e] bg-[#0d1117] rounded p-2 border border-[#21262d] max-h-48 overflow-auto whitespace-pre-wrap">
-					{diffText}
+				<pre className="text-[11px] font-mono bg-[#0d1117] rounded-lg p-3 border border-[#21262d] max-h-80 overflow-auto whitespace-pre-wrap leading-relaxed">
+					{diffText.split("\n").map((line, i) => (
+						<span key={i}>
+							<DiffLine line={line} />
+							{"\n"}
+						</span>
+					))}
 				</pre>
 			)}
 		</div>
