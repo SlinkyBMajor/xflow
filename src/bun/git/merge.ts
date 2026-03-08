@@ -43,19 +43,25 @@ export async function getWorktreeDiff(worktreePath: string): Promise<string> {
 	return parts.join("\n\n") || "(no changes)";
 }
 
+export interface PRContext {
+	ticketTitle?: string;
+	ticketBody?: string | null;
+}
+
 export async function mergeWorktreeBranch(
 	projectPath: string,
 	branch: string,
 	strategy: MergeStrategy,
 	baseBranch: string,
 	worktreePath?: string,
+	prContext?: PRContext,
 ): Promise<MergeResult> {
 	console.log(`[Merge] Strategy: ${strategy}, branch: ${branch}, base: ${baseBranch}, worktree: ${worktreePath ?? "n/a"}`);
 	switch (strategy) {
 		case "auto":
 			return autoMerge(projectPath, branch, baseBranch);
 		case "pr":
-			return createPR(projectPath, branch, worktreePath);
+			return createPR(projectPath, branch, baseBranch, worktreePath, prContext);
 		case "manual":
 			return { success: true, strategy: "manual", conflicted: false };
 	}
@@ -121,7 +127,41 @@ async function commitWorktreeChanges(worktreePath: string): Promise<boolean> {
 	return true;
 }
 
-async function createPR(projectPath: string, branch: string, worktreePath?: string): Promise<MergeResult> {
+async function buildPRContent(
+	pushCwd: string,
+	baseBranch: string,
+	branch: string,
+	context?: PRContext,
+): Promise<{ title: string; body: string }> {
+	const title = context?.ticketTitle
+		? `xflow: ${context.ticketTitle}`
+		: branch;
+
+	const bodyParts: string[] = [];
+
+	// Ticket description
+	if (context?.ticketBody) {
+		bodyParts.push("## Description\n\n" + context.ticketBody);
+	}
+
+	// Commit log
+	const log = await runGit(pushCwd, ["log", `${baseBranch}..${branch}`, "--pretty=format:- %s"]);
+	if (log.exitCode === 0 && log.stdout) {
+		bodyParts.push("## Commits\n\n" + log.stdout);
+	}
+
+	// Diff summary
+	const diffstat = await runGit(pushCwd, ["diff", "--stat", `${baseBranch}...${branch}`]);
+	if (diffstat.exitCode === 0 && diffstat.stdout) {
+		bodyParts.push("## Changes\n\n```\n" + diffstat.stdout + "\n```");
+	}
+
+	bodyParts.push("---\n*Created by [XFlow](https://github.com/pontusrheindorf/xflow)*");
+
+	return { title, body: bodyParts.join("\n\n") };
+}
+
+async function createPR(projectPath: string, branch: string, baseBranch: string, worktreePath?: string, context?: PRContext): Promise<MergeResult> {
 	console.log(`[Merge] Creating PR for branch ${branch}`);
 
 	// The worktree is where the branch HEAD lives — commit and push from there
@@ -146,10 +186,13 @@ async function createPR(projectPath: string, branch: string, worktreePath?: stri
 	}
 	console.log(`[Merge] Pushed ${branch} to origin`);
 
+	// Build PR title and body from ticket context + git history
+	const { title, body } = await buildPRContent(pushCwd, baseBranch, branch, context);
+
 	// Create PR via gh CLI (run from project root so gh finds the repo config)
 	console.log(`[Merge] Creating PR via gh CLI`);
 	const pr = Bun.spawn(
-		["gh", "pr", "create", "--head", branch, "--fill"],
+		["gh", "pr", "create", "--head", branch, "--title", title, "--body", body],
 		{ cwd: projectPath, stdout: "pipe", stderr: "pipe" },
 	);
 

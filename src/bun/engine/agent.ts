@@ -283,7 +283,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 		// Commit any changes in the worktree first
 		const hasChanges = await worktreeHasChanges(worktreePath);
 		if (hasChanges && mergeStrategy === "auto" && resolvedBaseBranch) {
-			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch, worktreePath ?? undefined);
+			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
 			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
 			if (result.success) {
 				await removeWorktree(projectPath, worktreePath);

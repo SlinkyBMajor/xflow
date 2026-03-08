@@ -329,13 +329,17 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				const projectPath = activeProjectPath;
 				console.log(`[RPC] Run worktree: path=${run.worktreePath}, branch=${run.worktreeBranch}`);
 
+				// Fetch ticket context for PR creation
+				const ticket = ticketQueries.getTicket(db, run.ticketId);
+				const prContext = ticket ? { ticketTitle: ticket.title, ticketBody: ticket.body } : undefined;
+
 				// Run async — send result via message to avoid RPC timeout
 				(async () => {
 					try {
 						const { getCurrentBranch } = await import("./git/worktree");
 						const baseBranch = await getCurrentBranch(projectPath);
 						const mergeStrategy = strategy ?? "auto";
-						const result = await mergeWorktreeBranch(projectPath, run.worktreeBranch!, mergeStrategy, baseBranch, run.worktreePath ?? undefined);
+						const result = await mergeWorktreeBranch(projectPath, run.worktreeBranch!, mergeStrategy, baseBranch, run.worktreePath ?? undefined, prContext);
 
 						console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
