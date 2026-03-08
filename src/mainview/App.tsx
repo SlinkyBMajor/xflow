@@ -40,7 +40,8 @@ export default function App() {
 		return () => window.removeEventListener("keydown", handler);
 	}, []);
 
-	const handleEditWorkflowFromLane = (_laneId: string, _laneName: string, _workflowId: string) => {
+	const handleEditWorkflowFromLane = (_laneId: string, _laneName: string, workflowId: string) => {
+		setSelectedWorkflowId(workflowId);
 		setActiveTab("workflows");
 	};
 
