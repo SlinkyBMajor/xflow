@@ -74,16 +74,21 @@ export function BoardView({
 				onRetry={retryRun}
 				onAbort={abortRun}
 			/>
-			<KanbanBoard
-				boardData={boardData}
-				lanes={lanes}
-				tickets={tickets}
-				refreshBoard={refreshBoard}
-				onEditWorkflow={onEditWorkflow}
-				onCreateWorkflowForLane={onCreateWorkflowForLane}
-				activeRuns={activeRuns}
-			/>
-			<AgentPanel activeRuns={activeRuns} tickets={boardData.tickets} />
+			<div className="relative flex-1 min-h-0 flex flex-col">
+				<KanbanBoard
+					boardData={boardData}
+					lanes={lanes}
+					tickets={tickets}
+					refreshBoard={refreshBoard}
+					onEditWorkflow={onEditWorkflow}
+					onCreateWorkflowForLane={onCreateWorkflowForLane}
+					activeRuns={activeRuns}
+				/>
+				<AgentPanel
+					activeRuns={activeRuns}
+					tickets={boardData.tickets}
+				/>
+			</div>
 			{showTemplates && (
 				<TemplateManager
 					onApply={() => {

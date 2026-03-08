@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import type { WorkflowRun, Ticket, RunEvent } from "../../../shared/types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { WorkflowRun, Ticket } from "../../../shared/types";
 import { RunEventLog } from "../ticket/RunEventLog";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { onWorkflowRunUpdated } from "../../rpc";
@@ -61,10 +61,16 @@ function AgentTabContent({ runId, isActive }: { runId: string; isActive: boolean
 	);
 }
 
+const MIN_HEIGHT = 120;
+const MAX_HEIGHT_RATIO = 0.7;
+const DEFAULT_HEIGHT = 260;
+
 export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	const [open, setOpen] = useState(false);
+	const [height, setHeight] = useState(DEFAULT_HEIGHT);
 	const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 	const [trackedRuns, setTrackedRuns] = useState<Map<string, WorkflowRun>>(new Map());
+	const isDragging = useRef(false);
 
 	const ticketMap = new Map(tickets.map((t) => [t.id, t]));
 
@@ -72,7 +78,7 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	useEffect(() => {
 		setTrackedRuns((prev) => {
 			const next = new Map(prev);
-			for (const [ticketId, run] of activeRuns) {
+			for (const [, run] of activeRuns) {
 				next.set(run.id, run);
 			}
 			return next;
@@ -91,7 +97,6 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 				setSelectedRunId(run.id);
 				setOpen(true);
 			} else {
-				// Update status of existing tracked run
 				setTrackedRuns((prev) => {
 					if (!prev.has(run.id)) return prev;
 					const next = new Map(prev);
@@ -102,17 +107,49 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		});
 	}, []);
 
+	const togglePanel = useCallback(() => {
+		setOpen((prev) => !prev);
+	}, []);
+
 	// Keyboard shortcut: ⌘J to toggle
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === "j") {
 				e.preventDefault();
-				setOpen((prev) => !prev);
+				togglePanel();
 			}
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
-	}, []);
+	}, [togglePanel]);
+
+	// Drag-to-resize
+	const onDragStart = useCallback((e: React.MouseEvent) => {
+		e.preventDefault();
+		isDragging.current = true;
+		const startY = e.clientY;
+		const startHeight = height;
+
+		const onMouseMove = (e: MouseEvent) => {
+			if (!isDragging.current) return;
+			const delta = startY - e.clientY;
+			const maxHeight = window.innerHeight * MAX_HEIGHT_RATIO;
+			setHeight(Math.min(maxHeight, Math.max(MIN_HEIGHT, startHeight + delta)));
+		};
+
+		const onMouseUp = () => {
+			isDragging.current = false;
+			document.removeEventListener("mousemove", onMouseMove);
+			document.removeEventListener("mouseup", onMouseUp);
+			document.body.style.cursor = "";
+			document.body.style.userSelect = "";
+		};
+
+		document.body.style.cursor = "row-resize";
+		document.body.style.userSelect = "none";
+		document.addEventListener("mousemove", onMouseMove);
+		document.addEventListener("mouseup", onMouseUp);
+	}, [height]);
 
 	const closeTab = useCallback((runId: string) => {
 		setTrackedRuns((prev) => {
@@ -122,7 +159,6 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		});
 		setSelectedRunId((prev) => {
 			if (prev !== runId) return prev;
-			// Select another tab
 			const remaining = [...trackedRuns.keys()].filter((id) => id !== runId);
 			return remaining.length > 0 ? remaining[0] : null;
 		});
@@ -133,7 +169,6 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		ticketTitle: ticketMap.get(run.ticketId)?.title ?? run.ticketId.slice(0, 8),
 	}));
 
-	// Auto-select first tab if none selected
 	const effectiveSelectedId = selectedRunId && trackedRuns.has(selectedRunId)
 		? selectedRunId
 		: tabs.length > 0 ? tabs[0].run.id : null;
@@ -141,18 +176,25 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	const hasActiveRuns = [...trackedRuns.values()].some((r) => r.status === "active");
 	const tabCount = tabs.length;
 
-	if (tabCount === 0 && !open) return null;
+	if (!open) return null;
 
 	return (
-		<div className="flex flex-col border-t border-[#21262d] bg-[#0d1117]">
-			{/* Header bar — always visible when there are tabs */}
+		<div
+			className="absolute bottom-0 left-0 right-0 flex flex-col border-t border-[#30363d] bg-[#0d1117] z-10"
+			style={{ height }}
+		>
+			{/* Drag handle */}
+			<div
+				onMouseDown={onDragStart}
+				className="h-1 cursor-row-resize bg-[#21262d] hover:bg-[#58a6ff]/40 transition-colors shrink-0"
+			/>
+
+			{/* Header bar */}
 			<button
-				onClick={() => setOpen((prev) => !prev)}
-				className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-mono text-[#6e7681] uppercase tracking-wider hover:bg-[#161b22]/50 transition-colors cursor-pointer select-none"
+				onClick={togglePanel}
+				className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-mono text-[#6e7681] uppercase tracking-wider hover:bg-[#161b22]/50 transition-colors cursor-pointer select-none shrink-0"
 			>
-				<span className={`transition-transform ${open ? "" : "-rotate-90"}`}>
-					&#9662;
-				</span>
+				<span>&#9662;</span>
 				<span>Agents</span>
 				{tabCount > 0 && (
 					<span className="text-[#6e7681]">({tabCount})</span>
@@ -169,42 +211,40 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 			</button>
 
 			{/* Panel content */}
-			{open && (
-				<div className="flex flex-col h-[280px]">
-					{tabCount === 0 ? (
-						<div className="flex-1 flex items-center justify-center text-[11px] font-mono text-[#484f58] italic">
-							No agent runs to display
-						</div>
-					) : (
-						<>
-							{/* Tab bar */}
-							<div className="flex border-b border-[#21262d]/60 overflow-x-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
-								{tabs.map((tab) => (
-									<AgentTab
-										key={tab.run.id}
-										run={tab}
-										isSelected={tab.run.id === effectiveSelectedId}
-										onClick={() => setSelectedRunId(tab.run.id)}
-										onClose={(e) => {
-											e.stopPropagation();
-											closeTab(tab.run.id);
-										}}
-									/>
-								))}
-							</div>
-
-							{/* Event log for selected tab */}
-							{effectiveSelectedId && (
-								<AgentTabContent
-									key={effectiveSelectedId}
-									runId={effectiveSelectedId}
-									isActive={trackedRuns.get(effectiveSelectedId)?.status === "active"}
+			<div className="flex flex-col flex-1 min-h-0">
+				{tabCount === 0 ? (
+					<div className="flex-1 flex items-center justify-center text-[11px] font-mono text-[#484f58] italic">
+						No agent runs to display
+					</div>
+				) : (
+					<>
+						{/* Tab bar */}
+						<div className="flex border-b border-[#21262d]/60 overflow-x-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent shrink-0">
+							{tabs.map((tab) => (
+								<AgentTab
+									key={tab.run.id}
+									run={tab}
+									isSelected={tab.run.id === effectiveSelectedId}
+									onClick={() => setSelectedRunId(tab.run.id)}
+									onClose={(e) => {
+										e.stopPropagation();
+										closeTab(tab.run.id);
+									}}
 								/>
-							)}
-						</>
-					)}
-				</div>
-			)}
+							))}
+						</div>
+
+						{/* Event log for selected tab */}
+						{effectiveSelectedId && (
+							<AgentTabContent
+								key={effectiveSelectedId}
+								runId={effectiveSelectedId}
+								isActive={trackedRuns.get(effectiveSelectedId)?.status === "active"}
+							/>
+						)}
+					</>
+				)}
+			</div>
 		</div>
 	);
 }
