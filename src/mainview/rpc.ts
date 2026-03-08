@@ -100,6 +100,10 @@ export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): ()
 	return () => worktreeCleanupDoneListeners.delete(listener);
 }
 
+export function openExternal(url: string) {
+	rpc.send.openExternal({ url });
+}
+
 export function requestProjectPicker(): Promise<string | null> {
 	return new Promise((resolve) => {
 		const onResult: PickerResultListener = (path) => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { GitBranch, GitPullRequest, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone } from "../../rpc";
+import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone, openExternal } from "../../rpc";
 import type { WorkflowRun, MergeResult } from "../../../shared/types";
 
 interface WorktreeStatusProps {
@@ -162,16 +162,15 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			)}
 
 			{mergeResult?.prUrl && (
-				<a
-					href={mergeResult.prUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+				<button
+					type="button"
+					onClick={() => openExternal(mergeResult.prUrl!)}
+					className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
 				>
 					<GitPullRequest size={12} />
 					<span className="font-mono">{mergeResult.prUrl}</span>
 					<ExternalLink size={10} />
-				</a>
+				</button>
 			)}
 
 			{mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error && (

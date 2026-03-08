@@ -463,6 +463,7 @@ export type XFlowRPC = {
 		};
 		messages: {
 			openProjectPicker: {};
+			openExternal: { url: string };
 		};
 	}>;
 	webview: RPCSchema<{

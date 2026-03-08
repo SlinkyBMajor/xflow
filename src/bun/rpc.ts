@@ -431,6 +431,9 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			},
 		},
 		messages: {
+			openExternal: ({ url }) => {
+				Utils.openExternal(url);
+			},
 			openProjectPicker: async () => {
 				console.log("[RPC] openProjectPicker message received");
 				try {
