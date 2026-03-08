@@ -71,6 +71,7 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 	const [trackedRuns, setTrackedRuns] = useState<Map<string, WorkflowRun>>(new Map());
 	const isDragging = useRef(false);
+	const userMinimized = useRef(false);
 
 	const ticketMap = new Map(tickets.map((t) => [t.id, t]));
 
@@ -95,7 +96,9 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 					return next;
 				});
 				setSelectedRunId(run.id);
-				setOpen(true);
+				if (!userMinimized.current) {
+					setOpen(true);
+				}
 			} else {
 				setTrackedRuns((prev) => {
 					if (!prev.has(run.id)) return prev;
@@ -108,7 +111,11 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	}, []);
 
 	const togglePanel = useCallback(() => {
-		setOpen((prev) => !prev);
+		setOpen((prev) => {
+			const next = !prev;
+			userMinimized.current = !next;
+			return next;
+		});
 	}, []);
 
 	// Keyboard shortcut: ⌘J to toggle
@@ -176,7 +183,26 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 	const hasActiveRuns = [...trackedRuns.values()].some((r) => r.status === "active");
 	const tabCount = tabs.length;
 
-	if (!open) return null;
+	if (!open) {
+		if (tabCount === 0) return null;
+
+		return (
+			<button
+				onClick={togglePanel}
+				className="fixed bottom-4 right-4 z-20 flex items-center gap-2 h-8 px-3 rounded-full bg-[#21262d] border border-[#30363d] text-[11px] font-mono text-[#8b949e] cursor-pointer hover:bg-[#30363d] transition-colors select-none"
+			>
+				{hasActiveRuns ? (
+					<span className="relative flex h-1.5 w-1.5 shrink-0">
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
+					</span>
+				) : (
+					<span className="h-1.5 w-1.5 rounded-full bg-[#484f58] shrink-0" />
+				)}
+				<span>{tabCount} {tabCount === 1 ? "agent" : "agents"}</span>
+			</button>
+		);
+	}
 
 	return (
 		<div
