@@ -1,0 +1,1 @@
+ALTER TABLE `lanes` ADD `allow_ticket_creation` integer DEFAULT 1 NOT NULL;

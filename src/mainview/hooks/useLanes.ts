@@ -11,7 +11,7 @@ export function useLanes(refreshBoard: () => Promise<void>) {
 	);
 
 	const updateLane = useCallback(
-		async (id: string, updates: { name?: string; color?: string; wipLimit?: number | null }) => {
+		async (id: string, updates: { name?: string; color?: string; wipLimit?: number | null; allowTicketCreation?: boolean }) => {
 			await rpc.request.updateLane({ id, ...updates });
 			await refreshBoard();
 		},

@@ -33,6 +33,7 @@ export interface Lane {
 	order: number;
 	color: string | null;
 	wipLimit: number | null;
+	allowTicketCreation: boolean;
 	workflowId: string | null;
 }
 
@@ -319,7 +320,7 @@ export type XFlowRPC = {
 				response: Lane;
 			};
 			updateLane: {
-				params: { id: string; name?: string; color?: string; wipLimit?: number | null };
+				params: { id: string; name?: string; color?: string; wipLimit?: number | null; allowTicketCreation?: boolean };
 				response: Lane;
 			};
 			deleteLane: {

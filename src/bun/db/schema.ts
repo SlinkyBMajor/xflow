@@ -16,6 +16,7 @@ export const lanes = sqliteTable("lanes", {
 	order: integer("order").notNull(),
 	color: text("color"),
 	wipLimit: integer("wip_limit"),
+	allowTicketCreation: integer("allow_ticket_creation").notNull().default(1),
 	workflowId: text("workflow_id").references(() => workflows.id),
 });
 
