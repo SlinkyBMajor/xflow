@@ -92,11 +92,15 @@ function renderConfigFields(
 						</label>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Timeout (ms)</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Timeout (seconds)</Label>
 						<Input
 							type="number"
-							value={config.timeoutMs ?? 60000}
-							onChange={(e) => updateConfig({ timeoutMs: parseInt(e.target.value) || undefined })}
+							min={10}
+							value={Math.round((config.timeoutMs ?? 600000) / 1000)}
+							onChange={(e) => {
+								const secs = parseInt(e.target.value);
+								if (secs > 0) updateConfig({ timeoutMs: secs * 1000 });
+							}}
 							className="h-8 text-sm w-28"
 						/>
 					</div>
@@ -126,11 +130,15 @@ function renderConfigFields(
 						</select>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Timeout (ms)</Label>
+						<Label className="text-xs text-[#8b949e] mb-1">Timeout (seconds)</Label>
 						<Input
 							type="number"
-							value={config.timeoutMs ?? 30000}
-							onChange={(e) => updateConfig({ timeoutMs: parseInt(e.target.value) || undefined })}
+							min={5}
+							value={Math.round((config.timeoutMs ?? 30000) / 1000)}
+							onChange={(e) => {
+								const secs = parseInt(e.target.value);
+								if (secs > 0) updateConfig({ timeoutMs: secs * 1000 });
+							}}
 							className="h-8 text-sm w-28"
 						/>
 					</div>

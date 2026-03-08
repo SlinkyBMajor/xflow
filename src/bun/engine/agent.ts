@@ -52,7 +52,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		runId,
 		nodeId,
 		prompt,
-		timeoutMs = 5 * 60 * 1000,
+		timeoutMs = 10 * 60 * 1000,
 		includeWorkflowOutput = true,
 		ticket,
 		context,
@@ -116,12 +116,24 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	activeProcesses.set(runId, proc);
 
 	let outputText = "";
+	let stderrText = "";
 	let timedOut = false;
 
 	const timeout = setTimeout(() => {
 		timedOut = true;
 		proc.kill();
 	}, timeoutMs);
+
+	// Read stderr in background to capture error messages
+	const stderrPromise = (async () => {
+		const reader = proc.stderr.getReader();
+		const decoder = new TextDecoder();
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			stderrText += decoder.decode(value, { stream: true });
+		}
+	})();
 
 	try {
 		const reader = proc.stdout.getReader();
@@ -176,6 +188,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		}
 
 		await proc.exited;
+		await stderrPromise;
 	} finally {
 		clearTimeout(timeout);
 		activeProcesses.delete(runId);
@@ -184,6 +197,13 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	if (timedOut) {
 		insertAndEmit(db, runId, "AGENT_TIMEOUT", { nodeId, timeoutMs }, onEvent);
 		throw new Error(`Claude agent timed out after ${timeoutMs}ms`);
+	}
+
+	// Check for process failure
+	if (proc.exitCode !== 0 && !outputText) {
+		const errorDetail = stderrText.trim() || `Process exited with code ${proc.exitCode}`;
+		console.error(`[Workflow ${runId}] Claude CLI failed (exit ${proc.exitCode}):`, errorDetail);
+		throw new Error(`Claude CLI failed: ${errorDetail}`);
 	}
 
 	writeFileSync(`${runDir}/output.md`, outputText || "(no output)");

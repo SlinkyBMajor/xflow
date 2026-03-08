@@ -244,7 +244,17 @@ function buildState(
 							},
 						],
 					},
-					onError: targets.length > 0 ? { target: targets[0] } : undefined,
+					onError: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: [
+							({ event }: { event: any }) => {
+								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown agent error");
+								console.error(`[Workflow ${ctx.runId}] Agent node ${node.id} failed:`, errorMsg);
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`);
+								ctx.notifyBoardChanged?.();
+							},
+						],
+					},
 				},
 			};
 		}
@@ -286,7 +296,17 @@ function buildState(
 							},
 						],
 					},
-					onError: targets.length > 0 ? { target: targets[0] } : undefined,
+					onError: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: [
+							({ event }: { event: any }) => {
+								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown script error");
+								console.error(`[Workflow ${ctx.runId}] Script node ${node.id} failed:`, errorMsg);
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`);
+								ctx.notifyBoardChanged?.();
+							},
+						],
+					},
 				},
 			};
 		}

@@ -78,7 +78,7 @@ export function getDefaultConfig(type: IRNodeType): IRNodeConfig {
 		case "end":
 			return { type: "end" };
 		case "claudeAgent":
-			return { type: "claudeAgent", prompt: "", timeoutMs: 60000, includeWorkflowOutput: true };
+			return { type: "claudeAgent", prompt: "", timeoutMs: 600000, includeWorkflowOutput: true };
 		case "customScript":
 			return { type: "customScript", script: "", interpreter: "bun", timeoutMs: 30000 };
 		case "notify":
