@@ -444,6 +444,10 @@ export type XFlowRPC = {
 				params: { runId: string; strategy?: MergeStrategy };
 				response: void;
 			};
+			markPrMerged: {
+				params: { runId: string };
+				response: void;
+			};
 			getWorktreeDiff: {
 				params: { runId: string };
 				response: void;

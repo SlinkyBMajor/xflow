@@ -250,6 +250,18 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 					<Button
 						variant="ghost"
 						size="sm"
+						onClick={() => {
+							setLoading(true);
+							rpc.request.markPrMerged({ runId: run.id });
+						}}
+						disabled={loading}
+						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
+					>
+						Mark as Merged
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
 						onClick={handleCleanup}
 						disabled={loading}
 						className="text-xs h-8 text-red-400 hover:text-red-300"

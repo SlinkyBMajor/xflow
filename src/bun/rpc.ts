@@ -19,6 +19,7 @@ import { getAgentApiPort } from "./server/agent-api";
 import { removeWorktree } from "./git/worktree";
 import { mergeWorktreeBranch, getWorktreeDiff } from "./git/merge";
 import { getChangeSummary } from "./git/status";
+import { startPrPoller, stopPrPoller } from "./git/pr-poller";
 
 // Track which project path is associated with the current RPC context
 // Since Electrobun's defineRPC is global, views send their project path
@@ -47,6 +48,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			openProject: ({ path }) => {
 				console.log("[RPC] openProject called with path:", path);
 				try {
+					stopPrPoller();
 					const notifyBoardChanged = () => {
 						mainWindow?.webview.rpc.send.boardUpdated(getBoard());
 					};
@@ -60,6 +62,14 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					if (result.interruptedRuns.length > 0) {
 						mainWindow?.webview.rpc.send.interruptedRunsDetected(result.interruptedRuns);
 					}
+					startPrPoller({
+						projectPath: path,
+						getDb: () => getConnection(path),
+						notify: {
+							worktreeMergeResult: (data) => mainWindow?.webview.rpc.send.worktreeMergeResult(data),
+							worktreeCleanupDone: (data) => mainWindow?.webview.rpc.send.worktreeCleanupDone(data),
+						},
+					});
 					return result;
 				} catch (err) {
 					console.error("[RPC] openProject error:", err);
@@ -426,6 +436,25 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						mainWindow?.webview.rpc.send.worktreeCleanupDone({ runId });
 					} catch (err) {
 						console.error(`[RPC] cleanupWorktree error:`, err);
+					}
+				})();
+			},
+			markPrMerged: ({ runId }) => {
+				const db = getDb();
+				const run = runQueries.getRunById(db, runId);
+				if (!run) throw new Error(`Run ${runId} not found`);
+				if (!activeProjectPath) throw new Error("No project open");
+
+				const projectPath = activeProjectPath;
+				(async () => {
+					try {
+						if (run.worktreePath) {
+							await removeWorktree(projectPath, run.worktreePath);
+						}
+						runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+						mainWindow?.webview.rpc.send.worktreeCleanupDone({ runId });
+					} catch (err) {
+						console.error(`[RPC] markPrMerged error:`, err);
 					}
 				})();
 			},
