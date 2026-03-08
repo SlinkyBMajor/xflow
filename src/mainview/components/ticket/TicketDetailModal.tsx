@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus } from "../../../shared/types";
 import {
 	Dialog,
@@ -40,6 +40,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
 	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
 	const outputEntries = Object.entries(workflowOutput);
+	const [allCollapsed, setAllCollapsed] = useState(false);
 
 	// Reset editing state when ticket changes
 	useEffect(() => {
@@ -102,12 +103,21 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 						{/* Workflow output */}
 						{outputEntries.length > 0 && (
 							<div className="mt-6 pt-4 border-t border-[#21262d]">
-								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
-									Workflow Output
-								</span>
+								<div className="flex items-center justify-between mb-3">
+									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
+										Workflow Output
+									</span>
+									<button
+										onClick={() => setAllCollapsed((c) => !c)}
+										className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+										title={allCollapsed ? "Expand all" : "Collapse all"}
+									>
+										{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
+									</button>
+								</div>
 								<div className="space-y-3">
 									{outputEntries.map(([nodeId, entry]) => (
-										<WorkflowOutputBlock key={nodeId} nodeId={nodeId} entry={entry} />
+										<WorkflowOutputBlock key={nodeId} nodeId={nodeId} entry={entry} allCollapsed={allCollapsed} />
 									))}
 								</div>
 							</div>
@@ -263,8 +273,12 @@ const STATUS_STYLES: Record<WorkflowOutputStatus | "empty", {
 	empty:   { border: "border-l-[#30363d]", text: "text-[#6e7681]", bg: "", icon: "\u2014", label: "No output" },
 };
 
-function WorkflowOutputBlock({ nodeId, entry }: { nodeId: string; entry: WorkflowOutputEntry }) {
+function WorkflowOutputBlock({ nodeId, entry, allCollapsed }: { nodeId: string; entry: WorkflowOutputEntry; allCollapsed: boolean }) {
 	const [expanded, setExpanded] = useState(true);
+
+	useEffect(() => {
+		setExpanded(!allCollapsed);
+	}, [allCollapsed]);
 	const status = deriveOutputStatus(entry);
 	const style = STATUS_STYLES[status];
 
