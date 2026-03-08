@@ -1,0 +1,1 @@
+ALTER TABLE `workflow_runs` ADD `merge_result` text;

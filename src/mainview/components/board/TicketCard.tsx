@@ -1,5 +1,5 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { GitBranch } from "lucide-react";
+import { GitBranch, GitPullRequest } from "lucide-react";
 import type { Ticket, WorktreeRunInfo } from "../../../shared/types";
 import { Badge } from "../ui/badge";
 
@@ -59,7 +59,11 @@ export function TicketCard({ ticket, index, laneId, isRunning, worktreeInfo, onC
 			{worktreeInfo && (
 				<div className="mt-2 flex items-center gap-1.5">
 					<span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#8b949e] bg-[#0d1117] border border-[#21262d] rounded-full px-2 py-0.5">
-						<GitBranch size={10} className="text-[#58a6ff]" />
+						{worktreeInfo.run.mergeResult?.prUrl ? (
+							<GitPullRequest size={10} className="text-purple-400" />
+						) : (
+							<GitBranch size={10} className="text-[#58a6ff]" />
+						)}
 						{worktreeInfo.changeSummary.total > 0 ? (
 							<>
 								{worktreeInfo.changeSummary.added > 0 && (

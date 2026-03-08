@@ -215,6 +215,7 @@ export interface WorkflowRun {
 	lastCheckpoint: string | null;
 	worktreePath?: string | null;
 	worktreeBranch?: string | null;
+	mergeResult?: MergeResult | null;
 }
 
 export interface RunEvent {

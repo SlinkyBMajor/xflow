@@ -74,6 +74,7 @@ export const workflowRuns = sqliteTable("workflow_runs", {
 	lastCheckpoint: text("last_checkpoint_at"),
 	worktreePath: text("worktree_path"),
 	worktreeBranch: text("worktree_branch"),
+	mergeResult: text("merge_result"),
 });
 
 export const runEvents = sqliteTable("run_events", {

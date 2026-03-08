@@ -1,12 +1,13 @@
 import { eq, desc, and, isNotNull } from "drizzle-orm";
 import type { DB } from "../connection";
 import { workflowRuns, runEvents } from "../schema";
-import type { WorkflowRun, RunEvent } from "../../../shared/types";
+import type { WorkflowRun, RunEvent, MergeResult } from "../../../shared/types";
 
 function rowToRun(row: typeof workflowRuns.$inferSelect): WorkflowRun {
 	return {
 		...row,
 		actorSnapshot: row.actorSnapshot ? JSON.parse(row.actorSnapshot) : null,
+		mergeResult: row.mergeResult ? JSON.parse(row.mergeResult) as MergeResult : null,
 	};
 }
 
@@ -35,6 +36,7 @@ export function createRun(db: DB, run: {
 		lastCheckpoint: null,
 		worktreePath: run.worktreePath ?? null,
 		worktreeBranch: run.worktreeBranch ?? null,
+		mergeResult: null,
 	};
 	db.insert(workflowRuns).values(row).run();
 	return rowToRun(row);
@@ -52,6 +54,7 @@ export function updateRun(
 		lastCheckpoint?: string | null;
 		worktreePath?: string | null;
 		worktreeBranch?: string | null;
+		mergeResult?: MergeResult | null;
 	},
 ): void {
 	const setValues: Record<string, unknown> = {};
@@ -64,6 +67,8 @@ export function updateRun(
 	if (updates.lastCheckpoint !== undefined) setValues.lastCheckpoint = updates.lastCheckpoint;
 	if (updates.worktreePath !== undefined) setValues.worktreePath = updates.worktreePath;
 	if (updates.worktreeBranch !== undefined) setValues.worktreeBranch = updates.worktreeBranch;
+	if (updates.mergeResult !== undefined)
+		setValues.mergeResult = updates.mergeResult ? JSON.stringify(updates.mergeResult) : null;
 
 	db.update(workflowRuns).set(setValues).where(eq(workflowRuns.id, id)).run();
 }

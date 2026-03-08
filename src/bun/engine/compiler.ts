@@ -12,6 +12,7 @@ import type {
 	ClaudeAgentConfig,
 	CustomScriptConfig,
 	RunEvent,
+	BoardSettings,
 } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
@@ -29,6 +30,7 @@ export function compileWorkflow(
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
 	apiPort?: number,
+	boardSettings?: BoardSettings,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
@@ -57,6 +59,7 @@ export function compileWorkflow(
 			notifyEvent,
 			notifyBoardChanged,
 			apiPort,
+			boardSettings,
 		});
 	}
 
@@ -92,6 +95,7 @@ function buildState(
 		notifyEvent?: (event: RunEvent) => void;
 		notifyBoardChanged?: () => void;
 		apiPort?: number;
+		boardSettings?: BoardSettings;
 	},
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
@@ -212,6 +216,9 @@ function buildState(
 
 		case "claudeAgent": {
 			const config = node.config as ClaudeAgentConfig & { type: "claudeAgent" };
+			const resolvedWorktreeEnabled = config.worktreeEnabled ?? ctx.boardSettings?.defaultWorktreeEnabled;
+			const resolvedMergeStrategy = config.mergeStrategy ?? ctx.boardSettings?.defaultMergeStrategy;
+			const resolvedBaseBranch = config.baseBranch ?? ctx.boardSettings?.defaultBaseBranch;
 			return {
 				invoke: {
 					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
@@ -221,9 +228,9 @@ function buildState(
 							prompt: config.prompt,
 							timeoutMs: config.timeoutMs,
 							includeWorkflowOutput: config.includeWorkflowOutput,
-							worktreeEnabled: config.worktreeEnabled,
-							mergeStrategy: config.mergeStrategy,
-							baseBranch: config.baseBranch,
+							worktreeEnabled: resolvedWorktreeEnabled,
+							mergeStrategy: resolvedMergeStrategy,
+							baseBranch: resolvedBaseBranch,
 							ticket: ctx.ticket,
 							context: input.context,
 							db: ctx.db,

@@ -8,6 +8,7 @@ import { removeWorktree } from "../git/worktree";
 import * as runQueries from "../db/queries/runs";
 import * as workflowQueries from "../db/queries/workflows";
 import * as ticketQueries from "../db/queries/tickets";
+import * as boardQueries from "../db/queries/boards";
 
 const activeActors = new Map<string, AnyActorRef>();
 
@@ -40,10 +41,13 @@ export function startRun(
 	// Step 5b: Increment runCount on run start
 	ticketQueries.incrementMetadataCounter(db, ticket.id, "runCount");
 
+	const board = boardQueries.getFirstBoard(db);
+	const boardSettings = board?.settings ?? undefined;
+
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
-	}, undefined, projectPath, notifyEvent, notifyBoardChanged, apiPort);
+	}, undefined, projectPath, notifyEvent, notifyBoardChanged, apiPort, boardSettings);
 
 	const actor = createActor(machine);
 
@@ -125,6 +129,9 @@ export function resumeRun(
 	// Step 5e: Increment retryCount on resume
 	ticketQueries.incrementMetadataCounter(db, ticket.id, "retryCount");
 
+	const board = boardQueries.getFirstBoard(db);
+	const boardSettings = board?.settings ?? undefined;
+
 	const machine = compileWorkflow(
 		workflow.definition,
 		ticket,
@@ -139,6 +146,7 @@ export function resumeRun(
 		notifyEvent,
 		notifyBoardChanged,
 		apiPort,
+		boardSettings,
 	);
 
 	const actor = createActor(machine);

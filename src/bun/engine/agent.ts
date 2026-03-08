@@ -280,22 +280,26 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 
 	// Handle worktree merge after successful agent execution
 	if (worktreePath && worktreeBranch && projectPath) {
-		// Commit any changes in the worktree first
 		const hasChanges = await worktreeHasChanges(worktreePath);
-		if (hasChanges && mergeStrategy === "auto" && resolvedBaseBranch) {
-			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
-			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
-			if (result.success) {
-				await removeWorktree(projectPath, worktreePath);
-				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
-			}
-		} else if (!hasChanges) {
+		if (!hasChanges) {
 			// No changes — clean up the worktree
 			await removeWorktree(projectPath, worktreePath);
 			runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
 			insertAndEmit(db, runId, "WORKTREE_CLEANUP", { reason: "no_changes" }, onEvent);
+		} else if (mergeStrategy === "auto" && resolvedBaseBranch) {
+			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
+			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
+			runQueries.updateRun(db, runId, { mergeResult: result });
+			if (result.success) {
+				await removeWorktree(projectPath, worktreePath);
+				runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
+			}
+		} else if (mergeStrategy === "pr" && resolvedBaseBranch) {
+			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "pr", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
+			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
+			runQueries.updateRun(db, runId, { mergeResult: result });
 		} else {
-			// pr or manual strategy, or no strategy set — leave for user
+			// manual strategy or no strategy set — leave for user
 			insertAndEmit(db, runId, "WORKTREE_READY", {
 				path: worktreePath,
 				branch: worktreeBranch,

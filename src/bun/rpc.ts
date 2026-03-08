@@ -344,6 +344,8 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 						console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
+						runQueries.updateRun(db, runId, { mergeResult: result });
+
 						if (result.success && mergeStrategy === "auto" && run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
 							runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });

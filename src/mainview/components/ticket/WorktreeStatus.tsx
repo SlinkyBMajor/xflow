@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GitBranch } from "lucide-react";
+import { GitBranch, GitPullRequest, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { rpc, onWorktreeMergeResult, onWorktreeDiffResult, onWorktreeCleanupDone } from "../../rpc";
@@ -9,10 +9,13 @@ interface WorktreeStatusProps {
 	run: WorkflowRun;
 }
 
-type WorktreeState = "active" | "merged" | "conflict" | "pending";
+type WorktreeState = "active" | "merged" | "conflict" | "pr_created" | "pending";
 
-function getWorktreeState(run: WorkflowRun): WorktreeState {
+function getWorktreeState(run: WorkflowRun, mergeResult: MergeResult | null): WorktreeState {
 	if (run.status === "active") return "active";
+	if (mergeResult?.conflicted) return "conflict";
+	if (mergeResult?.success && mergeResult.prUrl) return "pr_created";
+	if (mergeResult?.success) return "merged";
 	if (!run.worktreePath) return "merged";
 	return "pending";
 }
@@ -21,6 +24,7 @@ const stateStyles: Record<WorktreeState, string> = {
 	active: "bg-yellow-900/30 text-yellow-400 border-yellow-800",
 	merged: "bg-green-900/30 text-green-400 border-green-800",
 	conflict: "bg-red-900/30 text-red-400 border-red-800",
+	pr_created: "bg-purple-900/30 text-purple-400 border-purple-800",
 	pending: "bg-blue-900/30 text-blue-400 border-blue-800",
 };
 
@@ -28,6 +32,7 @@ const stateLabels: Record<WorktreeState, string> = {
 	active: "Active",
 	merged: "Merged",
 	conflict: "Conflict",
+	pr_created: "PR Open",
 	pending: "Pending",
 };
 
@@ -45,7 +50,7 @@ function DiffLine({ line }: { line: string }) {
 }
 
 export function WorktreeStatus({ run }: WorktreeStatusProps) {
-	const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
+	const [mergeResult, setMergeResult] = useState<MergeResult | null>(run.mergeResult ?? null);
 	const [diffText, setDiffText] = useState<string | null>(null);
 	const [showDiff, setShowDiff] = useState(false);
 	const [loading, setLoading] = useState(false);
@@ -83,8 +88,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 	}, [run.id]);
 
 	const state = cleaned ? "merged"
-		: mergeResult?.conflicted ? "conflict"
-		: getWorktreeState(run);
+		: getWorktreeState(run, mergeResult);
 
 	const handleViewDiff = () => {
 		if (showDiff) {
@@ -118,7 +122,11 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 		<div className="space-y-4">
 			<div className="flex items-center gap-3">
 				<div className="flex items-center gap-2">
-					<GitBranch size={14} className="text-[#8b949e]" />
+					{state === "pr_created" ? (
+						<GitPullRequest size={14} className="text-purple-400" />
+					) : (
+						<GitBranch size={14} className="text-[#8b949e]" />
+					)}
 					<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 						Worktree
 					</span>
@@ -154,9 +162,16 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 			)}
 
 			{mergeResult?.prUrl && (
-				<p className="text-xs text-green-400">
-					PR created: <span className="font-mono">{mergeResult.prUrl}</span>
-				</p>
+				<a
+					href={mergeResult.prUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+				>
+					<GitPullRequest size={12} />
+					<span className="font-mono">{mergeResult.prUrl}</span>
+					<ExternalLink size={10} />
+				</a>
 			)}
 
 			{mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error && (
@@ -167,7 +182,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 				<p className="text-xs text-[#8b949e]">Working...</p>
 			)}
 
-			{showActions && (
+			{state === "pending" && showActions && (
 				<div className="flex gap-2">
 					<Button
 						variant="ghost"
@@ -196,6 +211,43 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 					>
 						Create PR
 					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleCleanup}
+						disabled={loading}
+						className="text-xs h-8 text-red-400 hover:text-red-300"
+					>
+						Cleanup
+					</Button>
+				</div>
+			)}
+
+			{state === "conflict" && showActions && (
+				<div className="flex gap-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => handleMerge("auto")}
+						disabled={loading}
+						className="text-xs h-8 text-[#8b949e] hover:text-[#e6edf3]"
+					>
+						Retry Merge
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleCleanup}
+						disabled={loading}
+						className="text-xs h-8 text-red-400 hover:text-red-300"
+					>
+						Cleanup
+					</Button>
+				</div>
+			)}
+
+			{state === "pr_created" && showActions && (
+				<div className="flex gap-2">
 					<Button
 						variant="ghost"
 						size="sm"
