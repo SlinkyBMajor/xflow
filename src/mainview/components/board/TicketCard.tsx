@@ -60,9 +60,9 @@ export function TicketCard({ ticket, index, laneId, isRunning, worktreeInfo, onC
 				<div className="mt-2 flex items-center gap-1.5">
 					<span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#8b949e] bg-[#0d1117] border border-[#21262d] rounded-full px-2 py-0.5">
 						{worktreeInfo.run.mergeResult?.prUrl && !worktreeInfo.run.worktreePath ? (
-							<GitMerge size={10} className="text-green-400" />
+							<GitMerge size={10} className="text-purple-400" />
 						) : worktreeInfo.run.mergeResult?.prUrl ? (
-							<GitPullRequest size={10} className="text-purple-400" />
+							<GitPullRequest size={10} className="text-green-400" />
 						) : (
 							<GitBranch size={10} className="text-[#58a6ff]" />
 						)}
