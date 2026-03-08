@@ -25,21 +25,14 @@ export function useWorktreeRuns() {
 	useEffect(() => {
 		const unsubRun = onWorkflowRunUpdated((run) => {
 			if (run.worktreePath) {
-				setWorktreeRuns((prev) => {
-					const next = new Map(prev);
-					const existing = next.get(run.ticketId);
-					next.set(run.ticketId, {
-						run,
-						changeSummary: existing?.changeSummary ?? { added: 0, modified: 0, deleted: 0, total: 0 },
-					});
-					return next;
-				});
+				// Re-fetch from backend to get fresh git change summaries
+				refreshWorktreeRuns();
 			} else {
-				// worktreePath became null — check if we should remove
+				// worktreePath became null — remove entry
 				setWorktreeRuns((prev) => {
 					if (!prev.has(run.ticketId)) return prev;
 					const existing = prev.get(run.ticketId);
-					if (existing && existing.run.id === run.id && !run.worktreePath) {
+					if (existing && existing.run.id === run.id) {
 						const next = new Map(prev);
 						next.delete(run.ticketId);
 						return next;
@@ -78,7 +71,7 @@ export function useWorktreeRuns() {
 		});
 
 		return () => { unsubRun(); unsubCleanup(); unsubMerge(); };
-	}, []);
+	}, [refreshWorktreeRuns]);
 
 	return { worktreeRuns, refreshWorktreeRuns };
 }
