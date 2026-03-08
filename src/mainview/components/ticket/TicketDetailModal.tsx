@@ -92,6 +92,13 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							/>
 						)}
 
+						{/* Worktree controls — full width in left pane */}
+						{worktreeRun && (
+							<div className="mt-6">
+								<WorktreeStatus run={worktreeRun} />
+							</div>
+						)}
+
 						{/* Workflow output */}
 						{outputEntries.length > 0 && (
 							<div className="mt-6 pt-4 border-t border-[#21262d]">
@@ -116,12 +123,6 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							</div>
 						)}
 
-						{/* Worktree controls — full width in left pane */}
-						{worktreeRun && (
-							<div className="mt-6 pt-4 border-t border-[#21262d]">
-								<WorktreeStatus run={worktreeRun} />
-							</div>
-						)}
 					</div>
 
 					{/* Right pane — metadata */}
