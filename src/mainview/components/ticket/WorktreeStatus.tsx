@@ -39,10 +39,10 @@ const stateConfig: Record<WorktreeState, {
 	},
 	merged: {
 		label: "Merged",
-		badgeClass: "bg-green-900/30 text-green-400 border-green-700/50",
-		accentBorder: "border-l-green-500",
+		badgeClass: "bg-purple-900/30 text-purple-400 border-purple-700/50",
+		accentBorder: "border-l-purple-500",
 		icon: GitMerge,
-		iconClass: "text-green-400",
+		iconClass: "text-purple-400",
 	},
 	conflict: {
 		label: "Conflict",
@@ -53,10 +53,10 @@ const stateConfig: Record<WorktreeState, {
 	},
 	pr_created: {
 		label: "PR Open",
-		badgeClass: "bg-purple-900/30 text-purple-400 border-purple-700/50",
-		accentBorder: "border-l-purple-500",
+		badgeClass: "bg-green-900/30 text-green-400 border-green-700/50",
+		accentBorder: "border-l-green-500",
 		icon: GitPullRequest,
-		iconClass: "text-purple-400",
+		iconClass: "text-green-400",
 	},
 	pending: {
 		label: "Pending",
@@ -219,7 +219,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 						<button
 							type="button"
 							onClick={() => openExternal(mergeResult.prUrl!)}
-							className="flex items-center gap-2 text-xs text-purple-400 hover:text-purple-300 transition-colors w-full group"
+							className="flex items-center gap-2 text-xs text-green-400 hover:text-green-300 transition-colors w-full group"
 						>
 							<GitPullRequest size={12} className="shrink-0" />
 							<span className="font-mono truncate">{mergeResult.prUrl}</span>

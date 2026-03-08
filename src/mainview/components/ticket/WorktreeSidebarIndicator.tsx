@@ -20,9 +20,9 @@ function getWorktreeState(run: WorkflowRun): WorktreeState {
 
 const stateStyles: Record<WorktreeState, string> = {
 	active: "bg-yellow-900/30 text-yellow-400 border-yellow-800",
-	merged: "bg-green-900/30 text-green-400 border-green-800",
+	merged: "bg-purple-900/30 text-purple-400 border-purple-800",
 	conflict: "bg-red-900/30 text-red-400 border-red-800",
-	pr_created: "bg-purple-900/30 text-purple-400 border-purple-800",
+	pr_created: "bg-green-900/30 text-green-400 border-green-800",
 	pending: "bg-blue-900/30 text-blue-400 border-blue-800",
 };
 
@@ -40,8 +40,8 @@ export function WorktreeSidebarIndicator({ run }: WorktreeSidebarIndicatorProps)
 	const Icon = state === "merged" && run.mergeResult?.prUrl ? GitMerge
 		: state === "pr_created" ? GitPullRequest
 		: GitBranch;
-	const iconColor = state === "merged" && run.mergeResult?.prUrl ? "text-green-400"
-		: state === "pr_created" ? "text-purple-400"
+	const iconColor = state === "merged" && run.mergeResult?.prUrl ? "text-purple-400"
+		: state === "pr_created" ? "text-green-400"
 		: "text-[#8b949e]";
 
 	return (
