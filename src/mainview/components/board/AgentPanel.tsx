@@ -189,7 +189,7 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		return (
 			<button
 				onClick={togglePanel}
-				className="fixed bottom-4 right-4 z-20 flex items-center gap-2 h-8 px-3 rounded-full bg-[#21262d] border border-[#30363d] text-[11px] font-mono text-[#8b949e] cursor-pointer hover:bg-[#30363d] transition-colors select-none"
+				className="fixed bottom-8 right-4 z-20 flex items-center gap-2 h-8 px-3 rounded-full bg-[#21262d] border border-[#30363d] text-[11px] font-mono text-[#8b949e] cursor-pointer hover:bg-[#30363d] transition-colors select-none"
 			>
 				{hasActiveRuns ? (
 					<span className="relative flex h-1.5 w-1.5 shrink-0">
