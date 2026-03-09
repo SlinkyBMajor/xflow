@@ -502,6 +502,10 @@ export type XFlowRPC = {
 				params: { tool: string };
 				response: CliToolCheck;
 			};
+			openInEditor: {
+				params: { content: string; label: string };
+				response: void;
+			};
 		};
 		messages: {
 			openProjectPicker: {};

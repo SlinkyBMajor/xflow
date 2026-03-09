@@ -525,6 +525,13 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return result;
 			},
 
+			openInEditor: ({ content, label }) => {
+				const sanitized = label.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60);
+				const tmpPath = `/tmp/xflow-output-${sanitized}.txt`;
+				Bun.write(tmpPath, content);
+				Bun.spawn(["open", tmpPath]);
+			},
+
 			cleanupWorktree: ({ runId }) => {
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);

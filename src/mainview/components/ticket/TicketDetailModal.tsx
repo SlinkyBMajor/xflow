@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send } from "lucide-react";
+import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send, Maximize2, FileCode } from "lucide-react";
 import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus, TicketComment } from "../../../shared/types";
 import {
 	Dialog,
@@ -8,17 +8,18 @@ import {
 	DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
+import { useConfirm } from "../../hooks/useConfirm";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { Textarea } from "../ui/textarea";
 import { TicketForm } from "./TicketForm";
 import { TicketView } from "./TicketView";
 import { RunEventLog } from "./RunEventLog";
 import { WorktreeStatus } from "./WorktreeStatus";
-import { WorktreeSidebarIndicator } from "./WorktreeSidebarIndicator";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { useTicketComments } from "../../hooks/useTicketComments";
+import { rpc } from "../../rpc";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -49,6 +50,8 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
 	const outputEntries = Object.entries(workflowOutput);
 	const [allCollapsed, setAllCollapsed] = useState(false);
+	const [viewerOutput, setViewerOutput] = useState<{ label: string; content: string } | null>(null);
+	const confirm = useConfirm();
 
 	const handleSubmitComment = async () => {
 		const body = commentText.trim();
@@ -64,101 +67,127 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	}, [ticket.id]);
 
 	return (
+		<>
 		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-			<DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden">
+			<DialogContent className="w-[calc(100vw-12rem)] max-w-none h-[calc(100vh-9rem)] overflow-hidden p-0">
 				<DialogTitle className="sr-only">Edit Ticket</DialogTitle>
 				<DialogDescription className="sr-only">
 					Edit ticket details
 				</DialogDescription>
 
-				<div className="flex min-h-[360px] max-h-[85vh]">
-					{/* Left pane — editing */}
-					<div className="flex-1 p-5 min-w-0 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
-						<div className="flex items-start justify-between mb-5">
-							<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
-								Ticket
-							</span>
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={onDelete}
-								className="text-[11px] text-[#6e7681] hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
-							>
-								Delete
-							</Button>
+				<div className="flex min-h-[360px] h-full">
+					{/* Left pane — editing + sticky composer */}
+					<div className="flex-1 flex flex-col min-w-0">
+						<div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
+							<div className="flex items-start justify-between mb-5">
+								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
+									Ticket
+								</span>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={async () => {
+										const ok = await confirm({
+											title: "Delete ticket",
+											description: `This will permanently delete "${ticket.title}". This action cannot be undone.`,
+											confirmLabel: "Delete",
+											variant: "danger",
+										});
+										if (ok) onDelete();
+									}}
+									className="text-[11px] text-[#6e7681] hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
+								>
+									Delete
+								</Button>
+							</div>
+
+							{editing || isNew ? (
+								<TicketForm
+									initialTitle={ticket.title}
+									initialBody={ticket.body || ""}
+									initialTags={ticket.tags}
+									onSave={(updates) => {
+										onSave(updates);
+										setEditing(false);
+									}}
+									onCancel={isNew ? onClose : () => setEditing(false)}
+								/>
+							) : (
+								<TicketView
+									title={ticket.title}
+									body={ticket.body || ""}
+									tags={ticket.tags}
+									onEdit={() => setEditing(true)}
+								/>
+							)}
+
+							{/* Workflow Output & Feedback Timeline */}
+							{(outputEntries.length > 0 || comments.length > 0) && (
+								<div className="mt-6 pt-4 border-t border-[#21262d]">
+									<div className="flex items-center justify-between mb-3">
+										<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
+											{outputEntries.length > 0 ? "Workflow Output & Feedback" : "Feedback"}
+										</span>
+										{outputEntries.length > 0 && (
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<button
+														onClick={() => setAllCollapsed((c) => !c)}
+														className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+													>
+														{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
+													</button>
+												</TooltipTrigger>
+												<TooltipContent>{allCollapsed ? "Expand all" : "Collapse all"}</TooltipContent>
+											</Tooltip>
+										)}
+									</div>
+									<div className="space-y-3">
+										{buildTimeline(outputEntries, comments).map((item) =>
+											item.kind === "output" ? (
+												<div key={`output-${item.nodeId}`} className="relative group">
+													<WorkflowOutputBlock
+														nodeId={item.nodeId}
+														entry={item.entry}
+														allCollapsed={allCollapsed}
+														onOpenViewer={() => setViewerOutput({
+															label: item.entry.label ?? item.nodeId.slice(0, 8),
+															content: item.entry.output || "(no output)",
+														})}
+														onOpenInEditor={() => rpc.request.openInEditor({
+															content: item.entry.output || "",
+															label: item.entry.label ?? item.nodeId.slice(0, 8),
+														})}
+													/>
+													<button
+														onClick={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
+														className="absolute top-2 right-[4.5rem] opacity-0 group-hover:opacity-100 transition-opacity text-[#6e7681] hover:text-[#58a6ff] hover:bg-[#21262d] p-1 rounded"
+													>
+														<Reply size={12} />
+													</button>
+												</div>
+											) : (
+												<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} />
+											),
+										)}
+									</div>
+								</div>
+							)}
+
+							{/* Live event log */}
+							{activeRun && (
+								<div className="mt-6 pt-4 border-t border-[#21262d]">
+									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
+										Workflow Activity
+									</span>
+									<RunEventLog events={events} isActive={true} />
+								</div>
+							)}
 						</div>
 
-						{editing || isNew ? (
-							<TicketForm
-								initialTitle={ticket.title}
-								initialBody={ticket.body || ""}
-								initialTags={ticket.tags}
-								onSave={(updates) => {
-									onSave(updates);
-									setEditing(false);
-								}}
-								onCancel={isNew ? onClose : () => setEditing(false)}
-							/>
-						) : (
-							<TicketView
-								title={ticket.title}
-								body={ticket.body || ""}
-								tags={ticket.tags}
-								onEdit={() => setEditing(true)}
-							/>
-						)}
-
-						{/* Worktree controls — full width in left pane */}
-						{worktreeRun && (
-							<div className="mt-6">
-								<WorktreeStatus run={worktreeRun} />
-							</div>
-						)}
-
-						{/* Workflow Output & Feedback Timeline */}
-						{(outputEntries.length > 0 || comments.length > 0) && (
-							<div className="mt-6 pt-4 border-t border-[#21262d]">
-								<div className="flex items-center justify-between mb-3">
-									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
-										{outputEntries.length > 0 ? "Workflow Output & Feedback" : "Feedback"}
-									</span>
-									{outputEntries.length > 0 && (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<button
-													onClick={() => setAllCollapsed((c) => !c)}
-													className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
-												>
-													{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
-												</button>
-											</TooltipTrigger>
-											<TooltipContent>{allCollapsed ? "Expand all" : "Collapse all"}</TooltipContent>
-										</Tooltip>
-									)}
-								</div>
-								<div className="space-y-3">
-									{buildTimeline(outputEntries, comments).map((item) =>
-										item.kind === "output" ? (
-											<div key={`output-${item.nodeId}`} className="relative group">
-												<WorkflowOutputBlock nodeId={item.nodeId} entry={item.entry} allCollapsed={allCollapsed} />
-												<button
-													onClick={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
-													className="absolute top-2 right-10 opacity-0 group-hover:opacity-100 transition-opacity text-[#6e7681] hover:text-[#58a6ff] p-1"
-												>
-													<Reply size={12} />
-												</button>
-											</div>
-										) : (
-											<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} />
-										),
-									)}
-								</div>
-							</div>
-						)}
-
-						{/* Comment composer */}
-						<div className="mt-4 pt-3 border-t border-[#21262d]">
+						{/* Sticky comment composer */}
+						<div className="border-t border-[#21262d] px-6 py-3.5 shrink-0 bg-[#0d1117]/60">
 							{replyTo && (
 								<div className="flex items-center gap-1.5 mb-2">
 									<span className="text-[10px] font-mono text-[#58a6ff] bg-[#58a6ff]/10 px-1.5 py-0.5 rounded">
@@ -194,21 +223,20 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								</Button>
 							</div>
 						</div>
+					</div>
 
-						{/* Live event log */}
-						{activeRun && (
-							<div className="mt-6 pt-4 border-t border-[#21262d]">
+					{/* Right pane — worktree + metadata */}
+					<div className="w-96 flex-shrink-0 border-l border-[#21262d] bg-[#0d1117]/80 px-5 py-5 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
+						{/* Worktree controls */}
+						{worktreeRun && (
+							<div className="mb-5">
 								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
-									Workflow Activity
+									Worktree
 								</span>
-								<RunEventLog events={events} isActive={true} />
+								<WorktreeStatus run={worktreeRun} />
 							</div>
 						)}
 
-					</div>
-
-					{/* Right pane — metadata */}
-					<div className="w-64 flex-shrink-0 border-l border-[#21262d] bg-[#161b22]/50 p-5 overflow-y-auto">
 						<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 							Details
 						</span>
@@ -238,13 +266,6 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 										<span className="text-[12px] text-[#58a6ff] font-mono">Running</span>
 									</div>
 								</MetadataRow>
-							)}
-
-							{/* Worktree indicator — compact sidebar version */}
-							{worktreeRun && (
-								<div className="border-t border-[#21262d] pt-3">
-									<WorktreeSidebarIndicator run={worktreeRun} />
-								</div>
 							)}
 
 							{/* Timestamps */}
@@ -329,6 +350,16 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 				</div>
 			</DialogContent>
 		</Dialog>
+
+		{/* Output viewer modal */}
+		<OutputViewerModal
+			open={!!viewerOutput}
+			label={viewerOutput?.label ?? ""}
+			content={viewerOutput?.content ?? ""}
+			onClose={() => setViewerOutput(null)}
+		/>
+
+		</>
 	);
 }
 
@@ -353,7 +384,13 @@ const STATUS_STYLES: Record<WorkflowOutputStatus | "empty", {
 	empty:   { border: "border-l-[#30363d]", text: "text-[#6e7681]", bg: "", icon: "\u2014", label: "No output" },
 };
 
-function WorkflowOutputBlock({ nodeId, entry, allCollapsed }: { nodeId: string; entry: WorkflowOutputEntry; allCollapsed: boolean }) {
+function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpenInEditor }: {
+	nodeId: string;
+	entry: WorkflowOutputEntry;
+	allCollapsed: boolean;
+	onOpenViewer: () => void;
+	onOpenInEditor: () => void;
+}) {
 	const [expanded, setExpanded] = useState(true);
 
 	useEffect(() => {
@@ -369,23 +406,49 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed }: { nodeId: string; 
 
 	return (
 		<div className={`bg-[#161b22] border border-[#21262d] border-l-2 ${style.border} rounded-lg overflow-hidden ${style.bg}`}>
-			<button
-				onClick={() => setExpanded(!expanded)}
-				className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#21262d]/50 transition-colors"
-			>
-				<span className="text-[11px] font-mono text-[#8b949e] flex items-center gap-1.5">
-					<span className={status === "error" || status === "timeout" ? "text-red-400" : status === "partial" ? "text-amber-400" : status === "success" ? "text-emerald-400" : "text-[#6e7681]"}>
-						{style.icon}
+			<div className="flex items-center justify-between px-3 py-2">
+				<button
+					onClick={() => setExpanded(!expanded)}
+					className="flex items-center gap-1.5 hover:bg-[#21262d]/50 transition-colors flex-1 text-left"
+				>
+					<span className="text-[11px] font-mono text-[#8b949e] flex items-center gap-1.5">
+						<span className={status === "error" || status === "timeout" ? "text-red-400" : status === "partial" ? "text-amber-400" : status === "success" ? "text-emerald-400" : "text-[#6e7681]"}>
+							{style.icon}
+						</span>
+						{expanded ? "\u25BE" : "\u25B8"} {entry.label ?? nodeId.slice(0, 8)}
 					</span>
-					{expanded ? "\u25BE" : "\u25B8"} {entry.label ?? nodeId.slice(0, 8)}
-				</span>
-				<span className="text-[10px] text-[#6e7681] font-mono">
-					{formatDate(entry.completedAt)}
-				</span>
-			</button>
+				</button>
+				<div className="flex items-center gap-1">
+					<span className="text-[10px] text-[#6e7681] font-mono mr-1">
+						{formatDate(entry.completedAt)}
+					</span>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={(e) => { e.stopPropagation(); onOpenViewer(); }}
+								className="opacity-0 group-hover:opacity-100 transition-all text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#21262d] p-1 rounded"
+							>
+								<Maximize2 size={12} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent>Open in viewer</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={(e) => { e.stopPropagation(); onOpenInEditor(); }}
+								className="opacity-0 group-hover:opacity-100 transition-all text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#21262d] p-1 rounded"
+							>
+								<FileCode size={12} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent>Open in editor</TooltipContent>
+					</Tooltip>
+				</div>
+			</div>
 			{expanded && (
 				<div className="px-3 pb-3">
-					<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${style.text}`}>
+					<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${style.text}`}>
 						{displayOutput || "(no output)"}
 					</pre>
 				</div>
@@ -434,6 +497,30 @@ function buildTimeline(
 	}
 	items.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 	return items;
+}
+
+function OutputViewerModal({ open, label, content, onClose }: { open: boolean; label: string; content: string; onClose: () => void }) {
+	return (
+		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+			<DialogContent className="w-[calc(100vw-12rem)] max-w-none h-[calc(100vh-12rem)] overflow-hidden flex flex-col p-0">
+				<div className="flex items-center justify-between px-5 py-3 border-b border-[#21262d] shrink-0 bg-[#161b22]">
+					<div className="flex items-center gap-2.5">
+						<FileCode size={14} className="text-[#6e7681]" />
+						<DialogTitle className="text-[13px] font-mono font-medium text-[#e6edf3]">{label}</DialogTitle>
+					</div>
+					<DialogDescription className="sr-only">Full output viewer</DialogDescription>
+					<button onClick={onClose} className="text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#21262d] transition-all p-1.5 rounded">
+						<X size={14} />
+					</button>
+				</div>
+				<div className="flex-1 overflow-y-auto p-5 bg-[#0d1117] scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
+					<pre className="text-[12px] font-mono text-[#e6edf3] whitespace-pre-wrap break-words leading-relaxed">
+						{content}
+					</pre>
+				</div>
+			</DialogContent>
+		</Dialog>
+	);
 }
 
 function CommentBlock({ comment }: { comment: TicketComment }) {
