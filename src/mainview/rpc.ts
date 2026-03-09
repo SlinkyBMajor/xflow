@@ -114,6 +114,10 @@ export function openExternal(url: string) {
 	rpc.send.openExternal({ url });
 }
 
+export function toggleMaximize() {
+	rpc.send.toggleMaximize({});
+}
+
 export function requestProjectPicker(): Promise<string | null> {
 	return new Promise((resolve) => {
 		const onResult: PickerResultListener = (path) => {

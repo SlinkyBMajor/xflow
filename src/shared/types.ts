@@ -512,6 +512,7 @@ export type XFlowRPC = {
 		messages: {
 			openProjectPicker: {};
 			openExternal: { url: string };
+			toggleMaximize: {};
 		};
 	}>;
 	webview: RPCSchema<{

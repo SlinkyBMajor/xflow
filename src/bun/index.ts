@@ -43,6 +43,7 @@ const url = await getMainViewUrl();
 const mainWindow = new BrowserWindow({
 	title: "XFlow",
 	url,
+	titleBarStyle: "hiddenInset",
 	frame: {
 		width: 1200,
 		height: 800,

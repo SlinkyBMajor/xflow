@@ -580,6 +580,13 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			},
 		},
 		messages: {
+			toggleMaximize: () => {
+				if (mainWindow?.isMaximized()) {
+					mainWindow.unmaximize();
+				} else {
+					mainWindow?.maximize();
+				}
+			},
 			openExternal: ({ url }) => {
 				Utils.openExternal(url);
 			},

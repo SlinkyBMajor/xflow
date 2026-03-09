@@ -1,6 +1,7 @@
 import type { RecentProject } from "../../../shared/types";
 import { Button } from "../ui/button";
 import { RecentProjectList } from "./RecentProjectList";
+import { toggleMaximize } from "../../rpc";
 
 interface WelcomeScreenProps {
 	recentProjects: RecentProject[];
@@ -17,6 +18,8 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
 	return (
 		<div className="h-screen flex flex-col items-center justify-center relative overflow-hidden">
+			{/* Window drag region */}
+			<div onDoubleClick={toggleMaximize} className="absolute top-0 left-0 right-0 h-12 electrobun-webkit-app-region-drag z-20" />
 			{/* Atmospheric background */}
 			<div className="absolute inset-0 bg-[#0d1117]">
 				<div

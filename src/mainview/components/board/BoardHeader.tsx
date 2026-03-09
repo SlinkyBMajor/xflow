@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Settings } from "lucide-react";
 import type { Board, BoardSettings, RecentProject } from "../../../shared/types";
+import { toggleMaximize } from "../../rpc";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -60,9 +61,9 @@ export function BoardHeader({
 	};
 
 	return (
-		<header className="flex items-center h-12 border-b border-[#21262d] flex-shrink-0 bg-[#0d1117]/80 backdrop-blur-sm app-drag-region">
+		<header onDoubleClick={toggleMaximize} className="flex items-center pt-7 h-[76px] border-b border-[#21262d] flex-shrink-0 bg-[#0d1117]/80 backdrop-blur-sm electrobun-webkit-app-region-drag">
 			{/* Left section: logo + project + board name */}
-			<div className="flex items-center gap-3 px-4 min-w-0 flex-1 app-no-drag">
+			<div className="flex items-center gap-3 px-4 min-w-0 flex-1 electrobun-webkit-app-region-no-drag">
 				{/* Logo mark */}
 				<div className="flex items-center gap-2 pr-3 border-r border-[#21262d]">
 					<div className="w-5 h-5 rounded bg-[#58a6ff]/15 border border-[#58a6ff]/25 flex items-center justify-center">
@@ -149,7 +150,7 @@ export function BoardHeader({
 			</div>
 
 			{/* Center: View switcher — GitHub Desktop style */}
-			<div className="flex items-center app-no-drag">
+			<div className="flex items-center electrobun-webkit-app-region-no-drag">
 				<div className="flex items-center bg-[#161b22] rounded-lg p-0.5 border border-[#21262d]">
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -197,7 +198,7 @@ export function BoardHeader({
 			</div>
 
 			{/* Right section: settings */}
-			<div className="flex-1 flex justify-end items-center pr-4 app-no-drag">
+			<div className="flex-1 flex justify-end items-center pr-4 electrobun-webkit-app-region-no-drag">
 				{onOpenSettings && (
 					<Tooltip>
 						<TooltipTrigger asChild>
