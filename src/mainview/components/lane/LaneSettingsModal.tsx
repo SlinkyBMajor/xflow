@@ -12,6 +12,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -189,23 +190,22 @@ export function LaneSettingsModal({ open, lane, onClose, onSave, onDelete, onEdi
 							<div className="rounded-lg border border-dashed border-[#30363d] p-3">
 								{allWorkflows.length > 0 ? (
 									<>
-										<select
-											className="w-full bg-[#0d1117] border border-[#30363d] rounded-md px-2 py-1.5 text-sm text-[#e6edf3] focus:outline-none focus:border-[#58a6ff] mb-2"
-											defaultValue=""
-											onChange={async (e) => {
-												const id = e.target.value;
-												if (id) {
-													await attachWorkflowToLane(lane.id, id);
-													const w = allWorkflows.find((w) => w.id === id) ?? null;
-													setWorkflow(w);
-												}
+										<Select
+											onValueChange={async (id) => {
+												await attachWorkflowToLane(lane.id, id);
+												const w = allWorkflows.find((w) => w.id === id) ?? null;
+												setWorkflow(w);
 											}}
 										>
-											<option value="" disabled>Select a workflow...</option>
-											{allWorkflows.map((w) => (
-												<option key={w.id} value={w.id}>{w.name}</option>
-											))}
-										</select>
+											<SelectTrigger className="mb-2">
+												<SelectValue placeholder="Select a workflow..." />
+											</SelectTrigger>
+											<SelectContent>
+												{allWorkflows.map((w) => (
+													<SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 										<div className="text-center">
 											<span className="text-[11px] text-[#6e7681]">or </span>
 											<button
