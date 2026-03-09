@@ -16,9 +16,9 @@ That said, this is a tool meant for powerusers, so the UI and UX should not avoi
 ## Design Inspiration
 
 - Github actions ui
-- Linear app
+- Github UI
 - High contrast UI
 
 ## Icons
 
-Always prefer icons from the Lucide icon set over custom icons.
+Always prefer icons from Lucide over custom icons.
