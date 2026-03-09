@@ -10,6 +10,7 @@ export interface MergeResult {
 	conflicted: boolean;
 	conflictFiles?: string[];
 	prUrl?: string;
+	prMerged?: boolean;
 	error?: string;
 }
 
@@ -17,6 +18,7 @@ export interface BoardSettings {
 	defaultWorktreeEnabled?: boolean;
 	defaultMergeStrategy?: MergeStrategy;
 	defaultBaseBranch?: string;
+	prPollingEnabled?: boolean;
 }
 
 export interface Board {

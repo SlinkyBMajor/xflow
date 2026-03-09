@@ -562,7 +562,13 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						if (run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
 						}
-						runQueries.updateRun(db, runId, { worktreePath: null });
+						const updatedMergeResult = run.mergeResult
+							? { ...run.mergeResult, prMerged: true }
+							: null;
+						runQueries.updateRun(db, runId, {
+							worktreePath: null,
+							mergeResult: updatedMergeResult,
+						});
 						const updatedRun = runQueries.getRunById(db, runId);
 						if (updatedRun) {
 							mainWindow?.webview.rpc.send.workflowRunUpdated(updatedRun);

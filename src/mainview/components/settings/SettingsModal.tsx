@@ -18,6 +18,7 @@ import {
 	Cpu,
 	Github,
 	ChevronRight,
+	Kanban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { rpc } from "../../rpc";
@@ -25,7 +26,7 @@ import type { BoardSettings, MergeStrategy, CliToolCheck } from "../../../shared
 
 // ── Types ──
 
-type SettingsSection = "board" | "cli-tools";
+type SettingsSection = "board" | "git" | "cli-tools";
 
 interface SettingsModalProps {
 	open: boolean;
@@ -53,6 +54,9 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 	const [mergeStrategy, setMergeStrategy] = useState<MergeStrategy>(settings?.defaultMergeStrategy ?? "manual");
 	const [baseBranch, setBaseBranch] = useState(settings?.defaultBaseBranch ?? "");
 
+	// Git settings state
+	const [prPollingEnabled, setPrPollingEnabled] = useState(settings?.prPollingEnabled !== false);
+
 	// CLI tools state
 	const [toolChecks, setToolChecks] = useState<Record<string, CliToolCheck | "checking">>({});
 
@@ -62,6 +66,7 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 			setWorktreeEnabled(settings?.defaultWorktreeEnabled ?? false);
 			setMergeStrategy(settings?.defaultMergeStrategy ?? "manual");
 			setBaseBranch(settings?.defaultBaseBranch ?? "");
+			setPrPollingEnabled(settings?.prPollingEnabled !== false);
 		}
 	}, [open, settings]);
 
@@ -70,6 +75,7 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 			defaultWorktreeEnabled: worktreeEnabled,
 			defaultMergeStrategy: mergeStrategy,
 			defaultBaseBranch: baseBranch || undefined,
+			prPollingEnabled,
 		});
 		toast.success("Settings saved");
 		onOpenChange(false);
@@ -106,6 +112,11 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 		{
 			id: "board",
 			label: "Board",
+			icon: <Kanban size={14} />,
+		},
+		{
+			id: "git",
+			label: "Git",
 			icon: <GitBranch size={14} />,
 		},
 		{
@@ -161,6 +172,12 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 									setMergeStrategy={setMergeStrategy}
 									baseBranch={baseBranch}
 									setBaseBranch={setBaseBranch}
+								/>
+							)}
+							{activeSection === "git" && (
+								<GitSection
+									prPollingEnabled={prPollingEnabled}
+									setPrPollingEnabled={setPrPollingEnabled}
 								/>
 							)}
 							{activeSection === "cli-tools" && (
@@ -266,6 +283,60 @@ function BoardSection({
 						</div>
 					</div>
 				)}
+			</div>
+		</div>
+	);
+}
+
+// ── Git Section ──
+
+function GitSection({
+	prPollingEnabled,
+	setPrPollingEnabled,
+}: {
+	prPollingEnabled: boolean;
+	setPrPollingEnabled: (v: boolean) => void;
+}) {
+	return (
+		<div className="space-y-6">
+			<div>
+				<h3 className="text-[13px] font-semibold text-[#e6edf3] mb-1" style={{ fontFamily: "var(--font-display)" }}>
+					Git
+				</h3>
+				<p className="text-[11px] text-[#8b949e]">
+					Configure how XFlow interacts with Git and GitHub.
+				</p>
+			</div>
+
+			<div className="space-y-1">
+				<div className="px-3 py-3 rounded-lg hover:bg-[#161b22] transition-colors">
+					<div className="flex items-center gap-3">
+						<div className="w-8 h-8 rounded-md bg-[#0d1117] border border-[#21262d] flex items-center justify-center flex-shrink-0">
+							<RefreshCw size={16} className="text-[#8b949e]" />
+						</div>
+
+						<div className="flex-1 min-w-0">
+							<div className="flex items-center gap-2">
+								<span className="text-[13px] font-medium text-[#e6edf3]">PR Status Polling</span>
+							</div>
+							<p className="text-[11px] text-[#8b949e] mt-0.5">
+								Automatically check open pull requests for merge status every 60 seconds.
+							</p>
+						</div>
+
+						<div className="flex items-center flex-shrink-0">
+							<label className="relative inline-flex items-center cursor-pointer">
+								<input
+									type="checkbox"
+									checked={prPollingEnabled}
+									onChange={(e) => setPrPollingEnabled(e.target.checked)}
+									className="sr-only peer"
+								/>
+								<div className="w-8 h-[18px] bg-[#21262d] peer-focus:outline-none rounded-full peer peer-checked:bg-[#238636] transition-colors after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-[#8b949e] after:peer-checked:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-[14px]" />
+							</label>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	);

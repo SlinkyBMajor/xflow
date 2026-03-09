@@ -1,6 +1,7 @@
 import type { DB } from "../db/connection";
 import type { MergeResult, WorkflowRun } from "../../shared/types";
 import * as runQueries from "../db/queries/runs";
+import * as boardQueries from "../db/queries/boards";
 import { removeWorktree } from "./worktree";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -43,10 +44,19 @@ async function checkPrStatus(prUrl: string, projectPath: string): Promise<"OPEN"
 async function pollOpenPRs(ctx: PollContext) {
 	try {
 		const db = ctx.getDb();
+
+		// Skip polling if disabled in board settings
+		const board = boardQueries.getFirstBoard(db);
+		if (board?.settings?.prPollingEnabled === false) return;
+
 		const runs = runQueries.getRunsWithWorktrees(db);
 
 		const prRuns = runs.filter(
-			(r) => r.mergeResult?.success && r.mergeResult.strategy === "pr" && r.mergeResult.prUrl,
+			(r) =>
+				r.mergeResult?.success &&
+				r.mergeResult.strategy === "pr" &&
+				r.mergeResult.prUrl &&
+				!r.mergeResult.prMerged,
 		);
 
 		if (prRuns.length === 0) return;
@@ -71,8 +81,15 @@ async function pollOpenPRs(ctx: PollContext) {
 				}
 			}
 
-			// Update DB
-			runQueries.updateRun(db, run.id, { worktreePath: null });
+			// Update DB — mark PR as merged so we stop polling it
+			const updatedMergeResult: MergeResult = {
+				...run.mergeResult!,
+				prMerged: true,
+			};
+			runQueries.updateRun(db, run.id, {
+				worktreePath: null,
+				mergeResult: updatedMergeResult,
+			});
 
 			// Notify webview with updated run
 			const updatedRun = runQueries.getRunById(db, run.id);
