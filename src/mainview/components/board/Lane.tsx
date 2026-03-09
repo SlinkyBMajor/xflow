@@ -43,7 +43,7 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 		<>
 			<div
 				ref={ref}
-				className="flex flex-col w-72 flex-shrink-0 bg-[#161b22]/80 rounded-xl border border-[#21262d] h-fit max-h-full"
+				className="flex flex-col w-72 flex-shrink-0 bg-[#161b22]/80 rounded-xl border border-[#21262d] h-fit max-h-full min-h-[115px]"
 			>
 				<LaneHeader
 					lane={lane}
