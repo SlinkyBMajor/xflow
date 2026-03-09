@@ -65,6 +65,9 @@ Claude Code agents run in your project directory with full codebase access. Each
 
 The agent panel shows real-time output from all active runs, and ticket detail views display the full run history with diffs and merge status.
 
+### Comments & Feedback Loop
+Tickets support inline comments that interleave with agent outputs in a chronological timeline. Users can reply to specific agent outputs and provide feedback that is automatically included in subsequent agent runs. Agent nodes can be given output labels (e.g., "Plan", "Implementation") for clearer identification. Approval and rejection actions include an optional feedback field, so guidance flows naturally into the next workflow step. See [feedback-loop.md](feedback-loop.md) for details.
+
 ### Templates
 Export your board layout and workflows as reusable templates. Apply them to new projects to bootstrap a consistent process.
 
