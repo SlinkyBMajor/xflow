@@ -291,6 +291,17 @@ export interface WorktreeRunInfo {
 	changeSummary: GitChangeSummary;
 }
 
+// ── CLI Tool Check Types ──
+
+export interface CliToolCheck {
+	tool: string;
+	installed: boolean;
+	version: string | null;
+	authenticated: boolean | null;
+	authDetails: string | null;
+	error: string | null;
+}
+
 // ── RPC Schema ──
 
 export type XFlowRPC = {
@@ -463,6 +474,10 @@ export type XFlowRPC = {
 			updateBoardSettings: {
 				params: { settings: BoardSettings };
 				response: Board;
+			};
+			checkCliTool: {
+				params: { tool: string };
+				response: CliToolCheck;
 			};
 		};
 		messages: {

@@ -5,9 +5,12 @@ import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 import { BoardView } from "./components/board/BoardView";
 import { BoardHeader } from "./components/board/BoardHeader";
 import { WorkflowListView } from "./components/workflow/WorkflowListView";
+import { SettingsModal } from "./components/settings/SettingsModal";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ConfirmProvider } from "./hooks/useConfirm";
 import { Toaster } from "./components/ui/sonner";
+import { rpc } from "./rpc";
+import type { BoardSettings } from "../shared/types";
 
 export default function App() {
 	const {
@@ -24,6 +27,16 @@ export default function App() {
 	const { createWorkflow, attachWorkflowToLane } = useWorkflow();
 	const [activeTab, setActiveTab] = useState<"board" | "workflows">("board");
 	const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+	const [showSettings, setShowSettings] = useState(false);
+
+	const handleSaveSettings = useCallback(async (settings: BoardSettings) => {
+		await rpc.request.updateBoardSettings({ settings });
+		// Refresh board data after settings change
+		if (boardData) {
+			const fresh = await rpc.request.getBoard({});
+			setBoardData(fresh);
+		}
+	}, [boardData, setBoardData]);
 
 	// Global keyboard shortcuts: ⌘1 → Board, ⌘2 → Workflows
 	useEffect(() => {
@@ -84,6 +97,7 @@ export default function App() {
 						onOpenProjectPicker={openProjectPicker}
 						onCloseProject={closeProject}
 						onSetTab={setActiveTab}
+						onOpenSettings={() => setShowSettings(true)}
 					/>
 					<WorkflowListView
 						lanes={boardData.lanes}
@@ -92,6 +106,12 @@ export default function App() {
 						onSelectWorkflow={setSelectedWorkflowId}
 					/>
 				</div>
+				<SettingsModal
+					open={showSettings}
+					onOpenChange={setShowSettings}
+					settings={boardData.board.settings}
+					onSave={handleSaveSettings}
+				/>
 				<Toaster position="bottom-right" />
 			</TooltipProvider></ConfirmProvider>
 		);
@@ -111,6 +131,13 @@ export default function App() {
 				activeTab="board"
 				onSetTab={setActiveTab}
 				onCreateWorkflowForLane={handleCreateWorkflowForLane}
+				onOpenSettings={() => setShowSettings(true)}
+			/>
+			<SettingsModal
+				open={showSettings}
+				onOpenChange={setShowSettings}
+				settings={boardData.board.settings}
+				onSave={handleSaveSettings}
 			/>
 			<Toaster position="bottom-right" />
 		</TooltipProvider></ConfirmProvider>

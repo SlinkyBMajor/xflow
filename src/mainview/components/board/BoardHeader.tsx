@@ -209,7 +209,7 @@ export function BoardHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" className="text-xs">
-							Board settings
+							Settings
 						</TooltipContent>
 					</Tooltip>
 				)}

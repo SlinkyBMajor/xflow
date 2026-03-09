@@ -421,6 +421,73 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return boardQueries.updateBoardSettings(db, board.id, settings);
 			},
 
+			checkCliTool: async ({ tool }) => {
+				const result = { tool, installed: false, version: null as string | null, authenticated: null as boolean | null, authDetails: null as string | null, error: null as string | null };
+				try {
+					const checks: Record<string, { versionCmd: string[]; authCmd?: string[]; parseAuth?: (out: string) => { ok: boolean; details: string } }> = {
+						claude: {
+							versionCmd: ["claude", "--version"],
+							authCmd: ["claude", "--help"],
+							parseAuth: () => ({ ok: true, details: "CLI available" }),
+						},
+						gh: {
+							versionCmd: ["gh", "--version"],
+							authCmd: ["gh", "auth", "status"],
+							parseAuth: (out) => {
+								const logged = out.includes("Logged in");
+								return { ok: logged, details: logged ? out.split("\n").find(l => l.includes("Logged in"))?.trim() ?? "Authenticated" : "Not authenticated" };
+							},
+						},
+						git: {
+							versionCmd: ["git", "--version"],
+						},
+						bun: {
+							versionCmd: ["bun", "--version"],
+						},
+					};
+
+					const check = checks[tool];
+					if (!check) {
+						result.error = `Unknown tool: ${tool}`;
+						return result;
+					}
+
+					// Check installation + version
+					const versionProc = Bun.spawn(check.versionCmd, { stdout: "pipe", stderr: "pipe" });
+					const versionOut = await new Response(versionProc.stdout).text();
+					const versionErr = await new Response(versionProc.stderr).text();
+					await versionProc.exited;
+
+					if (versionProc.exitCode !== 0) {
+						result.error = versionErr.trim() || "Command failed";
+						return result;
+					}
+
+					result.installed = true;
+					result.version = versionOut.trim().split("\n")[0];
+
+					// Check auth if applicable
+					if (check.authCmd && check.parseAuth) {
+						try {
+							const authProc = Bun.spawn(check.authCmd, { stdout: "pipe", stderr: "pipe" });
+							const authOut = await new Response(authProc.stdout).text();
+							const authErr = await new Response(authProc.stderr).text();
+							await authProc.exited;
+							const combined = authOut + authErr;
+							const authResult = check.parseAuth(combined);
+							result.authenticated = authResult.ok;
+							result.authDetails = authResult.details;
+						} catch {
+							result.authenticated = false;
+							result.authDetails = "Auth check failed";
+						}
+					}
+				} catch (err) {
+					result.error = `Not found: ${tool}`;
+				}
+				return result;
+			},
+
 			cleanupWorktree: ({ runId }) => {
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
