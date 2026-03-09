@@ -88,6 +88,7 @@ export function persistNodeOutput(
 	runId: string,
 	output: string,
 	status?: WorkflowOutputStatus,
+	label?: string,
 ): void {
 	const ticket = ticketQueries.getTicket(db, ticketId);
 	if (!ticket) return;
@@ -102,6 +103,7 @@ export function persistNodeOutput(
 				runId,
 				completedAt: new Date().toISOString(),
 				...(status && { status }),
+				...(label && { label }),
 			},
 		},
 	};

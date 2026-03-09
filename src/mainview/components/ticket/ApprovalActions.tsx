@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { rpc } from "../../rpc";
 import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 
 interface ApprovalActionsProps {
 	runId: string;
@@ -9,11 +10,12 @@ interface ApprovalActionsProps {
 
 export function ApprovalActions({ runId, message }: ApprovalActionsProps) {
 	const [acting, setActing] = useState(false);
+	const [feedback, setFeedback] = useState("");
 
 	async function handleApprove() {
 		setActing(true);
 		try {
-			await rpc.request.approveRun({ runId });
+			await rpc.request.approveRun({ runId, feedback: feedback.trim() || undefined });
 		} finally {
 			setActing(false);
 		}
@@ -22,7 +24,7 @@ export function ApprovalActions({ runId, message }: ApprovalActionsProps) {
 	async function handleReject() {
 		setActing(true);
 		try {
-			await rpc.request.rejectRun({ runId });
+			await rpc.request.rejectRun({ runId, feedback: feedback.trim() || undefined });
 		} finally {
 			setActing(false);
 		}
@@ -45,6 +47,14 @@ export function ApprovalActions({ runId, message }: ApprovalActionsProps) {
 					{message}
 				</p>
 			)}
+
+			<Textarea
+				value={feedback}
+				onChange={(e) => setFeedback(e.target.value)}
+				placeholder="Optional feedback for the next step..."
+				className="text-sm min-h-[36px] max-h-[100px] bg-[#0d1117] border-[#30363d] resize-none mb-3"
+				rows={2}
+			/>
 
 			<div className="flex items-center gap-2">
 				<Button

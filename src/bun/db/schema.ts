@@ -86,3 +86,14 @@ export const runEvents = sqliteTable("run_events", {
 	payload: text("payload"),
 	timestamp: text("timestamp").notNull(),
 });
+
+export const ticketComments = sqliteTable("ticket_comments", {
+	id: text("id").primaryKey(),
+	ticketId: text("ticket_id")
+		.notNull()
+		.references(() => tickets.id, { onDelete: "cascade" }),
+	body: text("body").notNull(),
+	refNodeId: text("ref_node_id"),
+	refLabel: text("ref_label"),
+	createdAt: text("created_at").notNull(),
+});

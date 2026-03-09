@@ -101,6 +101,16 @@ export interface WorkflowOutputEntry {
 	runId: string;
 	completedAt: string;
 	status?: WorkflowOutputStatus;
+	label?: string;
+}
+
+export interface TicketComment {
+	id: string;
+	ticketId: string;
+	body: string;
+	refNodeId: string | null;
+	refLabel: string | null;
+	createdAt: string;
 }
 
 // ── Workflow IR Types ──
@@ -124,6 +134,7 @@ export interface ClaudeAgentConfig {
 	worktreeEnabled?: boolean;
 	mergeStrategy?: MergeStrategy;
 	baseBranch?: string;
+	outputLabel?: string;
 }
 
 export interface CustomScriptConfig {
@@ -443,12 +454,24 @@ export type XFlowRPC = {
 				params: { runId: string };
 				response: void;
 			};
+			getTicketComments: {
+				params: { ticketId: string };
+				response: TicketComment[];
+			};
+			addTicketComment: {
+				params: { ticketId: string; body: string; refNodeId?: string; refLabel?: string };
+				response: TicketComment;
+			};
+			deleteTicketComment: {
+				params: { id: string };
+				response: void;
+			};
 			approveRun: {
-				params: { runId: string };
+				params: { runId: string; feedback?: string };
 				response: void;
 			};
 			rejectRun: {
-				params: { runId: string };
+				params: { runId: string; feedback?: string };
 				response: void;
 			};
 			mergeWorktreeBranch: {
@@ -497,6 +520,7 @@ export type XFlowRPC = {
 			worktreeMergeResult: { runId: string; result: MergeResult };
 			worktreeDiffResult: { runId: string; diff: string };
 			worktreeCleanupDone: { runId: string };
+			ticketCommentAdded: TicketComment;
 		};
 	}>;
 };

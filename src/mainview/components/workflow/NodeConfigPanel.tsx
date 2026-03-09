@@ -105,6 +105,15 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
+						<Label className="text-xs text-[#8b949e] mb-1">Output Label</Label>
+						<Input
+							value={config.outputLabel ?? ""}
+							onChange={(e) => updateConfig({ outputLabel: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder='e.g., "Plan", "Implementation"'
+						/>
+					</div>
+					<div>
 						<label className="flex items-center gap-2 cursor-pointer">
 							<input
 								type="checkbox"

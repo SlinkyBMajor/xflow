@@ -1,5 +1,5 @@
 import { Electroview } from "electrobun/view";
-import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult } from "../shared/types";
+import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult, TicketComment } from "../shared/types";
 
 type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
 type ProjectOpenedListener = (data: ProjectOpenResult) => void;
@@ -10,6 +10,7 @@ type RunEventListener = (event: RunEvent) => void;
 type WorktreeMergeResultListener = (data: { runId: string; result: MergeResult }) => void;
 type WorktreeDiffResultListener = (data: { runId: string; diff: string }) => void;
 type WorktreeCleanupDoneListener = (data: { runId: string }) => void;
+type TicketCommentListener = (comment: TicketComment) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
@@ -20,6 +21,7 @@ const runEventListeners = new Set<RunEventListener>();
 const worktreeMergeResultListeners = new Set<WorktreeMergeResultListener>();
 const worktreeDiffResultListeners = new Set<WorktreeDiffResultListener>();
 const worktreeCleanupDoneListeners = new Set<WorktreeCleanupDoneListener>();
+const ticketCommentListeners = new Set<TicketCommentListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
 	handlers: {
@@ -51,6 +53,9 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			worktreeCleanupDone: (data) => {
 				for (const listener of worktreeCleanupDoneListeners) listener(data);
+			},
+			ticketCommentAdded: (data) => {
+				for (const listener of ticketCommentListeners) listener(data);
 			},
 		},
 	},
@@ -98,6 +103,11 @@ export function onWorktreeDiffResult(listener: WorktreeDiffResultListener): () =
 export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): () => void {
 	worktreeCleanupDoneListeners.add(listener);
 	return () => worktreeCleanupDoneListeners.delete(listener);
+}
+
+export function onTicketCommentAdded(listener: TicketCommentListener): () => void {
+	ticketCommentListeners.add(listener);
+	return () => ticketCommentListeners.delete(listener);
 }
 
 export function openExternal(url: string) {

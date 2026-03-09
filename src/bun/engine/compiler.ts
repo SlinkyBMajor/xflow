@@ -219,6 +219,7 @@ function buildState(
 			const resolvedWorktreeEnabled = config.worktreeEnabled ?? ctx.boardSettings?.defaultWorktreeEnabled;
 			const resolvedMergeStrategy = config.mergeStrategy ?? ctx.boardSettings?.defaultMergeStrategy;
 			const resolvedBaseBranch = config.baseBranch ?? ctx.boardSettings?.defaultBaseBranch;
+			const outputLabel = config.outputLabel;
 			return {
 				invoke: {
 					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
@@ -253,7 +254,7 @@ function buildState(
 								}),
 							}),
 							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success");
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success", outputLabel);
 								ctx.notifyBoardChanged?.();
 							},
 						],
@@ -265,7 +266,7 @@ function buildState(
 								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown agent error");
 								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
 								console.error(`[Workflow ${ctx.runId}] Agent node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", outputLabel);
 								ctx.notifyBoardChanged?.();
 							},
 						],

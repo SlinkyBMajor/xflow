@@ -5,6 +5,7 @@ import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
+import * as commentQueries from "../db/queries/comments";
 import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch } from "../git/worktree";
 import { mergeWorktreeBranch } from "../git/merge";
 import type { MergeStrategy } from "../../shared/types";
@@ -103,7 +104,10 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 	// Separate workflow output from user metadata
 	const { _workflowOutput, ...userMetadata } = freshTicket.metadata as Record<string, unknown>;
-	const workflowOutput = _workflowOutput as Record<string, { output: string; completedAt: string }> | undefined;
+	const workflowOutput = _workflowOutput as Record<string, { output: string; completedAt: string; label?: string }> | undefined;
+
+	// Fetch comments for this ticket
+	const comments = commentQueries.getCommentsByTicket(db, ticket.id);
 
 	const sections = [
 		`# Ticket: ${freshTicket.title}`,
@@ -118,11 +122,48 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		sections.push(`\n## Tags\n${freshTicket.tags.join(", ")}`);
 	}
 
-	if (includeWorkflowOutput && workflowOutput && Object.keys(workflowOutput).length > 0) {
-		const outputSections = Object.values(workflowOutput)
-			.sort((a, b) => a.completedAt.localeCompare(b.completedAt))
-			.map((entry) => entry.output);
-		sections.push(`\n## Prior Workflow Output\n\n${outputSections.join("\n\n---\n\n")}`);
+	const hasOutputs = includeWorkflowOutput && workflowOutput && Object.keys(workflowOutput).length > 0;
+	const hasComments = comments.length > 0;
+
+	if (hasOutputs || hasComments) {
+		// Build a chronological timeline of outputs and comments
+		type TimelineItem =
+			| { kind: "output"; label: string; timestamp: string; content: string }
+			| { kind: "comment"; timestamp: string; content: string; refLabel: string | null };
+
+		const timeline: TimelineItem[] = [];
+
+		if (hasOutputs && workflowOutput) {
+			for (const [nodeId, entry] of Object.entries(workflowOutput)) {
+				timeline.push({
+					kind: "output",
+					label: entry.label ?? `Node ${nodeId.slice(0, 8)}`,
+					timestamp: entry.completedAt,
+					content: entry.output,
+				});
+			}
+		}
+
+		for (const comment of comments) {
+			timeline.push({
+				kind: "comment",
+				timestamp: comment.createdAt,
+				content: comment.body,
+				refLabel: comment.refLabel,
+			});
+		}
+
+		timeline.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+		const formatted = timeline.map((item) => {
+			if (item.kind === "output") {
+				return `### ${item.label} (agent, ${item.timestamp})\n${item.content}`;
+			}
+			const ref = item.refLabel ? `, re: ${item.refLabel}` : "";
+			return `### User Feedback (${item.timestamp}${ref})\n${item.content}`;
+		});
+
+		sections.push(`\n## Prior Workflow Output & Feedback\n\n${formatted.join("\n\n---\n\n")}`);
 	}
 
 	sections.push(`\n## Instructions\n${resolvedPrompt}`);

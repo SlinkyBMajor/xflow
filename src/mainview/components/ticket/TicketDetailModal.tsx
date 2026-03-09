@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { Copy, Check, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
-import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus } from "../../../shared/types";
+import { useState, useEffect, useRef } from "react";
+import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send } from "lucide-react";
+import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus, TicketComment } from "../../../shared/types";
 import {
 	Dialog,
 	DialogContent,
@@ -9,6 +9,7 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Textarea } from "../ui/textarea";
 import { TicketForm } from "./TicketForm";
 import { TicketView } from "./TicketView";
 import { RunEventLog } from "./RunEventLog";
@@ -17,6 +18,7 @@ import { WorktreeSidebarIndicator } from "./WorktreeSidebarIndicator";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
+import { useTicketComments } from "../../hooks/useTicketComments";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -38,10 +40,23 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch || r.mergeResult);
 	const { events } = useRunEvents(activeRun?.id ?? null);
 
+	const { comments, addComment } = useTicketComments(open ? ticket.id : null);
+	const [replyTo, setReplyTo] = useState<{ nodeId: string; label: string } | null>(null);
+	const [commentText, setCommentText] = useState("");
+	const composerRef = useRef<HTMLTextAreaElement>(null);
+
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
 	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
 	const outputEntries = Object.entries(workflowOutput);
 	const [allCollapsed, setAllCollapsed] = useState(false);
+
+	const handleSubmitComment = async () => {
+		const body = commentText.trim();
+		if (!body) return;
+		await addComment(body, replyTo?.nodeId, replyTo?.label);
+		setCommentText("");
+		setReplyTo(null);
+	};
 
 	// Reset editing state when ticket changes
 	useEffect(() => {
@@ -101,32 +116,84 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							</div>
 						)}
 
-						{/* Workflow output */}
-						{outputEntries.length > 0 && (
+						{/* Workflow Output & Feedback Timeline */}
+						{(outputEntries.length > 0 || comments.length > 0) && (
 							<div className="mt-6 pt-4 border-t border-[#21262d]">
 								<div className="flex items-center justify-between mb-3">
 									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
-										Workflow Output
+										{outputEntries.length > 0 ? "Workflow Output & Feedback" : "Feedback"}
 									</span>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<button
-												onClick={() => setAllCollapsed((c) => !c)}
-												className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
-											>
-												{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
-											</button>
-										</TooltipTrigger>
-										<TooltipContent>{allCollapsed ? "Expand all workflow output sections" : "Collapse all workflow output sections"}</TooltipContent>
-									</Tooltip>
+									{outputEntries.length > 0 && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<button
+													onClick={() => setAllCollapsed((c) => !c)}
+													className="text-[#6e7681] hover:text-[#e6edf3] transition-colors p-0.5"
+												>
+													{allCollapsed ? <ChevronsUpDown size={12} /> : <ChevronsDownUp size={12} />}
+												</button>
+											</TooltipTrigger>
+											<TooltipContent>{allCollapsed ? "Expand all" : "Collapse all"}</TooltipContent>
+										</Tooltip>
+									)}
 								</div>
 								<div className="space-y-3">
-									{outputEntries.map(([nodeId, entry]) => (
-										<WorkflowOutputBlock key={nodeId} nodeId={nodeId} entry={entry} allCollapsed={allCollapsed} />
-									))}
+									{buildTimeline(outputEntries, comments).map((item) =>
+										item.kind === "output" ? (
+											<div key={`output-${item.nodeId}`} className="relative group">
+												<WorkflowOutputBlock nodeId={item.nodeId} entry={item.entry} allCollapsed={allCollapsed} />
+												<button
+													onClick={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
+													className="absolute top-2 right-10 opacity-0 group-hover:opacity-100 transition-opacity text-[#6e7681] hover:text-[#58a6ff] p-1"
+												>
+													<Reply size={12} />
+												</button>
+											</div>
+										) : (
+											<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} />
+										),
+									)}
 								</div>
 							</div>
 						)}
+
+						{/* Comment composer */}
+						<div className="mt-4 pt-3 border-t border-[#21262d]">
+							{replyTo && (
+								<div className="flex items-center gap-1.5 mb-2">
+									<span className="text-[10px] font-mono text-[#58a6ff] bg-[#58a6ff]/10 px-1.5 py-0.5 rounded">
+										re: {replyTo.label}
+									</span>
+									<button onClick={() => setReplyTo(null)} className="text-[#6e7681] hover:text-[#e6edf3]">
+										<X size={10} />
+									</button>
+								</div>
+							)}
+							<div className="flex gap-2">
+								<Textarea
+									ref={composerRef}
+									value={commentText}
+									onChange={(e) => setCommentText(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" && e.metaKey) {
+											e.preventDefault();
+											handleSubmitComment();
+										}
+									}}
+									placeholder="Comment..."
+									className="text-sm min-h-[40px] max-h-[120px] bg-[#0d1117] border-[#30363d] resize-none flex-1"
+									rows={2}
+								/>
+								<Button
+									size="sm"
+									onClick={handleSubmitComment}
+									disabled={!commentText.trim()}
+									className="h-8 px-2 self-end bg-[#21262d] hover:bg-[#30363d] text-[#e6edf3] border-0"
+								>
+									<Send size={14} />
+								</Button>
+							</div>
+						</div>
 
 						{/* Live event log */}
 						{activeRun && (
@@ -310,7 +377,7 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed }: { nodeId: string; 
 					<span className={status === "error" || status === "timeout" ? "text-red-400" : status === "partial" ? "text-amber-400" : status === "success" ? "text-emerald-400" : "text-[#6e7681]"}>
 						{style.icon}
 					</span>
-					{expanded ? "\u25BE" : "\u25B8"} {nodeId.slice(0, 8)}
+					{expanded ? "\u25BE" : "\u25B8"} {entry.label ?? nodeId.slice(0, 8)}
 				</span>
 				<span className="text-[10px] text-[#6e7681] font-mono">
 					{formatDate(entry.completedAt)}
@@ -348,4 +415,46 @@ function formatMetadataForClipboard(entries: [string, unknown][]): string {
 		const display = typeof value === "string" ? value : JSON.stringify(value);
 		return `${key}: ${display}`;
 	}).join("\n");
+}
+
+type TimelineItem =
+	| { kind: "output"; nodeId: string; entry: WorkflowOutputEntry; timestamp: string }
+	| { kind: "comment"; comment: TicketComment; timestamp: string };
+
+function buildTimeline(
+	outputEntries: [string, WorkflowOutputEntry][],
+	comments: TicketComment[],
+): TimelineItem[] {
+	const items: TimelineItem[] = [];
+	for (const [nodeId, entry] of outputEntries) {
+		items.push({ kind: "output", nodeId, entry, timestamp: entry.completedAt });
+	}
+	for (const comment of comments) {
+		items.push({ kind: "comment", comment, timestamp: comment.createdAt });
+	}
+	items.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+	return items;
+}
+
+function CommentBlock({ comment }: { comment: TicketComment }) {
+	return (
+		<div className="bg-[#161b22] border border-[#21262d] border-l-2 border-l-[#58a6ff] rounded-lg px-3 py-2">
+			<div className="flex items-center justify-between mb-1">
+				<span className="text-[11px] font-mono text-[#58a6ff]/70 flex items-center gap-1.5">
+					Feedback
+					{comment.refLabel && (
+						<span className="text-[10px] text-[#8b949e]">
+							re: {comment.refLabel}
+						</span>
+					)}
+				</span>
+				<span className="text-[10px] text-[#6e7681] font-mono">
+					{formatDate(comment.createdAt)}
+				</span>
+			</div>
+			<p className="text-[12px] text-[#e6edf3] whitespace-pre-wrap leading-relaxed">
+				{comment.body}
+			</p>
+		</div>
+	);
 }

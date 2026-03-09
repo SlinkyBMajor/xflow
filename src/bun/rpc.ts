@@ -9,6 +9,7 @@ import * as ticketQueries from "./db/queries/tickets";
 import * as workflowQueries from "./db/queries/workflows";
 import * as versionQueries from "./db/queries/workflow-versions";
 import * as runQueries from "./db/queries/runs";
+import * as commentQueries from "./db/queries/comments";
 import { lanes } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { triggerWorkflowIfAttached } from "./engine/trigger";
@@ -321,11 +322,47 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				abortRun(db, runId, activeProjectPath ?? undefined);
 			},
 
-			approveRun: ({ runId }) => {
+			getTicketComments: ({ ticketId }) => {
+				const db = getDb();
+				return commentQueries.getCommentsByTicket(db, ticketId);
+			},
+
+			addTicketComment: ({ ticketId, body, refNodeId, refLabel }) => {
+				const db = getDb();
+				const id = crypto.randomUUID();
+				const comment = commentQueries.createComment(db, id, ticketId, body, refNodeId, refLabel);
+				mainWindow?.webview.rpc.send.ticketCommentAdded(comment);
+				return comment;
+			},
+
+			deleteTicketComment: ({ id }) => {
+				const db = getDb();
+				commentQueries.deleteComment(db, id);
+			},
+
+			approveRun: ({ runId, feedback }) => {
+				if (feedback?.trim()) {
+					const db = getDb();
+					const run = runQueries.getRunById(db, runId);
+					if (run) {
+						const id = crypto.randomUUID();
+						const comment = commentQueries.createComment(db, id, run.ticketId, feedback.trim(), undefined, "Approval");
+						mainWindow?.webview.rpc.send.ticketCommentAdded(comment);
+					}
+				}
 				sendEventToRun(runId, "APPROVED");
 			},
 
-			rejectRun: ({ runId }) => {
+			rejectRun: ({ runId, feedback }) => {
+				if (feedback?.trim()) {
+					const db = getDb();
+					const run = runQueries.getRunById(db, runId);
+					if (run) {
+						const id = crypto.randomUUID();
+						const comment = commentQueries.createComment(db, id, run.ticketId, feedback.trim(), undefined, "Rejection");
+						mainWindow?.webview.rpc.send.ticketCommentAdded(comment);
+					}
+				}
 				sendEventToRun(runId, "REJECTED");
 			},
 
