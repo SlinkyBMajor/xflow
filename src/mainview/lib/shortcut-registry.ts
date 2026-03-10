@@ -34,6 +34,12 @@ export const SHORTCUT_REGISTRY: Shortcut[] = [
 		keys: "⌘⇧H",
 		group: "Workflow Editor",
 	},
+	{
+		id: "workflow-node-reference",
+		label: "Node reference",
+		keys: "⌘⇧N",
+		group: "Workflow Editor",
+	},
 
 	// ── Kanban ──────────────────────────────────────────
 	{
