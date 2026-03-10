@@ -48,3 +48,7 @@ export function createComment(
 export function deleteComment(db: DB, id: string): void {
 	db.delete(ticketComments).where(eq(ticketComments.id, id)).run();
 }
+
+export function deleteCommentsByTicket(db: DB, ticketId: string): void {
+	db.delete(ticketComments).where(eq(ticketComments.ticketId, ticketId)).run();
+}

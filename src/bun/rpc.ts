@@ -143,6 +143,12 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				ticketQueries.deleteTicket(db, id);
 			},
 
+			resetTicket: ({ id }) => {
+				const db = getDb();
+				commentQueries.deleteCommentsByTicket(db, id);
+				return ticketQueries.resetTicket(db, id)!;
+			},
+
 			moveTicket: ({ ticketId, targetLaneId, targetIndex }) => {
 				const db = getDb();
 				// Get source lane before the move

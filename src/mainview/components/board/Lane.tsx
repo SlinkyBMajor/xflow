@@ -20,6 +20,7 @@ interface LaneProps {
 		createTicket: (laneId: string, title: string, body?: string, tags?: string[]) => Promise<void>;
 		updateTicket: (id: string, updates: { title?: string; body?: string; tags?: string[]; metadata?: Record<string, unknown> }) => Promise<void>;
 		deleteTicket: (id: string) => Promise<void>;
+		resetTicket: (id: string) => Promise<void>;
 		moveTicket: (ticketId: string, targetLaneId: string, targetIndex: number) => Promise<void>;
 	};
 	onEditWorkflow: (laneId: string, laneName: string, workflowId: string) => void;
@@ -60,6 +61,7 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 							ticket={ticket}
 							lanes={lanes}
 							onDelete={ticketActions.deleteTicket}
+							onReset={ticketActions.resetTicket}
 							onMove={(ticketId, targetLaneId) => ticketActions.moveTicket(ticketId, targetLaneId, 0)}
 						>
 							<TicketCard
@@ -111,6 +113,11 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 						const id = selectedTicket.id;
 						setSelectedTicket(null);
 						ticketActions.deleteTicket(id);
+					}}
+					onReset={() => {
+						const id = selectedTicket.id;
+						setSelectedTicket(null);
+						ticketActions.resetTicket(id);
 					}}
 				/>
 			)}

@@ -368,6 +368,10 @@ export type XFlowRPC = {
 				params: { id: string };
 				response: void;
 			};
+			resetTicket: {
+				params: { id: string };
+				response: Ticket;
+			};
 			moveTicket: {
 				params: { ticketId: string; targetLaneId: string; targetIndex: number };
 				response: void;

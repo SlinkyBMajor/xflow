@@ -15,13 +15,26 @@ interface TicketContextMenuProps {
 	ticket: Ticket;
 	lanes: Lane[];
 	onDelete: (id: string) => void;
+	onReset: (id: string) => void;
 	onMove: (ticketId: string, targetLaneId: string) => void;
 	children: React.ReactNode;
 }
 
-export function TicketContextMenu({ ticket, lanes, onDelete, onMove, children }: TicketContextMenuProps) {
+export function TicketContextMenu({ ticket, lanes, onDelete, onReset, onMove, children }: TicketContextMenuProps) {
 	const confirm = useConfirm();
 	const otherLanes = lanes.filter((l) => l.id !== ticket.laneId);
+
+	const handleReset = async () => {
+		const confirmed = await confirm({
+			title: "Reset ticket",
+			description: `This will remove all outputs, comments, metadata, and tags from "${ticket.title}". Title and description will be kept.`,
+			confirmLabel: "Reset",
+			variant: "danger",
+		});
+		if (confirmed) {
+			onReset(ticket.id);
+		}
+	};
 
 	const handleDelete = async () => {
 		const confirmed = await confirm({
@@ -71,6 +84,9 @@ export function TicketContextMenu({ ticket, lanes, onDelete, onMove, children }:
 						<ContextMenuSeparator />
 					</>
 				)}
+				<ContextMenuItem onClick={handleReset}>
+					Reset
+				</ContextMenuItem>
 				<ContextMenuItem
 					onClick={handleDelete}
 					className="text-red-400 focus:text-red-400 focus:bg-red-500/10"

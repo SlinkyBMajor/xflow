@@ -85,6 +85,28 @@ export function updateTicket(
 	return getTicket(db, ticketId)!;
 }
 
+export function resetTicket(db: DB, ticketId: string): Ticket | undefined {
+	// Delete run events for all runs belonging to this ticket
+	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();
+	for (const run of runs) {
+		db.delete(runEvents).where(eq(runEvents.runId, run.id)).run();
+	}
+	// Delete workflow runs
+	db.delete(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).run();
+	// Reset metadata to initial state
+	const now = new Date().toISOString();
+	db.update(tickets)
+		.set({
+			metadata: JSON.stringify({ runCount: 0, agentRunCount: 0, retryCount: 0, abortCount: 0 }),
+			tags: JSON.stringify([]),
+			laneEnteredAt: now,
+			updatedAt: now,
+		})
+		.where(eq(tickets.id, ticketId))
+		.run();
+	return getTicket(db, ticketId);
+}
+
 export function deleteTicket(db: DB, ticketId: string): void {
 	// Delete run events for all runs belonging to this ticket
 	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();

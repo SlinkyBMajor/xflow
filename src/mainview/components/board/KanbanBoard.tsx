@@ -17,6 +17,7 @@ interface KanbanBoardProps {
 		createTicket: (laneId: string, title: string, body?: string, tags?: string[]) => Promise<void>;
 		updateTicket: (id: string, updates: { title?: string; body?: string; tags?: string[]; metadata?: Record<string, unknown> }) => Promise<void>;
 		deleteTicket: (id: string) => Promise<void>;
+		resetTicket: (id: string) => Promise<void>;
 		moveTicket: (ticketId: string, targetLaneId: string, targetIndex: number) => Promise<void>;
 		reorderTicketsInLane: (laneId: string, ticketIds: string[]) => Promise<void>;
 	};

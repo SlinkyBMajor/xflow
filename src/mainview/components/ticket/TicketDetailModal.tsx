@@ -29,9 +29,10 @@ interface TicketDetailModalProps {
 	onClose: () => void;
 	onSave: (updates: { title?: string; body?: string; tags?: string[] }) => void;
 	onDelete: () => void;
+	onReset: () => void;
 }
 
-export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete }: TicketDetailModalProps) {
+export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, onSave, onDelete, onReset }: TicketDetailModalProps) {
 	const isNew = !ticket.body;
 	const [editing, setEditing] = useState(isNew);
 	const { copied: idCopied, copy: copyId } = useCopyFeedback();
@@ -83,23 +84,42 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 								<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
 									Ticket
 								</span>
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={async () => {
-										const ok = await confirm({
-											title: "Delete ticket",
-											description: `This will permanently delete "${ticket.title}". This action cannot be undone.`,
-											confirmLabel: "Delete",
-											variant: "danger",
-										});
-										if (ok) onDelete();
-									}}
-									className="text-[11px] text-[#6e7681] hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
-								>
-									Delete
-								</Button>
+								<div className="flex gap-1">
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										onClick={async () => {
+											const ok = await confirm({
+												title: "Reset ticket",
+												description: `This will remove all outputs, comments, metadata, and tags from "${ticket.title}". Title and description will be kept.`,
+												confirmLabel: "Reset",
+												variant: "danger",
+											});
+											if (ok) onReset();
+										}}
+										className="text-[11px] text-[#6e7681] hover:text-amber-400 hover:bg-amber-900/20 h-auto px-2 py-1"
+									>
+										Reset
+									</Button>
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										onClick={async () => {
+											const ok = await confirm({
+												title: "Delete ticket",
+												description: `This will permanently delete "${ticket.title}". This action cannot be undone.`,
+												confirmLabel: "Delete",
+												variant: "danger",
+											});
+											if (ok) onDelete();
+										}}
+										className="text-[11px] text-[#6e7681] hover:text-red-400 hover:bg-red-900/20 h-auto px-2 py-1"
+									>
+										Delete
+									</Button>
+								</div>
 							</div>
 
 							{editing || isNew ? (

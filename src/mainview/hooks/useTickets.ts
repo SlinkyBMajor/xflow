@@ -29,6 +29,14 @@ export function useTickets(refreshBoard: () => Promise<void>) {
 		[refreshBoard],
 	);
 
+	const resetTicket = useCallback(
+		async (id: string) => {
+			await rpc.request.resetTicket({ id });
+			await refreshBoard();
+		},
+		[refreshBoard],
+	);
+
 	const moveTicket = useCallback(
 		async (ticketId: string, targetLaneId: string, targetIndex: number) => {
 			await rpc.request.moveTicket({ ticketId, targetLaneId, targetIndex });
@@ -45,5 +53,5 @@ export function useTickets(refreshBoard: () => Promise<void>) {
 		[refreshBoard],
 	);
 
-	return { createTicket, updateTicket, deleteTicket, moveTicket, reorderTicketsInLane };
+	return { createTicket, updateTicket, deleteTicket, resetTicket, moveTicket, reorderTicketsInLane };
 }
