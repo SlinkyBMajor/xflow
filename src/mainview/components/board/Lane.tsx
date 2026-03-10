@@ -31,7 +31,8 @@ interface LaneProps {
 
 export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane, activeRuns, worktreeRuns }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+	const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+	const selectedTicket = selectedTicketId ? tickets.find((t) => t.id === selectedTicketId) ?? null : null;
 
 	const { ref } = useDroppable({
 		id: lane.id,
@@ -70,7 +71,7 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 								laneId={lane.id}
 								isRunning={activeRuns.has(ticket.id)}
 								worktreeInfo={worktreeRuns?.get(ticket.id) ?? null}
-								onClick={() => setSelectedTicket(ticket)}
+								onClick={() => setSelectedTicketId(ticket.id)}
 							/>
 						</TicketContextMenu>
 					))}
@@ -104,20 +105,18 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 					ticket={selectedTicket}
 					laneName={lane.name}
 					laneColor={lane.color}
-					onClose={() => setSelectedTicket(null)}
+					onClose={() => setSelectedTicketId(null)}
 					onSave={(updates) => {
 						ticketActions.updateTicket(selectedTicket.id, updates);
-						setSelectedTicket(null);
+						setSelectedTicketId(null);
 					}}
 					onDelete={() => {
 						const id = selectedTicket.id;
-						setSelectedTicket(null);
+						setSelectedTicketId(null);
 						ticketActions.deleteTicket(id);
 					}}
 					onReset={() => {
-						const id = selectedTicket.id;
-						setSelectedTicket(null);
-						ticketActions.resetTicket(id);
+						ticketActions.resetTicket(selectedTicket.id);
 					}}
 				/>
 			)}

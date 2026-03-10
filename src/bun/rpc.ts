@@ -145,6 +145,15 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 			resetTicket: ({ id }) => {
 				const db = getDb();
+				// Clean up worktrees on disk before deleting runs
+				const runs = runQueries.getRunsByTicket(db, id);
+				for (const run of runs) {
+					if (run.worktreePath && activeProjectPath) {
+						removeWorktree(activeProjectPath, run.worktreePath).catch((err) => {
+							console.error(`[RPC] resetTicket worktree cleanup error:`, err);
+						});
+					}
+				}
 				commentQueries.deleteCommentsByTicket(db, id);
 				return ticketQueries.resetTicket(db, id)!;
 			},
