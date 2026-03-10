@@ -25,6 +25,7 @@ import { nodeTypes } from "./nodes";
 import { NodePalette } from "./NodePalette";
 import { NodeConfigPanel } from "./NodeConfigPanel";
 import { VersionHistory } from "./VersionHistory";
+import { NodeReferenceModal } from "./NodeReferenceModal";
 import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -48,6 +49,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	const [savedName, setSavedName] = useState("");
 	const [editingName, setEditingName] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
+	const [showNodeReference, setShowNodeReference] = useState(false);
 	const [toolbox, setToolbox] = useState<WorkflowToolboxState>({
 		edgeType: "smoothstep",
 		snapToGrid: false,
@@ -285,6 +287,10 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 				e.preventDefault();
 				setShowHistory((prev) => !prev);
 			}
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "n") {
+				e.preventDefault();
+				setShowNodeReference((prev) => !prev);
+			}
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
@@ -327,6 +333,19 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 					{saveError && (
 						<span className="text-xs text-red-400 mr-2">{saveError}</span>
 					)}
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setShowNodeReference(true)}
+								className="text-[#8b949e] hover:text-[#e6edf3]"
+							>
+								Nodes
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Node reference (⌘⇧N)</TooltipContent>
+					</Tooltip>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
@@ -412,6 +431,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 					/>
 				) : null}
 			</div>
+			<NodeReferenceModal open={showNodeReference} onOpenChange={setShowNodeReference} />
 		</div>
 	);
 }
