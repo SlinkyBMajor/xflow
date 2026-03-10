@@ -1,62 +1,34 @@
 import { Electroview } from "electrobun/view";
 import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult, TicketComment } from "../shared/types";
+import { createListenerSet } from "./lib/event-emitter";
 
-type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
-type ProjectOpenedListener = (data: ProjectOpenResult) => void;
 type PickerResultListener = (path: string | null) => void;
-type WorkflowRunUpdateListener = (run: WorkflowRun) => void;
-type InterruptedRunsListener = (runs: InterruptedRunInfo[]) => void;
-type RunEventListener = (event: RunEvent) => void;
-type WorktreeMergeResultListener = (data: { runId: string; result: MergeResult }) => void;
-type WorktreeDiffResultListener = (data: { runId: string; diff: string }) => void;
-type WorktreeCleanupDoneListener = (data: { runId: string }) => void;
-type TicketCommentListener = (comment: TicketComment) => void;
 
-const boardListeners = new Set<BoardUpdateListener>();
-const projectListeners = new Set<ProjectOpenedListener>();
-const pickerListeners = new Set<PickerResultListener>();
-const workflowRunListeners = new Set<WorkflowRunUpdateListener>();
-const interruptedRunsListeners = new Set<InterruptedRunsListener>();
-const runEventListeners = new Set<RunEventListener>();
-const worktreeMergeResultListeners = new Set<WorktreeMergeResultListener>();
-const worktreeDiffResultListeners = new Set<WorktreeDiffResultListener>();
-const worktreeCleanupDoneListeners = new Set<WorktreeCleanupDoneListener>();
-const ticketCommentListeners = new Set<TicketCommentListener>();
+const board = createListenerSet<(data: BoardWithLanesAndTickets) => void>();
+const project = createListenerSet<(data: ProjectOpenResult) => void>();
+const picker = createListenerSet<PickerResultListener>();
+const workflowRun = createListenerSet<(run: WorkflowRun) => void>();
+const interruptedRuns = createListenerSet<(runs: InterruptedRunInfo[]) => void>();
+const runEvent = createListenerSet<(event: RunEvent) => void>();
+const worktreeMergeResult = createListenerSet<(data: { runId: string; result: MergeResult }) => void>();
+const worktreeDiffResult = createListenerSet<(data: { runId: string; diff: string }) => void>();
+const worktreeCleanupDone = createListenerSet<(data: { runId: string }) => void>();
+const ticketComment = createListenerSet<(comment: TicketComment) => void>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
 	handlers: {
 		requests: {},
 		messages: {
-			boardUpdated: (data) => {
-				for (const listener of boardListeners) listener(data);
-			},
-			projectOpened: (data) => {
-				for (const listener of projectListeners) listener(data);
-			},
-			projectPickerResult: ({ path }) => {
-				for (const listener of pickerListeners) listener(path);
-			},
-			workflowRunUpdated: (data) => {
-				for (const listener of workflowRunListeners) listener(data);
-			},
-			interruptedRunsDetected: (data) => {
-				for (const listener of interruptedRunsListeners) listener(data);
-			},
-			runEventAdded: (data) => {
-				for (const listener of runEventListeners) listener(data);
-			},
-			worktreeMergeResult: (data) => {
-				for (const listener of worktreeMergeResultListeners) listener(data);
-			},
-			worktreeDiffResult: (data) => {
-				for (const listener of worktreeDiffResultListeners) listener(data);
-			},
-			worktreeCleanupDone: (data) => {
-				for (const listener of worktreeCleanupDoneListeners) listener(data);
-			},
-			ticketCommentAdded: (data) => {
-				for (const listener of ticketCommentListeners) listener(data);
-			},
+			boardUpdated: (data) => board.emit(data),
+			projectOpened: (data) => project.emit(data),
+			projectPickerResult: ({ path }) => picker.emit(path),
+			workflowRunUpdated: (data) => workflowRun.emit(data),
+			interruptedRunsDetected: (data) => interruptedRuns.emit(data),
+			runEventAdded: (data) => runEvent.emit(data),
+			worktreeMergeResult: (data) => worktreeMergeResult.emit(data),
+			worktreeDiffResult: (data) => worktreeDiffResult.emit(data),
+			worktreeCleanupDone: (data) => worktreeCleanupDone.emit(data),
+			ticketCommentAdded: (data) => ticketComment.emit(data),
 		},
 	},
 });
@@ -65,50 +37,15 @@ const electroview = new Electroview({ rpc: rpcDef });
 
 export const rpc = electroview.rpc!;
 
-export function onBoardUpdated(listener: BoardUpdateListener): () => void {
-	boardListeners.add(listener);
-	return () => boardListeners.delete(listener);
-}
-
-export function onProjectOpened(listener: ProjectOpenedListener): () => void {
-	projectListeners.add(listener);
-	return () => projectListeners.delete(listener);
-}
-
-export function onWorkflowRunUpdated(listener: WorkflowRunUpdateListener): () => void {
-	workflowRunListeners.add(listener);
-	return () => workflowRunListeners.delete(listener);
-}
-
-export function onInterruptedRunsDetected(listener: InterruptedRunsListener): () => void {
-	interruptedRunsListeners.add(listener);
-	return () => interruptedRunsListeners.delete(listener);
-}
-
-export function onRunEventAdded(listener: RunEventListener): () => void {
-	runEventListeners.add(listener);
-	return () => runEventListeners.delete(listener);
-}
-
-export function onWorktreeMergeResult(listener: WorktreeMergeResultListener): () => void {
-	worktreeMergeResultListeners.add(listener);
-	return () => worktreeMergeResultListeners.delete(listener);
-}
-
-export function onWorktreeDiffResult(listener: WorktreeDiffResultListener): () => void {
-	worktreeDiffResultListeners.add(listener);
-	return () => worktreeDiffResultListeners.delete(listener);
-}
-
-export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): () => void {
-	worktreeCleanupDoneListeners.add(listener);
-	return () => worktreeCleanupDoneListeners.delete(listener);
-}
-
-export function onTicketCommentAdded(listener: TicketCommentListener): () => void {
-	ticketCommentListeners.add(listener);
-	return () => ticketCommentListeners.delete(listener);
-}
+export const onBoardUpdated = board.subscribe;
+export const onProjectOpened = project.subscribe;
+export const onWorkflowRunUpdated = workflowRun.subscribe;
+export const onInterruptedRunsDetected = interruptedRuns.subscribe;
+export const onRunEventAdded = runEvent.subscribe;
+export const onWorktreeMergeResult = worktreeMergeResult.subscribe;
+export const onWorktreeDiffResult = worktreeDiffResult.subscribe;
+export const onWorktreeCleanupDone = worktreeCleanupDone.subscribe;
+export const onTicketCommentAdded = ticketComment.subscribe;
 
 export function openExternal(url: string) {
 	rpc.send.openExternal({ url });
@@ -121,10 +58,10 @@ export function toggleMaximize() {
 export function requestProjectPicker(): Promise<string | null> {
 	return new Promise((resolve) => {
 		const onResult: PickerResultListener = (path) => {
-			pickerListeners.delete(onResult);
+			picker.listeners.delete(onResult);
 			resolve(path);
 		};
-		pickerListeners.add(onResult);
+		picker.listeners.add(onResult);
 		rpc.send.openProjectPicker({});
 	});
 }

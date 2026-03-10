@@ -1,28 +1,13 @@
-import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { useToggleInput } from "../../hooks/useToggleInput";
 
 interface AddTicketButtonProps {
 	onAdd: (title: string) => void;
 }
 
 export function AddTicketButton({ onAdd }: AddTicketButtonProps) {
-	const [active, setActive] = useState(false);
-	const [title, setTitle] = useState("");
-	const inputRef = useRef<HTMLInputElement>(null);
-
-	useEffect(() => {
-		if (active) inputRef.current?.focus();
-	}, [active]);
-
-	const handleSubmit = () => {
-		const trimmed = title.trim();
-		if (trimmed) {
-			onAdd(trimmed);
-		}
-		setTitle("");
-		setActive(false);
-	};
+	const { active, setActive, inputProps } = useToggleInput(onAdd);
 
 	if (!active) {
 		return (
@@ -42,17 +27,7 @@ export function AddTicketButton({ onAdd }: AddTicketButtonProps) {
 	return (
 		<div className="animate-scale-in">
 			<Input
-				ref={inputRef}
-				value={title}
-				onChange={(e) => setTitle(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Enter") handleSubmit();
-					if (e.key === "Escape") {
-						setTitle("");
-						setActive(false);
-					}
-				}}
-				onBlur={handleSubmit}
+				{...inputProps}
 				placeholder="Ticket title..."
 				className="text-[13px] bg-[#0d1117]/60 border-[#30363d] focus:border-[#58a6ff]/40"
 			/>

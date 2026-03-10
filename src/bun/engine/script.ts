@@ -2,7 +2,7 @@ import type { DB } from "../db/connection";
 import type { Ticket, RunEvent } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
-import * as runQueries from "../db/queries/runs";
+import { insertAndEmit, createProcessTracker } from "./engine-utils";
 
 interface CustomScriptParams {
 	runId: string;
@@ -17,32 +17,10 @@ interface CustomScriptParams {
 	onEvent?: (event: RunEvent) => void;
 }
 
-const activeProcesses = new Map<string, { kill: () => void }>();
+const processTracker = createProcessTracker();
 
 export function killScriptProcess(runId: string): void {
-	const proc = activeProcesses.get(runId);
-	if (proc) {
-		proc.kill();
-		activeProcesses.delete(runId);
-	}
-}
-
-function insertAndEmit(
-	db: DB,
-	runId: string,
-	type: string,
-	payload: unknown,
-	onEvent?: (event: RunEvent) => void,
-): void {
-	const event: RunEvent = {
-		id: crypto.randomUUID(),
-		runId,
-		type,
-		payload,
-		timestamp: new Date().toISOString(),
-	};
-	runQueries.insertRunEvent(db, event);
-	onEvent?.(event);
+	processTracker.kill(runId);
 }
 
 export async function executeCustomScript(params: CustomScriptParams): Promise<string> {
@@ -74,7 +52,7 @@ export async function executeCustomScript(params: CustomScriptParams): Promise<s
 		stderr: "pipe",
 	});
 
-	activeProcesses.set(runId, proc);
+	processTracker.register(runId, proc);
 
 	let stdout = "";
 	let stderr = "";
@@ -113,7 +91,7 @@ export async function executeCustomScript(params: CustomScriptParams): Promise<s
 		await proc.exited;
 	} finally {
 		clearTimeout(timeout);
-		activeProcesses.delete(runId);
+		processTracker.remove(runId);
 	}
 
 	if (timedOut) {

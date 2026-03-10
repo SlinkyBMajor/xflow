@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
 import { Input } from "../ui/input";
+import { useToggleInput } from "../../hooks/useToggleInput";
 
 interface AddLaneButtonProps {
 	onAdd: (name: string, color?: string) => void;
@@ -8,23 +8,10 @@ interface AddLaneButtonProps {
 const LANE_COLORS = ["#6366f1", "#f59e0b", "#22c55e", "#ef4444", "#06b6d4", "#ec4899", "#8b5cf6", "#f97316"];
 
 export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
-	const [active, setActive] = useState(false);
-	const [name, setName] = useState("");
-	const inputRef = useRef<HTMLInputElement>(null);
-
-	useEffect(() => {
-		if (active) inputRef.current?.focus();
-	}, [active]);
-
-	const handleSubmit = () => {
-		const trimmed = name.trim();
-		if (trimmed) {
-			const color = LANE_COLORS[Math.floor(Math.random() * LANE_COLORS.length)];
-			onAdd(trimmed, color);
-		}
-		setName("");
-		setActive(false);
-	};
+	const { active, setActive, inputProps } = useToggleInput((name) => {
+		const color = LANE_COLORS[Math.floor(Math.random() * LANE_COLORS.length)];
+		onAdd(name, color);
+	});
 
 	if (!active) {
 		return (
@@ -43,17 +30,7 @@ export function AddLaneButton({ onAdd }: AddLaneButtonProps) {
 	return (
 		<div className="w-72 flex-shrink-0 animate-scale-in">
 			<Input
-				ref={inputRef}
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Enter") handleSubmit();
-					if (e.key === "Escape") {
-						setName("");
-						setActive(false);
-					}
-				}}
-				onBlur={handleSubmit}
+				{...inputProps}
 				placeholder="Lane name..."
 			/>
 		</div>

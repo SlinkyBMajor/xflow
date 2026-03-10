@@ -6,6 +6,7 @@ import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
 import * as commentQueries from "../db/queries/comments";
+import { insertAndEmit, createProcessTracker } from "./engine-utils";
 import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch } from "../git/worktree";
 import { mergeWorktreeBranch } from "../git/merge";
 import type { MergeStrategy } from "../../shared/types";
@@ -28,32 +29,10 @@ interface ClaudeAgentParams {
 	onEvent?: (event: RunEvent) => void;
 }
 
-const activeProcesses = new Map<string, { kill: () => void }>();
+const processTracker = createProcessTracker();
 
 export function killAgentProcess(runId: string): void {
-	const proc = activeProcesses.get(runId);
-	if (proc) {
-		proc.kill();
-		activeProcesses.delete(runId);
-	}
-}
-
-function insertAndEmit(
-	db: DB,
-	runId: string,
-	type: string,
-	payload: unknown,
-	onEvent?: (event: RunEvent) => void,
-): void {
-	const event: RunEvent = {
-		id: crypto.randomUUID(),
-		runId,
-		type,
-		payload,
-		timestamp: new Date().toISOString(),
-	};
-	runQueries.insertRunEvent(db, event);
-	onEvent?.(event);
+	processTracker.kill(runId);
 }
 
 export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<string> {
@@ -222,7 +201,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 		},
 	);
 
-	activeProcesses.set(runId, proc);
+	processTracker.register(runId, proc);
 
 	let outputText = "";
 	let stderrText = "";
@@ -300,7 +279,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 		await stderrPromise;
 	} finally {
 		clearTimeout(timeout);
-		activeProcesses.delete(runId);
+		processTracker.remove(runId);
 		if (apiPort) revokeToken(runId);
 	}
 
