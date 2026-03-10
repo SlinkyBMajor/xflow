@@ -128,6 +128,19 @@ export function getRunsWithWorktrees(db: DB): WorkflowRun[] {
 		.map(rowToRun);
 }
 
+export function getLatestWorktreeRunForTicket(db: DB, ticketId: string): WorkflowRun | null {
+	const row = db
+		.select()
+		.from(workflowRuns)
+		.where(and(
+			eq(workflowRuns.ticketId, ticketId),
+			isNotNull(workflowRuns.worktreePath),
+		))
+		.orderBy(desc(workflowRuns.startedAt))
+		.get();
+	return row ? rowToRun(row) : null;
+}
+
 export function insertRunEvent(db: DB, event: {
 	id: string;
 	runId: string;

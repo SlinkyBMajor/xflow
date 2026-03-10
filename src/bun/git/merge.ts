@@ -186,6 +186,24 @@ async function createPR(projectPath: string, branch: string, baseBranch: string,
 	}
 	console.log(`[Merge] Pushed ${branch} to origin`);
 
+	// Check if a PR already exists for this branch
+	const existingPr = Bun.spawn(
+		["gh", "pr", "view", branch, "--json", "url", "-q", ".url"],
+		{ cwd: projectPath, stdout: "pipe", stderr: "pipe" },
+	);
+	const [existingUrl, existingErr] = await Promise.all([
+		new Response(existingPr.stdout).text(),
+		new Response(existingPr.stderr).text(),
+	]);
+	await existingPr.exited;
+
+	if (existingPr.exitCode === 0 && existingUrl.trim()) {
+		// PR already exists — push updated the branch, so we're done
+		const prUrl = existingUrl.trim();
+		console.log(`[Merge] Existing PR updated with new commits: ${prUrl}`);
+		return { success: true, strategy: "pr", conflicted: false, prUrl };
+	}
+
 	// Build PR title and body from ticket context + git history
 	const { title, body } = await buildPRContent(pushCwd, baseBranch, branch, context);
 

@@ -6,7 +6,7 @@ import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
 import * as commentQueries from "../db/queries/comments";
-import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch } from "../git/worktree";
+import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch, worktreeExists } from "../git/worktree";
 import { mergeWorktreeBranch } from "../git/merge";
 import type { MergeStrategy } from "../../shared/types";
 import { createToken, revokeToken } from "../server/agent-tokens";
@@ -80,17 +80,39 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	let worktreePath: string | null = null;
 	let resolvedBaseBranch: string | null = null;
 
-	// Create worktree for isolated execution if enabled
+	// Create or reuse worktree for isolated execution if enabled
 	if (worktreeEnabled && projectPath) {
 		const isRepo = await isGitRepo(projectPath);
 		if (isRepo) {
 			resolvedBaseBranch = configBaseBranch ?? await getCurrentBranch(projectPath);
-			const wt = await createWorktree(projectPath, runId, ticket.id);
-			agentCwd = wt.path;
-			worktreeBranch = wt.branch;
-			worktreePath = wt.path;
-			runQueries.updateRun(db, runId, { worktreePath: wt.path, worktreeBranch: wt.branch });
-			insertAndEmit(db, runId, "WORKTREE_CREATED", { path: wt.path, branch: wt.branch }, onEvent);
+
+			// Check if a previous run for this ticket left an existing worktree
+			const previousRun = runQueries.getLatestWorktreeRunForTicket(db, ticket.id);
+			const canReuse = previousRun?.worktreePath
+				&& previousRun.id !== runId
+				&& await worktreeExists(previousRun.worktreePath);
+
+			if (canReuse && previousRun.worktreePath && previousRun.worktreeBranch) {
+				// Reuse existing worktree — agent continues where the last run left off
+				agentCwd = previousRun.worktreePath;
+				worktreeBranch = previousRun.worktreeBranch;
+				worktreePath = previousRun.worktreePath;
+				runQueries.updateRun(db, runId, { worktreePath, worktreeBranch });
+				// Clear worktree ref from the old run so it's owned by the new one
+				runQueries.updateRun(db, previousRun.id, { worktreePath: null, worktreeBranch: null });
+				insertAndEmit(db, runId, "WORKTREE_REUSED", {
+					path: worktreePath,
+					branch: worktreeBranch,
+					previousRunId: previousRun.id,
+				}, onEvent);
+			} else {
+				const wt = await createWorktree(projectPath, runId, ticket.id);
+				agentCwd = wt.path;
+				worktreeBranch = wt.branch;
+				worktreePath = wt.path;
+				runQueries.updateRun(db, runId, { worktreePath: wt.path, worktreeBranch: wt.branch });
+				insertAndEmit(db, runId, "WORKTREE_CREATED", { path: wt.path, branch: wt.branch }, onEvent);
+			}
 		}
 	}
 

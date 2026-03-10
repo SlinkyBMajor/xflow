@@ -74,6 +74,14 @@ export async function worktreeHasChanges(worktreePath: string): Promise<boolean>
 	return result.stdout.length > 0;
 }
 
+export async function worktreeExists(worktreePath: string): Promise<boolean> {
+	const { existsSync } = await import("fs");
+	if (!existsSync(worktreePath)) return false;
+	// Verify it's still a valid git worktree
+	const result = await runGit(worktreePath, ["rev-parse", "--is-inside-work-tree"]);
+	return result.exitCode === 0 && result.stdout === "true";
+}
+
 export async function pruneOrphanedWorktrees(projectPath: string, activeRunIds: string[]): Promise<void> {
 	const { existsSync, readdirSync } = await import("fs");
 
