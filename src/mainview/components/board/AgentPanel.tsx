@@ -174,6 +174,23 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		});
 	}, [trackedRuns]);
 
+	const closeDeadTabs = useCallback(() => {
+		setTrackedRuns((prev) => {
+			const next = new Map<string, WorkflowRun>();
+			for (const [id, run] of prev) {
+				if (run.status === "active") next.set(id, run);
+			}
+			return next;
+		});
+		setSelectedRunId((prev) => {
+			if (!prev) return null;
+			const run = trackedRuns.get(prev);
+			if (run && run.status === "active") return prev;
+			const firstActive = [...trackedRuns.values()].find((r) => r.status === "active");
+			return firstActive?.id ?? null;
+		});
+	}, [trackedRuns]);
+
 	const tabs: TabInfo[] = [...trackedRuns.values()].map((run) => ({
 		run,
 		ticketTitle: ticketMap.get(run.ticketId)?.title ?? run.ticketId.slice(0, 8),
@@ -184,6 +201,7 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		: tabs.length > 0 ? tabs[0].run.id : null;
 
 	const hasActiveRuns = [...trackedRuns.values()].some((r) => r.status === "active");
+	const deadCount = [...trackedRuns.values()].filter((r) => r.status !== "active").length;
 	const tabCount = tabs.length;
 
 	if (!open) {
@@ -261,6 +279,14 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 									}}
 								/>
 							))}
+							{deadCount > 0 && (
+								<button
+									onClick={closeDeadTabs}
+									className="ml-auto shrink-0 px-3 py-1.5 text-[11px] font-mono text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#21262d]/50 transition-colors"
+								>
+									Clean up ({deadCount})
+								</button>
+							)}
 						</div>
 
 						{/* Event log for selected tab */}
