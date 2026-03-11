@@ -1,31 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { rpc, onTicketCommentAdded } from "../rpc";
 import type { TicketComment } from "../../shared/types";
+import { useRpcListData } from "./useRpcListData";
+
+const appendComment = (prev: TicketComment[], item: TicketComment) => [...prev, item];
 
 export function useTicketComments(ticketId: string | null) {
-	const [comments, setComments] = useState<TicketComment[]>([]);
+	const fetchFn = useCallback((id: string) => rpc.request.getTicketComments({ ticketId: id }), []);
+	const matchFn = useCallback((comment: TicketComment, id: string) => comment.ticketId === id, []);
 
-	const fetchComments = useCallback(async () => {
-		if (!ticketId) {
-			setComments([]);
-			return;
-		}
-		const data = await rpc.request.getTicketComments({ ticketId });
-		setComments(data);
-	}, [ticketId]);
-
-	useEffect(() => {
-		fetchComments();
-	}, [fetchComments]);
-
-	useEffect(() => {
-		if (!ticketId) return;
-		return onTicketCommentAdded((comment) => {
-			if (comment.ticketId === ticketId) {
-				setComments((prev) => [...prev, comment]);
-			}
-		});
-	}, [ticketId]);
+	const { data: comments, refresh: refreshComments } = useRpcListData(
+		ticketId,
+		fetchFn,
+		onTicketCommentAdded,
+		matchFn,
+		appendComment,
+	);
 
 	const addComment = useCallback(
 		async (body: string, refNodeId?: string, refLabel?: string) => {
@@ -35,5 +25,5 @@ export function useTicketComments(ticketId: string | null) {
 		[ticketId],
 	);
 
-	return { comments, addComment, refreshComments: fetchComments };
+	return { comments, addComment, refreshComments };
 }

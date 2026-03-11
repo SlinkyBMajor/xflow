@@ -1,31 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { rpc, onRunEventAdded } from "../rpc";
 import type { RunEvent } from "../../shared/types";
+import { useRpcListData } from "./useRpcListData";
+
+const appendEvent = (prev: RunEvent[], item: RunEvent) => [...prev, item];
 
 export function useRunEvents(runId: string | null) {
-	const [events, setEvents] = useState<RunEvent[]>([]);
+	const fetchFn = useCallback((id: string) => rpc.request.getRunEvents({ runId: id }), []);
+	const matchFn = useCallback((event: RunEvent, id: string) => event.runId === id, []);
 
-	const fetchEvents = useCallback(async () => {
-		if (!runId) {
-			setEvents([]);
-			return;
-		}
-		const data = await rpc.request.getRunEvents({ runId });
-		setEvents(data);
-	}, [runId]);
+	const { data: events, refresh: refreshEvents } = useRpcListData(
+		runId,
+		fetchFn,
+		onRunEventAdded,
+		matchFn,
+		appendEvent,
+	);
 
-	useEffect(() => {
-		fetchEvents();
-	}, [fetchEvents]);
-
-	useEffect(() => {
-		if (!runId) return;
-		return onRunEventAdded((event) => {
-			if (event.runId === runId) {
-				setEvents((prev) => [...prev, event]);
-			}
-		});
-	}, [runId]);
-
-	return { events, refreshEvents: fetchEvents };
+	return { events, refreshEvents };
 }
