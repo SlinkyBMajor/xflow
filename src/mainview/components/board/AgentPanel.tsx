@@ -91,14 +91,17 @@ export function AgentPanel({ activeRuns, tickets }: AgentPanelProps) {
 		return onWorkflowRunUpdated((run) => {
 			if (run.status === "active") {
 				setTrackedRuns((prev) => {
+					const isNew = !prev.has(run.id);
 					const next = new Map(prev);
 					next.set(run.id, run);
+					if (isNew) {
+						setSelectedRunId(run.id);
+						if (!userMinimized.current) {
+							setOpen(true);
+						}
+					}
 					return next;
 				});
-				setSelectedRunId(run.id);
-				if (!userMinimized.current) {
-					setOpen(true);
-				}
 			} else {
 				setTrackedRuns((prev) => {
 					if (!prev.has(run.id)) return prev;
