@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Node } from "@xyflow/react";
 import type { IRNodeConfig, IRNodeType, Lane } from "../../../shared/types";
 import { Input } from "../ui/input";
@@ -6,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
+import { Copy, Check } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	start: "Entry point of the workflow",
@@ -25,6 +27,33 @@ interface NodeConfigPanelProps {
 	lanes: Lane[];
 	onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 	onDelete: (nodeId: string) => void;
+}
+
+function NodeIdField({ id }: { id: string }) {
+	const [copied, setCopied] = useState(false);
+	const copyId = () => {
+		navigator.clipboard.writeText(id);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 1500);
+	};
+	return (
+		<div>
+			<Label className="text-xs text-[#8b949e] mb-1">Node ID</Label>
+			<div className="flex items-center gap-1">
+				<code className="flex-1 text-xs text-[#8b949e] bg-[#0d1117] border border-[#30363d] rounded-md px-2 py-1.5 truncate select-all">
+					{id}
+				</code>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-[#8b949e] hover:text-[#e6edf3]" onClick={copyId}>
+							{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>{copied ? "Copied!" : "Copy node ID"}</TooltipContent>
+				</Tooltip>
+			</div>
+		</div>
+	);
 }
 
 export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigPanelProps) {
@@ -52,6 +81,7 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 			</div>
 
 			<div className="space-y-3">
+				<NodeIdField id={node.id} />
 				<div>
 					<Label htmlFor="node-label" className="text-xs text-[#8b949e] mb-1">Label</Label>
 					<Input

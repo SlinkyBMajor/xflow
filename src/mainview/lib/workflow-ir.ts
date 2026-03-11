@@ -13,7 +13,7 @@ export function irToReactFlow(ir: WorkflowIR): { nodes: Node[]; edges: Edge[] } 
 		id: e.id,
 		source: e.from,
 		target: e.to,
-		label: e.on,
+		sourceHandle: e.on ?? undefined,
 		type: "smoothstep",
 		animated: false,
 		style: { stroke: "#52525b" },
@@ -35,7 +35,7 @@ export function reactFlowToIR(rfNodes: Node[], rfEdges: Edge[]): WorkflowIR {
 		id: e.id,
 		from: e.source,
 		to: e.target,
-		on: e.label ? String(e.label) : undefined,
+		on: e.sourceHandle ? String(e.sourceHandle) : (e.label ? String(e.label) : undefined),
 	}));
 
 	return { version: 1, nodes, edges };
