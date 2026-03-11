@@ -1,7 +1,7 @@
 import type { Lane } from "../../../shared/types";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { Workflow, Pencil } from "lucide-react";
+import { Workflow, Pencil, GripVertical } from "lucide-react";
 
 interface LaneHeaderProps {
 	lane: Lane;
@@ -9,11 +9,19 @@ interface LaneHeaderProps {
 	isOverWip: boolean;
 	onEdit: () => void;
 	onOpenWorkflow?: () => void;
+	handleRef?: (element: Element | null) => void;
 }
 
-export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflow }: LaneHeaderProps) {
+export function LaneHeader({ lane, ticketCount, isOverWip, onEdit, onOpenWorkflow, handleRef }: LaneHeaderProps) {
 	return (
 		<div className="group flex items-center gap-2 px-3 py-2.5 border-b border-[#21262d]">
+			<button
+				ref={handleRef}
+				className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-[#6e7681] hover:text-[#e6edf3] -ml-1"
+			>
+				<GripVertical size={14} />
+			</button>
+
 			<div
 				className="w-2 h-2 rounded-full flex-shrink-0"
 				style={{ backgroundColor: lane.color || "#71717a" }}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
-import type { BoardWithLanesAndTickets, Ticket, WorkflowRun, WorktreeRunInfo } from "../../../shared/types";
+import type { BoardWithLanesAndTickets, Lane as LaneType, Ticket, WorkflowRun, WorktreeRunInfo } from "../../../shared/types";
 import { Lane } from "./Lane";
 import { AddLaneButton } from "./AddLaneButton";
 
@@ -48,25 +48,61 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 		setItems(initialItems);
 	}, [initialItems]);
 
-	// Build a ticket lookup map
+	// Lane ordering state
+	const initialLaneOrder = useMemo(
+		() => [...boardData.lanes].sort((a, b) => a.order - b.order).map((l) => l.id),
+		[boardData],
+	);
+	const [laneOrder, setLaneOrder] = useState(initialLaneOrder);
+	useEffect(() => {
+		setLaneOrder(initialLaneOrder);
+	}, [initialLaneOrder]);
+
+	// Build lookup maps
 	const ticketMap = useMemo(() => {
 		const map = new Map<string, Ticket>();
 		for (const t of boardData.tickets) map.set(t.id, t);
 		return map;
 	}, [boardData.tickets]);
 
+	const laneMap = useMemo(() => {
+		const map = new Map<string, LaneType>();
+		for (const l of boardData.lanes) map.set(l.id, l);
+		return map;
+	}, [boardData.lanes]);
+
 	return (
 		<div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden px-5 py-4">
 			<DragDropProvider
 				onDragOver={(event) => {
-					const { source } = event.operation;
-					if (source?.type === "column") return;
+					const { source, target } = event.operation;
+					if (source?.type === "column") {
+						if (!target || target.id === source.id) return;
+						setLaneOrder((current) => {
+							const from = current.indexOf(String(source.id));
+							const to = current.indexOf(String(target.id));
+							if (from === -1 || to === -1) return current;
+							const next = [...current];
+							next.splice(from, 1);
+							next.splice(to, 0, String(source.id));
+							return next;
+						});
+						return;
+					}
 					setItems((current) => move(current, event));
 				}}
 				onDragEnd={async (event) => {
-					if (event.canceled) return;
 					const { source } = event.operation;
-					if (!source || source.type === "column") return;
+					if (event.canceled) {
+						if (source?.type === "column") setLaneOrder(initialLaneOrder);
+						return;
+					}
+					if (!source) return;
+
+					if (source.type === "column") {
+						await laneActions.reorderLanes(laneOrder);
+						return;
+					}
 
 					const ticketId = String(source.id);
 					// Find which lane the ticket is now in
@@ -86,12 +122,14 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 				}}
 			>
 				<div className="flex gap-3 h-full items-start">
-					{boardData.lanes
-						.sort((a, b) => a.order - b.order)
-						.map((lane) => (
+					{laneOrder.map((laneId, index) => {
+						const lane = laneMap.get(laneId);
+						if (!lane) return null;
+						return (
 							<Lane
 								key={lane.id}
 								lane={lane}
+								index={index}
 								lanes={boardData.lanes}
 								tickets={(items[lane.id] || [])
 									.map((id) => ticketMap.get(id))
@@ -103,7 +141,8 @@ export function KanbanBoard({ boardData, lanes: laneActions, tickets: ticketActi
 								activeRuns={activeRuns}
 								worktreeRuns={worktreeRuns}
 							/>
-						))}
+						);
+					})}
 					<AddLaneButton onAdd={laneActions.createLane} />
 				</div>
 			</DragDropProvider>

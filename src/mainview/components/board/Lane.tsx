@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/react";
+import { useSortable } from "@dnd-kit/react/sortable";
 import type { Lane as LaneType, Ticket, WorkflowRun, WorktreeRunInfo } from "../../../shared/types";
 import { LaneHeader } from "./LaneHeader";
 import { TicketCard } from "./TicketCard";
@@ -10,6 +11,7 @@ import { TicketContextMenu } from "../ticket/TicketContextMenu";
 
 interface LaneProps {
 	lane: LaneType;
+	index: number;
 	lanes: LaneType[];
 	tickets: Ticket[];
 	laneActions: {
@@ -29,12 +31,23 @@ interface LaneProps {
 	worktreeRuns?: Map<string, WorktreeRunInfo>;
 }
 
-export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane, activeRuns, worktreeRuns }: LaneProps) {
+export function Lane({ lane, index, lanes, tickets, laneActions, ticketActions, onEditWorkflow, onCreateWorkflowForLane, activeRuns, worktreeRuns }: LaneProps) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 	const selectedTicket = selectedTicketId ? tickets.find((t) => t.id === selectedTicketId) ?? null : null;
 
-	const { ref } = useDroppable({
+	const { ref: sortableRef, handleRef, isDragSource } = useSortable({
+		id: lane.id,
+		index,
+		type: "column",
+		accept: "column",
+		transition: {
+			duration: 200,
+			easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+		},
+	});
+
+	const { ref: droppableRef } = useDroppable({
 		id: lane.id,
 		type: "column",
 	});
@@ -44,8 +57,8 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 	return (
 		<>
 			<div
-				ref={ref}
-				className="flex flex-col w-72 flex-shrink-0 bg-[#161b22]/80 rounded-xl border border-[#21262d] h-fit max-h-full min-h-[115px]"
+				ref={sortableRef}
+				className={`flex flex-col w-72 flex-shrink-0 bg-[#161b22]/80 rounded-xl border border-[#21262d] h-fit max-h-full min-h-[115px] ${isDragSource ? "opacity-50" : ""}`}
 			>
 				<LaneHeader
 					lane={lane}
@@ -53,9 +66,10 @@ export function Lane({ lane, lanes, tickets, laneActions, ticketActions, onEditW
 					isOverWip={isOverWip}
 					onEdit={() => setSettingsOpen(true)}
 					onOpenWorkflow={lane.workflowId ? () => onEditWorkflow(lane.id, lane.name, lane.workflowId!) : undefined}
+					handleRef={handleRef}
 				/>
 
-				<div className="flex-1 overflow-y-auto px-2 pt-2 pb-2 space-y-1.5 min-h-[40px]">
+				<div ref={droppableRef} className="flex-1 overflow-y-auto px-2 pt-2 pb-2 space-y-1.5 min-h-[40px]">
 					{tickets.map((ticket, index) => (
 						<TicketContextMenu
 							key={ticket.id}
