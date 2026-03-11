@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import type { DB } from "../db/connection";
-import type { Ticket, RunEvent } from "../../shared/types";
+import type { Ticket, RunEvent, ClaudeModel, AllowedToolsPreset } from "../../shared/types";
+import { ALLOWED_TOOLS_PRESETS } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
@@ -26,6 +27,12 @@ interface ClaudeAgentParams {
 	projectPath?: string;
 	apiPort?: number;
 	onEvent?: (event: RunEvent) => void;
+	model?: ClaudeModel;
+	maxTurns?: number;
+	systemPrompt?: string;
+	skipPermissions?: boolean;
+	allowedToolsPreset?: AllowedToolsPreset;
+	allowedToolsCustom?: string;
 }
 
 const activeProcesses = new Map<string, { kill: () => void }>();
@@ -72,6 +79,12 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		projectPath,
 		apiPort,
 		onEvent,
+		model,
+		maxTurns,
+		systemPrompt,
+		skipPermissions = true,
+		allowedToolsPreset,
+		allowedToolsCustom,
 	} = params;
 
 	const baseCwd = projectPath ?? process.cwd();
@@ -234,15 +247,42 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 		spawnEnv.XFLOW_TICKET_ID = ticket.id;
 	}
 
-	const proc = Bun.spawn(
-		["claude", "-p", fullPrompt, "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"],
-		{
-			cwd: agentCwd,
-			stdout: "pipe",
-			stderr: "pipe",
-			env: spawnEnv,
-		},
-	);
+	// Build CLI arguments dynamically based on config
+	const cliArgs = ["claude", "-p", fullPrompt, "--output-format", "stream-json", "--verbose"];
+
+	if (model) {
+		cliArgs.push("--model", model);
+	}
+
+	if (maxTurns && maxTurns > 0) {
+		cliArgs.push("--max-turns", String(maxTurns));
+	}
+
+	if (systemPrompt) {
+		cliArgs.push("--append-system-prompt", systemPrompt);
+	}
+
+	if (skipPermissions) {
+		cliArgs.push("--dangerously-skip-permissions");
+	} else {
+		// Resolve allowed tools from preset or custom list
+		let tools: string[] | undefined;
+		if (allowedToolsPreset === "custom" && allowedToolsCustom) {
+			tools = allowedToolsCustom.split(",").map((t) => t.trim()).filter(Boolean);
+		} else if (allowedToolsPreset && allowedToolsPreset !== "custom") {
+			tools = ALLOWED_TOOLS_PRESETS[allowedToolsPreset];
+		}
+		if (tools && tools.length > 0) {
+			cliArgs.push("--allowedTools", tools.join(","));
+		}
+	}
+
+	const proc = Bun.spawn(cliArgs, {
+		cwd: agentCwd,
+		stdout: "pipe",
+		stderr: "pipe",
+		env: spawnEnv,
+	});
 
 	activeProcesses.set(runId, proc);
 

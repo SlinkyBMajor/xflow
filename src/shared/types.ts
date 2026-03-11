@@ -129,6 +129,16 @@ export type IRNodeType =
 	| "setMetadata"
 	| "log";
 
+export type ClaudeModel = "sonnet" | "opus" | "haiku";
+
+export type AllowedToolsPreset = "read-only" | "edit" | "full" | "custom";
+
+export const ALLOWED_TOOLS_PRESETS: Record<Exclude<AllowedToolsPreset, "custom">, string[]> = {
+	"read-only": ["Read", "Grep", "Glob"],
+	"edit": ["Read", "Write", "Edit", "Grep", "Glob"],
+	"full": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent"],
+};
+
 export interface ClaudeAgentConfig {
 	prompt: string;
 	timeoutMs?: number;
@@ -137,6 +147,12 @@ export interface ClaudeAgentConfig {
 	mergeStrategy?: MergeStrategy;
 	baseBranch?: string;
 	outputLabel?: string;
+	model?: ClaudeModel;
+	maxTurns?: number;
+	systemPrompt?: string;
+	skipPermissions?: boolean;
+	allowedToolsPreset?: AllowedToolsPreset;
+	allowedToolsCustom?: string;
 }
 
 export interface CustomScriptConfig {

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { Node } from "@xyflow/react";
-import type { IRNodeConfig, IRNodeType, Lane } from "../../../shared/types";
+import type { IRNodeConfig, IRNodeType, Lane, ClaudeModel, AllowedToolsPreset } from "../../../shared/types";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	start: "Entry point of the workflow",
@@ -116,6 +116,227 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 	);
 }
 
+function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+	const [open, setOpen] = useState(defaultOpen);
+	return (
+		<div className="border-t border-[#21262d] pt-2 -mx-0.5">
+			<button
+				type="button"
+				onClick={() => setOpen(!open)}
+				className="flex items-center gap-1.5 w-full text-left text-xs font-medium text-[#8b949e] hover:text-[#e6edf3] transition-colors py-1"
+			>
+				{open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+				{title}
+			</button>
+			{open && <div className="space-y-3 pt-2">{children}</div>}
+		</div>
+	);
+}
+
+function TipLabel({ label, tip }: { label: string; tip: string }) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Label className="text-xs text-[#8b949e] mb-1 cursor-default border-b border-dotted border-[#30363d]">{label}</Label>
+			</TooltipTrigger>
+			<TooltipContent side="left" className="max-w-[220px]">{tip}</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function ClaudeAgentFields({ config, updateConfig }: {
+	config: IRNodeConfig & { type: "claudeAgent" };
+	updateConfig: (updates: Record<string, unknown>) => void;
+}) {
+	const skipPermissions = config.skipPermissions ?? true;
+
+	return (
+		<>
+			{/* Always visible: core task fields */}
+			<div>
+				<TipLabel label="Prompt" tip="The task instructions sent to the agent. Supports {{ticket.title}}, {{ticket.body}}, and {{ticket.metadata.*}} interpolation." />
+				<Textarea
+					value={config.prompt}
+					onChange={(e) => updateConfig({ prompt: e.target.value })}
+					className="text-sm min-h-[80px]"
+					placeholder="Enter prompt for Claude..."
+				/>
+			</div>
+			<div>
+				<TipLabel label="Output Label" tip="Name for this node's output. Referenced in later nodes and visible in the run log." />
+				<Input
+					value={config.outputLabel ?? ""}
+					onChange={(e) => updateConfig({ outputLabel: e.target.value || undefined })}
+					className="h-8 text-sm"
+					placeholder='e.g., "Plan", "Implementation"'
+				/>
+			</div>
+			<div>
+				<TipLabel label="Model" tip="Which Claude model to use. Opus is most capable, Haiku is fastest and cheapest, Sonnet balances both." />
+				<select
+					value={config.model ?? ""}
+					onChange={(e) => updateConfig({ model: e.target.value || undefined })}
+					className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+				>
+					<option value="">Default</option>
+					<option value="opus">Opus</option>
+					<option value="sonnet">Sonnet</option>
+					<option value="haiku">Haiku</option>
+				</select>
+			</div>
+
+			{/* Agent section */}
+			<ConfigSection title="Agent">
+				<div>
+					<TipLabel label="Max Turns" tip="Limit how many tool-use turns the agent can take. Caps cost and prevents runaway loops. Leave empty for unlimited." />
+					<Input
+						type="number"
+						min={1}
+						value={config.maxTurns ?? ""}
+						onChange={(e) => {
+							const val = parseInt(e.target.value);
+							updateConfig({ maxTurns: val > 0 ? val : undefined });
+						}}
+						className="h-8 text-sm w-28"
+						placeholder="Unlimited"
+					/>
+				</div>
+				<div>
+					<TipLabel label="System Prompt" tip="Appended to Claude's default system prompt. Use for persistent instructions like coding style, constraints, or persona that shouldn't mix with the task prompt." />
+					<Textarea
+						value={config.systemPrompt ?? ""}
+						onChange={(e) => updateConfig({ systemPrompt: e.target.value || undefined })}
+						className="text-sm min-h-[60px]"
+						placeholder="Additional system instructions..."
+					/>
+				</div>
+				<div>
+					<label className="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							checked={config.includeWorkflowOutput ?? true}
+							onChange={(e) => updateConfig({ includeWorkflowOutput: e.target.checked })}
+							className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
+						/>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Include prior workflow output</span>
+							</TooltipTrigger>
+							<TooltipContent side="left" className="max-w-[220px]">Feed outputs from previous nodes and user comments into this agent's context.</TooltipContent>
+						</Tooltip>
+					</label>
+				</div>
+			</ConfigSection>
+
+			{/* Permissions section */}
+			<ConfigSection title="Permissions">
+				<div>
+					<label className="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							checked={skipPermissions}
+							onChange={(e) => updateConfig({ skipPermissions: e.target.checked })}
+							className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
+						/>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Skip permission checks</span>
+							</TooltipTrigger>
+							<TooltipContent side="left" className="max-w-[220px]">Auto-approve all tool use without prompting. When off, you can restrict which tools the agent may use.</TooltipContent>
+						</Tooltip>
+					</label>
+				</div>
+				{!skipPermissions && (
+					<>
+						<div>
+							<TipLabel label="Allowed Tools" tip="Preset sets of tools the agent can use. Read-only for analysis, Edit for code changes, Full for unrestricted tool access." />
+							<select
+								value={config.allowedToolsPreset ?? "edit"}
+								onChange={(e) => updateConfig({ allowedToolsPreset: e.target.value as AllowedToolsPreset })}
+								className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+							>
+								<option value="read-only">Read-only (Read, Grep, Glob)</option>
+								<option value="edit">Edit (Read, Write, Edit, Grep, Glob)</option>
+								<option value="full">Full (Read, Write, Edit, Bash, Grep, Glob, Agent)</option>
+								<option value="custom">Custom</option>
+							</select>
+						</div>
+						{config.allowedToolsPreset === "custom" && (
+							<div>
+								<TipLabel label="Custom Tools" tip="Comma-separated list of Claude Code tool names. Supports patterns like Bash(git:*) to allow only specific commands." />
+								<Input
+									value={config.allowedToolsCustom ?? ""}
+									onChange={(e) => updateConfig({ allowedToolsCustom: e.target.value || undefined })}
+									className="h-8 text-sm"
+									placeholder="Read,Edit,Bash(git:*)"
+								/>
+							</div>
+						)}
+					</>
+				)}
+			</ConfigSection>
+
+			{/* Execution section */}
+			<ConfigSection title="Execution">
+				<div>
+					<TipLabel label="Timeout (seconds)" tip="Maximum wall-clock time before the agent process is killed. Different from max turns which limits reasoning depth." />
+					<Input
+						type="number"
+						min={10}
+						value={Math.round((config.timeoutMs ?? 600000) / 1000)}
+						onChange={(e) => {
+							const secs = parseInt(e.target.value);
+							if (secs > 0) updateConfig({ timeoutMs: secs * 1000 });
+						}}
+						className="h-8 text-sm w-28"
+					/>
+				</div>
+				<div>
+					<label className="flex items-center gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							checked={config.worktreeEnabled ?? false}
+							onChange={(e) => updateConfig({ worktreeEnabled: e.target.checked })}
+							className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
+						/>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Use git worktree</span>
+							</TooltipTrigger>
+							<TooltipContent side="left" className="max-w-[220px]">Run the agent in an isolated git worktree so it doesn't affect other agents or the main working tree.</TooltipContent>
+						</Tooltip>
+					</label>
+				</div>
+				{config.worktreeEnabled && (
+					<>
+						<div>
+							<TipLabel label="After completion" tip="What to do with the worktree branch when the agent finishes. Auto-merge merges directly, PR creates a pull request, Manual leaves it for you." />
+							<select
+								value={config.mergeStrategy ?? "manual"}
+								onChange={(e) => updateConfig({ mergeStrategy: e.target.value })}
+								className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+							>
+								<option value="auto">Auto-merge</option>
+								<option value="pr">Create PR</option>
+								<option value="manual">Manual</option>
+							</select>
+						</div>
+						<div>
+							<TipLabel label="Base branch" tip="Target branch for merging. Defaults to whatever branch is checked out when the workflow runs." />
+							<Input
+								value={config.baseBranch ?? ""}
+								onChange={(e) => updateConfig({ baseBranch: e.target.value || undefined })}
+								className="h-8 text-sm"
+								placeholder="Defaults to current branch"
+							/>
+						</div>
+					</>
+				)}
+			</ConfigSection>
+		</>
+	);
+}
+
 function renderConfigFields(
 	config: IRNodeConfig,
 	updateConfig: (updates: Record<string, unknown>) => void,
@@ -123,88 +344,7 @@ function renderConfigFields(
 ) {
 	switch (config.type) {
 		case "claudeAgent":
-			return (
-				<>
-					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Prompt</Label>
-						<Textarea
-							value={config.prompt}
-							onChange={(e) => updateConfig({ prompt: e.target.value })}
-							className="text-sm min-h-[80px]"
-							placeholder="Enter prompt for Claude..."
-						/>
-					</div>
-					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Output Label</Label>
-						<Input
-							value={config.outputLabel ?? ""}
-							onChange={(e) => updateConfig({ outputLabel: e.target.value || undefined })}
-							className="h-8 text-sm"
-							placeholder='e.g., "Plan", "Implementation"'
-						/>
-					</div>
-					<div>
-						<label className="flex items-center gap-2 cursor-pointer">
-							<input
-								type="checkbox"
-								checked={config.includeWorkflowOutput ?? true}
-								onChange={(e) => updateConfig({ includeWorkflowOutput: e.target.checked })}
-								className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
-							/>
-							<span className="text-xs text-[#8b949e]">Include prior workflow output</span>
-						</label>
-					</div>
-					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Timeout (seconds)</Label>
-						<Input
-							type="number"
-							min={10}
-							value={Math.round((config.timeoutMs ?? 600000) / 1000)}
-							onChange={(e) => {
-								const secs = parseInt(e.target.value);
-								if (secs > 0) updateConfig({ timeoutMs: secs * 1000 });
-							}}
-							className="h-8 text-sm w-28"
-						/>
-					</div>
-					<div>
-						<label className="flex items-center gap-2 cursor-pointer">
-							<input
-								type="checkbox"
-								checked={config.worktreeEnabled ?? false}
-								onChange={(e) => updateConfig({ worktreeEnabled: e.target.checked })}
-								className="rounded border-[#30363d] bg-[#0d1117] text-[#58a6ff] focus:ring-[#58a6ff]/30 h-3.5 w-3.5"
-							/>
-							<span className="text-xs text-[#8b949e]">Use git worktree (isolate from other agents)</span>
-						</label>
-					</div>
-					{config.worktreeEnabled && (
-						<>
-							<div>
-								<Label className="text-xs text-[#8b949e] mb-1">After completion</Label>
-								<select
-									value={config.mergeStrategy ?? "manual"}
-									onChange={(e) => updateConfig({ mergeStrategy: e.target.value })}
-									className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
-								>
-									<option value="auto">Auto-merge</option>
-									<option value="pr">Create PR</option>
-									<option value="manual">Manual</option>
-								</select>
-							</div>
-							<div>
-								<Label className="text-xs text-[#8b949e] mb-1">Base branch (optional)</Label>
-								<Input
-									value={config.baseBranch ?? ""}
-									onChange={(e) => updateConfig({ baseBranch: e.target.value || undefined })}
-									className="h-8 text-sm"
-									placeholder="Defaults to current branch"
-								/>
-							</div>
-						</>
-					)}
-				</>
-			);
+			return <ClaudeAgentFields config={config} updateConfig={updateConfig} />;
 		case "customScript":
 			return (
 				<>
