@@ -75,7 +75,7 @@ export function WorkflowAIAssistant({
 
 		rpc.request.generateWorkflowFromPrompt({
 			prompt: prompt.trim(),
-			existingIR: mode === "add" ? existingIR : undefined,
+			existingIR,
 			mode,
 		});
 	}, [prompt, mode, existingIR]);

@@ -59,7 +59,8 @@ interface IREdge {
 4. For condition nodes, use "on": "TRUE" and "on": "FALSE" on outgoing edges.
 5. For waitForApproval nodes, use "on": "APPROVED" and "on": "REJECTED" on outgoing edges.
 6. Write helpful, specific prompts for Claude Agent nodes based on the user's description.
-7. Output ONLY the JSON object — no markdown, no explanation.
+7. NEVER ask clarifying questions. NEVER output explanations, markdown, or commentary. If the request is ambiguous, make reasonable assumptions and generate a valid workflow.
+8. Your entire response MUST be a single valid JSON object and nothing else.
 `;
 
 function buildFullPrompt(params: GenerateWorkflowParams): string {
@@ -67,15 +68,19 @@ function buildFullPrompt(params: GenerateWorkflowParams): string {
 
 	parts.push(buildNodeRegistryPrompt());
 
-	if (params.mode === "add" && params.existingIR) {
+	if (params.existingIR) {
 		parts.push("\n## Existing Workflow\n");
-		parts.push("Add to (do not replace) this existing workflow:\n");
 		parts.push("```json\n" + JSON.stringify(params.existingIR, null, 2) + "\n```\n");
-		parts.push("Return the COMPLETE workflow (existing + new nodes/edges merged).\n");
+		if (params.mode === "add") {
+			parts.push("Add to (do not replace) this existing workflow. Return the COMPLETE workflow (existing + new nodes/edges merged).\n");
+		} else {
+			parts.push("Modify this existing workflow based on the user's request. Return the COMPLETE updated workflow.\n");
+		}
 	}
 
 	parts.push("\n## User Request\n");
 	parts.push(params.prompt);
+	parts.push("\n\nRespond with ONLY the WorkflowIR JSON object. No explanation, no markdown fences.");
 
 	return parts.join("\n");
 }
@@ -126,8 +131,10 @@ export async function generateWorkflowIR(params: GenerateWorkflowParams): Promis
 		"--verbose",
 		"--model",
 		"haiku",
-		"--append-system-prompt",
+		"--system-prompt",
 		SYSTEM_PROMPT,
+		"--max-turns",
+		"1",
 	];
 
 	const proc = Bun.spawn(cliArgs, {
