@@ -6,6 +6,7 @@ import { BoardView } from "./components/board/BoardView";
 import { BoardHeader } from "./components/board/BoardHeader";
 import { WorkflowListView } from "./components/workflow/WorkflowListView";
 import { SettingsModal } from "./components/settings/SettingsModal";
+import { HelpModal } from "./components/help/HelpModal";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ConfirmProvider } from "./hooks/useConfirm";
 import { Toaster } from "./components/ui/sonner";
@@ -28,6 +29,7 @@ export default function App() {
 	const [activeTab, setActiveTab] = useState<"board" | "workflows">("board");
 	const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
 	const [showSettings, setShowSettings] = useState(false);
+	const [showHelp, setShowHelp] = useState(false);
 
 	const handleSaveSettings = useCallback(async (settings: BoardSettings) => {
 		await rpc.request.updateBoardSettings({ settings });
@@ -38,9 +40,18 @@ export default function App() {
 		}
 	}, [boardData, setBoardData]);
 
-	// Global keyboard shortcuts: ⌘1 → Board, ⌘2 → Workflows
+	// Global keyboard shortcuts: ⌘1 → Board, ⌘2 → Workflows, ? → Help
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
+			// ? key (no modifier) — open help, but not when typing in a field
+			if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+				const tag = (e.target as HTMLElement)?.tagName;
+				const editable = (e.target as HTMLElement)?.isContentEditable;
+				if (tag === "INPUT" || tag === "TEXTAREA" || editable) return;
+				e.preventDefault();
+				setShowHelp(true);
+				return;
+			}
 			if (!e.metaKey && !e.ctrlKey) return;
 			if (e.key === "1") {
 				e.preventDefault();
@@ -139,6 +150,7 @@ export default function App() {
 				settings={boardData.board.settings}
 				onSave={handleSaveSettings}
 			/>
+			<HelpModal open={showHelp} onOpenChange={setShowHelp} />
 			<Toaster position="bottom-right" />
 		</TooltipProvider></ConfirmProvider>
 	);

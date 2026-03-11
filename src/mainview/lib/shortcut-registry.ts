@@ -20,6 +20,13 @@ export const SHORTCUT_REGISTRY: Shortcut[] = [
 		keys: "⌘2",
 		group: "Global",
 	},
+	{
+		id: "help",
+		label: "Help",
+		keys: "?",
+		group: "Global",
+		description: "Show keyboard shortcuts",
+	},
 
 	// ── Workflow Editor ─────────────────────────────────
 	{
