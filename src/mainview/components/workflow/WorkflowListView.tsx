@@ -3,25 +3,13 @@ import type { Workflow, Lane } from "../../../shared/types";
 import { useWorkflow } from "../../hooks/useWorkflow";
 import { WorkflowEditor } from "./WorkflowEditor";
 import { Button } from "../ui/button";
+import { relativeTime } from "../../lib/date-utils";
 
 interface WorkflowListViewProps {
 	lanes: Lane[];
 	onCreateWorkflow: () => Promise<Workflow>;
 	selectedId: string | null;
 	onSelectWorkflow: (id: string | null) => void;
-}
-
-function relativeTime(iso: string): string {
-	const diff = Date.now() - new Date(iso).getTime();
-	const mins = Math.floor(diff / 60000);
-	if (mins < 1) return "just now";
-	if (mins < 60) return `${mins}m ago`;
-	const hrs = Math.floor(mins / 60);
-	if (hrs < 24) return `${hrs}h ago`;
-	const days = Math.floor(hrs / 24);
-	if (days < 30) return `${days}d ago`;
-	const months = Math.floor(days / 30);
-	return `${months}mo ago`;
 }
 
 export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelectWorkflow }: WorkflowListViewProps) {

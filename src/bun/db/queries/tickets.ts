@@ -3,6 +3,14 @@ import type { DB } from "../connection";
 import { tickets, workflowRuns, runEvents, lanes } from "../schema";
 import type { Ticket, TicketMetadata, TicketDerivedData } from "../../../shared/types";
 
+function deleteTicketRunData(db: DB, ticketId: string): void {
+	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();
+	for (const run of runs) {
+		db.delete(runEvents).where(eq(runEvents.runId, run.id)).run();
+	}
+	db.delete(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).run();
+}
+
 function rowToTicket(row: typeof tickets.$inferSelect): Ticket {
 	return {
 		...row,
@@ -86,13 +94,7 @@ export function updateTicket(
 }
 
 export function resetTicket(db: DB, ticketId: string): Ticket | undefined {
-	// Delete run events for all runs belonging to this ticket
-	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();
-	for (const run of runs) {
-		db.delete(runEvents).where(eq(runEvents.runId, run.id)).run();
-	}
-	// Delete workflow runs
-	db.delete(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).run();
+	deleteTicketRunData(db, ticketId);
 	// Reset metadata to initial state
 	const now = new Date().toISOString();
 	db.update(tickets)
@@ -108,13 +110,7 @@ export function resetTicket(db: DB, ticketId: string): Ticket | undefined {
 }
 
 export function deleteTicket(db: DB, ticketId: string): void {
-	// Delete run events for all runs belonging to this ticket
-	const runs = db.select({ id: workflowRuns.id }).from(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).all();
-	for (const run of runs) {
-		db.delete(runEvents).where(eq(runEvents.runId, run.id)).run();
-	}
-	// Delete workflow runs for this ticket
-	db.delete(workflowRuns).where(eq(workflowRuns.ticketId, ticketId)).run();
+	deleteTicketRunData(db, ticketId);
 	// Delete the ticket
 	db.delete(tickets).where(eq(tickets.id, ticketId)).run();
 }

@@ -1,39 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { rpc, onWorkflowRunUpdated } from "../rpc";
 import type { WorkflowRun } from "../../shared/types";
+import { useRpcListData } from "./useRpcListData";
+
+const upsertRun = (prev: WorkflowRun[], run: WorkflowRun) => {
+	const idx = prev.findIndex((r) => r.id === run.id);
+	if (idx >= 0) {
+		const next = [...prev];
+		next[idx] = run;
+		return next;
+	}
+	return [run, ...prev];
+};
 
 export function useWorkflowRuns(ticketId: string | null) {
-	const [runs, setRuns] = useState<WorkflowRun[]>([]);
+	const fetchFn = useCallback((id: string) => rpc.request.getWorkflowRunsForTicket({ ticketId: id }), []);
+	const matchFn = useCallback((run: WorkflowRun, id: string) => run.ticketId === id, []);
 
-	const fetchRuns = useCallback(async () => {
-		if (!ticketId) {
-			setRuns([]);
-			return;
-		}
-		const data = await rpc.request.getWorkflowRunsForTicket({ ticketId });
-		setRuns(data);
-	}, [ticketId]);
+	const { data: runs, refresh: refreshRuns } = useRpcListData(
+		ticketId,
+		fetchFn,
+		onWorkflowRunUpdated,
+		matchFn,
+		upsertRun,
+	);
 
-	useEffect(() => {
-		fetchRuns();
-	}, [fetchRuns]);
-
-	useEffect(() => {
-		if (!ticketId) return;
-		return onWorkflowRunUpdated((run) => {
-			if (run.ticketId === ticketId) {
-				setRuns((prev) => {
-					const idx = prev.findIndex((r) => r.id === run.id);
-					if (idx >= 0) {
-						const next = [...prev];
-						next[idx] = run;
-						return next;
-					}
-					return [run, ...prev];
-				});
-			}
-		});
-	}, [ticketId]);
-
-	return { runs, refreshRuns: fetchRuns };
+	return { runs, refreshRuns };
 }
