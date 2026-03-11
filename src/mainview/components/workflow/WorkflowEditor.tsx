@@ -26,6 +26,7 @@ import { NodePalette } from "./NodePalette";
 import { NodeConfigPanel } from "./NodeConfigPanel";
 import { VersionHistory } from "./VersionHistory";
 import { NodeReferenceModal } from "./NodeReferenceModal";
+import { WorkflowAIAssistant } from "./WorkflowAIAssistant";
 import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -50,6 +51,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 	const [editingName, setEditingName] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
 	const [showNodeReference, setShowNodeReference] = useState(false);
+	const [showAIAssistant, setShowAIAssistant] = useState(false);
 	const [toolbox, setToolbox] = useState<WorkflowToolboxState>({
 		edgeType: "smoothstep",
 		snapToGrid: false,
@@ -267,6 +269,26 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 		window.requestAnimationFrame(() => fitView({ padding: 0.2 }));
 	}, [edges, setNodes, markDirty, fitView]);
 
+	// AI assistant apply handler
+	const handleAIApply = useCallback((ir: import("../../../shared/types").WorkflowIR, mode: "replace" | "add") => {
+		const { nodes: rfNodes, edges: rfEdges } = irToReactFlow(ir);
+		if (mode === "replace") {
+			setNodes(rfNodes);
+			setEdges(rfEdges);
+		} else {
+			setNodes((nds) => [...nds, ...rfNodes]);
+			setEdges((eds) => [...eds, ...rfEdges]);
+		}
+		// Auto-layout after applying
+		setNodes((nds) => {
+			const allEdges = mode === "replace" ? rfEdges : [...edges, ...rfEdges];
+			return applyDagreLayout(nds, allEdges);
+		});
+		markDirty();
+		setSelectedNode(null);
+		window.requestAnimationFrame(() => fitView({ padding: 0.2 }));
+	}, [setNodes, setEdges, edges, markDirty, fitView]);
+
 	// Toolbox change handler — update existing edges when edge type changes
 	const handleToolboxChange = useCallback((next: WorkflowToolboxState) => {
 		if (next.edgeType !== toolbox.edgeType) {
@@ -290,6 +312,10 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 			if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "n") {
 				e.preventDefault();
 				setShowNodeReference((prev) => !prev);
+			}
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "a") {
+				e.preventDefault();
+				setShowAIAssistant((prev) => !prev);
 			}
 		};
 		window.addEventListener("keydown", handler);
@@ -332,6 +358,21 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 					)}
 					{saveError && (
 						<span className="text-xs text-red-400 mr-2">{saveError}</span>
+					)}
+					{!isRunning && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setShowAIAssistant(true)}
+									className="text-[#8b949e] hover:text-[#e6edf3]"
+								>
+									AI
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>AI workflow assistant (⌘⇧A)</TooltipContent>
+						</Tooltip>
 					)}
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -432,6 +473,13 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 				) : null}
 			</div>
 			<NodeReferenceModal open={showNodeReference} onOpenChange={setShowNodeReference} />
+			<WorkflowAIAssistant
+				open={showAIAssistant}
+				onOpenChange={setShowAIAssistant}
+				hasExistingNodes={nodes.length > 2 || edges.length > 0}
+				existingIR={reactFlowToIR(nodes, edges)}
+				onApply={handleAIApply}
+			/>
 		</div>
 	);
 }

@@ -1,5 +1,5 @@
 import { Electroview } from "electrobun/view";
-import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult, TicketComment } from "../shared/types";
+import type { XFlowRPC, BoardWithLanesAndTickets, ProjectOpenResult, WorkflowRun, InterruptedRunInfo, RunEvent, MergeResult, TicketComment, WorkflowIR } from "../shared/types";
 
 type BoardUpdateListener = (data: BoardWithLanesAndTickets) => void;
 type ProjectOpenedListener = (data: ProjectOpenResult) => void;
@@ -11,6 +11,8 @@ type WorktreeMergeResultListener = (data: { runId: string; result: MergeResult }
 type WorktreeDiffResultListener = (data: { runId: string; diff: string }) => void;
 type WorktreeCleanupDoneListener = (data: { runId: string }) => void;
 type TicketCommentListener = (comment: TicketComment) => void;
+type WorkflowGenerationResultListener = (data: { ir: WorkflowIR | null; error: string | null; mode: "replace" | "add" }) => void;
+type WorkflowGenerationEventListener = (data: { type: "text" | "tool_use" | "tool_result" | "status"; content: string }) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
@@ -22,6 +24,8 @@ const worktreeMergeResultListeners = new Set<WorktreeMergeResultListener>();
 const worktreeDiffResultListeners = new Set<WorktreeDiffResultListener>();
 const worktreeCleanupDoneListeners = new Set<WorktreeCleanupDoneListener>();
 const ticketCommentListeners = new Set<TicketCommentListener>();
+const workflowGenerationResultListeners = new Set<WorkflowGenerationResultListener>();
+const workflowGenerationEventListeners = new Set<WorkflowGenerationEventListener>();
 
 const rpcDef = Electroview.defineRPC<XFlowRPC>({
 	handlers: {
@@ -56,6 +60,12 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			ticketCommentAdded: (data) => {
 				for (const listener of ticketCommentListeners) listener(data);
+			},
+			workflowGenerationResult: (data) => {
+				for (const listener of workflowGenerationResultListeners) listener(data);
+			},
+			workflowGenerationEvent: (data) => {
+				for (const listener of workflowGenerationEventListeners) listener(data);
 			},
 		},
 	},
@@ -108,6 +118,16 @@ export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): ()
 export function onTicketCommentAdded(listener: TicketCommentListener): () => void {
 	ticketCommentListeners.add(listener);
 	return () => ticketCommentListeners.delete(listener);
+}
+
+export function onWorkflowGenerationResult(listener: WorkflowGenerationResultListener): () => void {
+	workflowGenerationResultListeners.add(listener);
+	return () => workflowGenerationResultListeners.delete(listener);
+}
+
+export function onWorkflowGenerationEvent(listener: WorkflowGenerationEventListener): () => void {
+	workflowGenerationEventListeners.add(listener);
+	return () => workflowGenerationEventListeners.delete(listener);
 }
 
 export function openExternal(url: string) {

@@ -540,6 +540,25 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return result;
 			},
 
+			generateWorkflowFromPrompt: ({ prompt, existingIR, mode }) => {
+				(async () => {
+					try {
+						const { generateWorkflowIR } = await import("./engine/workflow-ai");
+						const ir = await generateWorkflowIR({
+							prompt,
+							existingIR,
+							mode,
+							onEvent: (event) => {
+								mainWindow?.webview.rpc.send.workflowGenerationEvent(event);
+							},
+						});
+						mainWindow?.webview.rpc.send.workflowGenerationResult({ ir, error: null, mode });
+					} catch (err) {
+						mainWindow?.webview.rpc.send.workflowGenerationResult({ ir: null, error: String(err), mode });
+					}
+				})();
+			},
+
 			openInEditor: ({ content, label }) => {
 				const sanitized = label.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60);
 				const tmpPath = `/tmp/xflow-output-${sanitized}.txt`;

@@ -40,6 +40,12 @@ export const SHORTCUT_REGISTRY: Shortcut[] = [
 		keys: "⌘⇧N",
 		group: "Workflow Editor",
 	},
+	{
+		id: "workflow-ai-assistant",
+		label: "AI workflow assistant",
+		keys: "⌘⇧A",
+		group: "Workflow Editor",
+	},
 
 	// ── Kanban ──────────────────────────────────────────
 	{

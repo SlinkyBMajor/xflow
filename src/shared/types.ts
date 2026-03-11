@@ -528,6 +528,10 @@ export type XFlowRPC = {
 				params: { content: string; label: string };
 				response: void;
 			};
+			generateWorkflowFromPrompt: {
+				params: { prompt: string; existingIR?: WorkflowIR; mode: "replace" | "add" };
+				response: void;
+			};
 		};
 		messages: {
 			openProjectPicker: {};
@@ -548,6 +552,8 @@ export type XFlowRPC = {
 			worktreeDiffResult: { runId: string; diff: string };
 			worktreeCleanupDone: { runId: string };
 			ticketCommentAdded: TicketComment;
+			workflowGenerationResult: { ir: WorkflowIR | null; error: string | null; mode: "replace" | "add" };
+			workflowGenerationEvent: { type: "text" | "tool_use" | "tool_result" | "status"; content: string };
 		};
 	}>;
 };
