@@ -20,6 +20,7 @@ import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { useTicketComments } from "../../hooks/useTicketComments";
 import { rpc } from "../../rpc";
+import { MarkdownRenderer, looksLikeMarkdown } from "../shared/MarkdownRenderer";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -475,10 +476,14 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 				</div>
 			</div>
 			{expanded && (
-				<div className="px-3 pb-3">
-					<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${style.text}`}>
-						{displayOutput || "(no output)"}
-					</pre>
+				<div className="px-3 pb-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
+					{displayOutput && looksLikeMarkdown(displayOutput) ? (
+						<MarkdownRenderer content={displayOutput} className={style.text} />
+					) : (
+						<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed ${style.text}`}>
+							{displayOutput || "(no output)"}
+						</pre>
+					)}
 				</div>
 			)}
 		</div>
@@ -542,9 +547,13 @@ function OutputViewerModal({ open, label, content, onClose }: { open: boolean; l
 					</button>
 				</div>
 				<div className="flex-1 overflow-y-auto p-5 bg-[#0d1117] scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
-					<pre className="text-[12px] font-mono text-[#e6edf3] whitespace-pre-wrap break-words leading-relaxed">
-						{content}
-					</pre>
+					{looksLikeMarkdown(content) ? (
+						<MarkdownRenderer content={content} />
+					) : (
+						<pre className="text-[12px] font-mono text-[#e6edf3] whitespace-pre-wrap break-words leading-relaxed">
+							{content}
+						</pre>
+					)}
 				</div>
 			</DialogContent>
 		</Dialog>
