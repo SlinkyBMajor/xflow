@@ -54,7 +54,6 @@ async function pollOpenPRs(ctx: PollContext) {
 		const prRuns = runs.filter(
 			(r) =>
 				r.mergeResult?.success &&
-				r.mergeResult.strategy === "pr" &&
 				r.mergeResult.prUrl &&
 				!r.mergeResult.prMerged,
 		);

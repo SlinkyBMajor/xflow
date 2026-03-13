@@ -4,7 +4,7 @@ import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
-import { mergeWorktreeBranch } from "../git/merge";
+import { createPR } from "../git/merge";
 import { getCurrentBranch } from "../git/worktree";
 import { removeWorktree } from "../git/worktree";
 
@@ -70,10 +70,9 @@ async function createPr(params: GitActionParams): Promise<Record<string, unknown
 	const prTitle = config.prTitle ? interpolate(config.prTitle, context) : undefined;
 	const prBody = config.prBody ? interpolate(config.prBody, context) : undefined;
 
-	const result = await mergeWorktreeBranch(
+	const result = await createPR(
 		projectPath!,
 		run.worktreeBranch,
-		"pr",
 		baseBranch,
 		run.worktreePath ?? undefined,
 		{
@@ -189,7 +188,7 @@ async function mergePr(params: GitActionParams): Promise<Record<string, unknown>
 	const existingMergeResult = run?.mergeResult;
 	runQueries.updateRun(db, runId, {
 		mergeResult: {
-			...(existingMergeResult ?? { success: true, strategy: "pr" as const, conflicted: false }),
+			...(existingMergeResult ?? { success: true, conflicted: false }),
 			prMerged: true,
 		},
 	});

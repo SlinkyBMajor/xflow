@@ -131,7 +131,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 		rpc.request.getWorktreeDiff({ runId: run.id });
 	};
 
-	const handleMerge = (strategy?: "direct" | "pr") => {
+	const handleMerge = (strategy: "direct" | "pr") => {
 		setLoading(true);
 		setMergeResult(null);
 		rpc.request.mergeWorktreeBranch({ runId: run.id, strategy });
@@ -155,7 +155,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 
 	const hasBody = run.worktreeBranch
 		|| (mergeResult?.conflicted && mergeResult.conflictFiles)
-		|| (mergeResult?.success && mergeResult.strategy === "direct" && !mergeResult.prUrl)
+		|| (mergeResult?.success && !mergeResult.prUrl)
 		|| mergeResult?.prUrl
 		|| (mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error)
 		|| loading
@@ -208,7 +208,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 					)}
 
 					{/* Success message */}
-					{mergeResult?.success && mergeResult.strategy === "direct" && !mergeResult.prUrl && (
+					{mergeResult?.success && !mergeResult.prUrl && (
 						<div className="flex items-center gap-2 text-xs text-green-400">
 							<GitMerge size={12} />
 							<span>Merged successfully</span>

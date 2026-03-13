@@ -1,8 +1,5 @@
-export type MergeStrategy = "direct" | "pr";
-
 export interface MergeResult {
 	success: boolean;
-	strategy: MergeStrategy;
 	conflicted: boolean;
 	conflictFiles?: string[];
 	prUrl?: string;
@@ -48,24 +45,12 @@ export interface PRContext {
 	ticketBody?: string | null;
 }
 
-export async function mergeWorktreeBranch(
+export async function directMerge(
 	projectPath: string,
 	branch: string,
-	strategy: MergeStrategy,
 	baseBranch: string,
 	worktreePath?: string,
-	prContext?: PRContext,
 ): Promise<MergeResult> {
-	console.log(`[Merge] Strategy: ${strategy}, branch: ${branch}, base: ${baseBranch}, worktree: ${worktreePath ?? "n/a"}`);
-	switch (strategy) {
-		case "direct":
-			return directMerge(projectPath, branch, baseBranch, worktreePath);
-		case "pr":
-			return createPR(projectPath, branch, baseBranch, worktreePath, prContext);
-	}
-}
-
-async function directMerge(projectPath: string, branch: string, baseBranch: string, worktreePath?: string): Promise<MergeResult> {
 	console.log(`[Merge] Direct-merging ${branch} into ${baseBranch}`);
 
 	// Commit any uncommitted changes in the worktree before merging
@@ -74,7 +59,7 @@ async function directMerge(projectPath: string, branch: string, baseBranch: stri
 		if (!committed) {
 			const error = "Failed to commit agent changes in worktree before merge";
 			console.error(`[Merge] ${error}`);
-			return { success: false, strategy: "direct", conflicted: false, error };
+			return { success: false, conflicted: false, error };
 		}
 	}
 
@@ -82,13 +67,13 @@ async function directMerge(projectPath: string, branch: string, baseBranch: stri
 	if (checkout.exitCode !== 0) {
 		const error = `Failed to checkout ${baseBranch}: ${checkout.stderr}`;
 		console.error(`[Merge] ${error}`);
-		return { success: false, strategy: "direct", conflicted: false, error };
+		return { success: false, conflicted: false, error };
 	}
 
 	const merge = await runGit(projectPath, ["merge", "--no-ff", branch]);
 	if (merge.exitCode === 0) {
 		console.log(`[Merge] Direct merge succeeded`);
-		return { success: true, strategy: "direct", conflicted: false };
+		return { success: true, conflicted: false };
 	}
 
 	// Check if it's a conflict
@@ -97,14 +82,14 @@ async function directMerge(projectPath: string, branch: string, baseBranch: stri
 		const conflictFiles = status.stdout.split("\n").filter(Boolean);
 		console.error(`[Merge] Conflicts in: ${conflictFiles.join(", ")}`);
 		await runGit(projectPath, ["merge", "--abort"]);
-		return { success: false, strategy: "direct", conflicted: true, conflictFiles };
+		return { success: false, conflicted: true, conflictFiles };
 	}
 
 	// Non-conflict merge failure
 	const error = merge.stderr;
 	console.error(`[Merge] Direct merge failed: ${error}`);
 	await runGit(projectPath, ["merge", "--abort"]);
-	return { success: false, strategy: "direct", conflicted: false, error };
+	return { success: false, conflicted: false, error };
 }
 
 async function commitWorktreeChanges(worktreePath: string): Promise<boolean> {
@@ -169,7 +154,13 @@ async function buildPRContent(
 	return { title, body: bodyParts.join("\n\n") };
 }
 
-async function createPR(projectPath: string, branch: string, baseBranch: string, worktreePath?: string, context?: PRContext): Promise<MergeResult> {
+export async function createPR(
+	projectPath: string,
+	branch: string,
+	baseBranch: string,
+	worktreePath?: string,
+	context?: PRContext,
+): Promise<MergeResult> {
 	console.log(`[Merge] Creating PR for branch ${branch}`);
 
 	// The worktree is where the branch HEAD lives — commit and push from there
@@ -181,7 +172,7 @@ async function createPR(projectPath: string, branch: string, baseBranch: string,
 		if (!committed) {
 			const error = "Failed to commit agent changes in worktree before push";
 			console.error(`[Merge] ${error}`);
-			return { success: false, strategy: "pr", conflicted: false, error };
+			return { success: false, conflicted: false, error };
 		}
 	}
 
@@ -190,7 +181,7 @@ async function createPR(projectPath: string, branch: string, baseBranch: string,
 	if (push.exitCode !== 0) {
 		const error = `Failed to push: ${push.stderr}`;
 		console.error(`[Merge] ${error}`);
-		return { success: false, strategy: "pr", conflicted: false, error };
+		return { success: false, conflicted: false, error };
 	}
 	console.log(`[Merge] Pushed ${branch} to origin`);
 
@@ -209,7 +200,7 @@ async function createPR(projectPath: string, branch: string, baseBranch: string,
 		// PR already exists — push updated the branch, so we're done
 		const prUrl = existingUrl.trim();
 		console.log(`[Merge] Existing PR updated with new commits: ${prUrl}`);
-		return { success: true, strategy: "pr", conflicted: false, prUrl };
+		return { success: true, conflicted: false, prUrl };
 	}
 
 	// Build PR title and body from ticket context + git history
@@ -231,10 +222,10 @@ async function createPR(projectPath: string, branch: string, baseBranch: string,
 	if (pr.exitCode !== 0) {
 		const error = `Failed to create PR: ${prStderr.trim()}`;
 		console.error(`[Merge] ${error}`);
-		return { success: false, strategy: "pr", conflicted: false, error };
+		return { success: false, conflicted: false, error };
 	}
 
 	const prUrl = prStdout.trim();
 	console.log(`[Merge] PR created: ${prUrl}`);
-	return { success: true, strategy: "pr", conflicted: false, prUrl };
+	return { success: true, conflicted: false, prUrl };
 }

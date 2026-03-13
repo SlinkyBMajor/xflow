@@ -34,7 +34,7 @@ export function BoardSettingsModal({ open, onOpenChange, settings, onSave }: Boa
 					<DialogHeader className="mb-4">
 						<DialogTitle>Board Settings</DialogTitle>
 						<DialogDescription className="sr-only">
-							Configure default board settings for worktrees and merge strategy
+							Configure default board settings for worktrees
 						</DialogDescription>
 					</DialogHeader>
 

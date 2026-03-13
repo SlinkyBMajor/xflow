@@ -2,11 +2,8 @@ import type { RPCSchema } from "electrobun/bun";
 
 // ── Data Types ──
 
-export type MergeStrategy = "direct" | "pr";
-
 export interface MergeResult {
 	success: boolean;
-	strategy: MergeStrategy;
 	conflicted: boolean;
 	conflictFiles?: string[];
 	prUrl?: string;
@@ -514,7 +511,7 @@ export type XFlowRPC = {
 				response: void;
 			};
 			mergeWorktreeBranch: {
-				params: { runId: string; strategy?: MergeStrategy };
+				params: { runId: string; strategy?: "direct" | "pr" };
 				response: void;
 			};
 			markPrMerged: {

@@ -59,11 +59,8 @@ The agent node no longer merges — that responsibility belongs to downstream `g
 ## Types
 
 ```ts
-type MergeStrategy = "direct" | "pr";
-
 interface MergeResult {
   success: boolean;
-  strategy: MergeStrategy;
   conflicted: boolean;
   conflictFiles?: string[];
   prUrl?: string;
@@ -73,13 +70,15 @@ interface MergeResult {
 }
 ```
 
+The presence of `prUrl` indicates a PR was created. Its absence means a direct merge. No explicit strategy field is needed — the data speaks for itself.
+
 ## Key Files
 
 | File | Role |
 |------|------|
-| `src/bun/git/merge.ts` | `mergeWorktreeBranch`, `getWorktreeDiff`, `directMerge`, `createPR` |
+| `src/bun/git/merge.ts` | `directMerge`, `createPR`, `getWorktreeDiff` |
 | `src/bun/git/worktree.ts` | `worktreeHasChanges`, `removeWorktree` |
-| `src/bun/engine/git-action.ts` | `gitAction` node executor (uses `"pr"` strategy) |
+| `src/bun/engine/git-action.ts` | `gitAction` node executor (calls `createPR`) |
 | `src/bun/rpc.ts` | RPC handlers for manual merge/diff/cleanup |
 | `src/mainview/components/ticket/WorktreeStatus.tsx` | Manual merge UI |
 | `src/mainview/components/ticket/MergeConflictPanel.tsx` | Conflict resolution UI |

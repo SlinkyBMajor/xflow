@@ -18,7 +18,7 @@ import { getInterruptedRuns } from "./engine/recovery";
 import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
 import { getAgentApiPort } from "./server/agent-api";
 import { removeWorktree } from "./git/worktree";
-import { mergeWorktreeBranch, getWorktreeDiff } from "./git/merge";
+import { directMerge, createPR, getWorktreeDiff } from "./git/merge";
 import { getChangeSummary } from "./git/status";
 import { startPrPoller, stopPrPoller } from "./git/pr-poller";
 
@@ -403,19 +403,24 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				const ticket = ticketQueries.getTicket(db, run.ticketId);
 				const prContext = ticket ? { ticketTitle: ticket.title, ticketBody: ticket.body } : undefined;
 
+				const mergeStrategy = strategy ?? "direct";
+
 				// Run async — send result via message to avoid RPC timeout
 				(async () => {
 					try {
 						const { getCurrentBranch } = await import("./git/worktree");
 						const baseBranch = await getCurrentBranch(projectPath);
-						const mergeStrategy = strategy ?? "direct";
-						const result = await mergeWorktreeBranch(projectPath, run.worktreeBranch!, mergeStrategy, baseBranch, run.worktreePath ?? undefined, prContext);
+
+						const result = mergeStrategy === "pr"
+							? await createPR(projectPath, run.worktreeBranch!, baseBranch, run.worktreePath ?? undefined, prContext)
+							: await directMerge(projectPath, run.worktreeBranch!, baseBranch, run.worktreePath ?? undefined);
 
 						console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
 						runQueries.updateRun(db, runId, { mergeResult: result });
 
-						if (result.success && mergeStrategy === "direct" && run.worktreePath) {
+						// Direct merge succeeded — clean up worktree (PR keeps it for polling)
+						if (result.success && !result.prUrl && run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
 							runQueries.updateRun(db, runId, { worktreePath: null });
 						}
@@ -425,7 +430,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						console.error(`[RPC] mergeWorktreeBranch error:`, err);
 						mainWindow?.webview.rpc.send.worktreeMergeResult({
 							runId,
-							result: { success: false, strategy: strategy ?? "direct", conflicted: false, error: String(err) },
+							result: { success: false, conflicted: false, error: String(err) },
 						});
 					}
 				})();
