@@ -89,9 +89,9 @@ export function persistNodeOutput(
 	output: string,
 	status?: WorkflowOutputStatus,
 	label?: string,
-): void {
+): Record<string, unknown> {
 	const ticket = ticketQueries.getTicket(db, ticketId);
-	if (!ticket) return;
+	if (!ticket) return {};
 
 	const existing = (ticket.metadata._workflowOutput as Record<string, unknown>) ?? {};
 	const updatedMetadata = {
@@ -108,6 +108,7 @@ export function persistNodeOutput(
 		},
 	};
 	ticketQueries.updateTicket(db, ticketId, { metadata: updatedMetadata });
+	return updatedMetadata;
 }
 
 export function executeMoveToLane(

@@ -16,9 +16,9 @@ type WorktreeState = "active" | "merged" | "conflict" | "pr_created" | "pending"
 function getWorktreeState(run: WorkflowRun, mergeResult: MergeResult | null): WorktreeState {
 	if (run.status === "active") return "active";
 	if (mergeResult?.conflicted) return "conflict";
-	if (mergeResult?.success && mergeResult.prUrl && !run.worktreePath) return "merged";
+	if (mergeResult?.prMerged) return "merged";
 	if (mergeResult?.success && mergeResult.prUrl) return "pr_created";
-	if (mergeResult?.success) return "merged";
+	if (mergeResult?.success && !mergeResult.prUrl) return "merged";
 	if (!run.worktreePath) return "merged";
 	return "pending";
 }

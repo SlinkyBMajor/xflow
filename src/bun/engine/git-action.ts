@@ -57,9 +57,16 @@ export async function executeGitAction(params: GitActionParams): Promise<Record<
 async function createPr(params: GitActionParams): Promise<Record<string, unknown>> {
 	const { runId, config, ticket, context, db, projectPath, onEvent } = params;
 
-	// Get worktree info from the run record
-	const run = runQueries.getRunById(db, runId);
-	if (!run?.worktreeBranch || !run?.worktreePath) {
+	// Resolve worktree info from the current run, falling back to a previous
+	// run for this ticket (e.g. when the ticket moved to a new lane/workflow).
+	const currentRun = runQueries.getRunById(db, runId);
+	const worktreeSource = (currentRun?.worktreeBranch && currentRun?.worktreePath)
+		? currentRun
+		: runQueries.getLatestWorktreeRunForTicket(db, ticket.id);
+	const worktreeBranch = worktreeSource?.worktreeBranch;
+	const worktreePath = worktreeSource?.worktreePath;
+
+	if (!worktreeBranch || !worktreePath) {
 		throw new Error("createPr requires a worktree branch. Ensure an upstream Claude Agent node has worktree enabled.");
 	}
 
@@ -72,9 +79,9 @@ async function createPr(params: GitActionParams): Promise<Record<string, unknown
 
 	const result = await createPR(
 		projectPath!,
-		run.worktreeBranch,
+		worktreeBranch,
 		baseBranch,
-		run.worktreePath ?? undefined,
+		worktreePath,
 		{
 			ticketTitle: prTitle ?? ticket.title,
 			ticketBody: prBody ?? ticket.body,
@@ -103,7 +110,7 @@ async function createPr(params: GitActionParams): Promise<Record<string, unknown
 				...ticketData.metadata,
 				prUrl,
 				prNumber,
-				branch: run.worktreeBranch,
+				branch: worktreeBranch,
 			},
 		});
 	}
@@ -111,10 +118,10 @@ async function createPr(params: GitActionParams): Promise<Record<string, unknown
 	insertAndEmit(db, runId, "GIT_ACTION_PR_CREATED", {
 		prUrl,
 		prNumber,
-		branch: run.worktreeBranch,
+		branch: worktreeBranch,
 	}, onEvent);
 
-	return { prUrl, prNumber, branch: run.worktreeBranch };
+	return { prUrl, prNumber, branch: worktreeBranch };
 }
 
 async function resolvePrNumber(config: GitActionConfig, context: WorkflowContext, params: GitActionParams): Promise<string> {
@@ -193,10 +200,13 @@ async function mergePr(params: GitActionParams): Promise<Record<string, unknown>
 		},
 	});
 
-	// Clean up worktree if it exists
-	if (run?.worktreePath && projectPath) {
-		await removeWorktree(projectPath, run.worktreePath);
-		runQueries.updateRun(db, runId, { worktreePath: null });
+	// Clean up worktree if it exists (check current run, then previous runs)
+	const worktreeRun = run?.worktreePath
+		? run
+		: runQueries.getLatestWorktreeRunForTicket(db, params.ticket.id);
+	if (worktreeRun?.worktreePath && projectPath) {
+		await removeWorktree(projectPath, worktreeRun.worktreePath);
+		runQueries.updateRun(db, worktreeRun.id, { worktreePath: null });
 	}
 
 	insertAndEmit(db, runId, "GIT_ACTION_PR_MERGED", {

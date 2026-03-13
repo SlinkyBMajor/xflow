@@ -20,7 +20,6 @@ import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evalu
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
 import { executeGitAction } from "./git-action";
-import * as ticketQueries from "../db/queries/tickets";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -103,16 +102,6 @@ function buildState(
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
 
-	// Refresh ticket metadata from DB into XState context.
-	// Needed after any action that writes metadata (persistNodeOutput, git actions, agent API)
-	// so downstream condition nodes see up-to-date values.
-	const syncTicketMetadata = assign({
-		ticket: ({ context }: { context: WorkflowContext }) => {
-			const fresh = ticketQueries.getTicket(ctx.db, ctx.ticket.id);
-			return fresh ? { ...context.ticket, metadata: fresh.metadata } : context.ticket;
-		},
-	});
-
 	function makeTransitions(): Record<string, any> {
 		const on: Record<string, any> = {};
 		for (const targetId of targets) {
@@ -120,6 +109,48 @@ function buildState(
 			on[label] = { target: targetId };
 		}
 		return on;
+	}
+
+	// Builds the onDone action array for async nodes. Persists output to DB,
+	// updates nodeOutputs, and syncs ticket metadata into XState context — all
+	// inside a single assign so ordering is guaranteed regardless of how XState
+	// schedules assign vs side-effect actions.
+	function makeDoneActions(serializeOutput: (raw: unknown) => string, label?: string) {
+		return [
+			assign({
+				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+					...context.nodeOutputs,
+					[node.id]: event.output,
+				}),
+				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
+					const metadata = persistNodeOutput(
+						ctx.db, ctx.ticket.id, node.id, ctx.runId,
+						serializeOutput(event.output), "success", label,
+					);
+					ctx.notifyBoardChanged?.();
+					return { ...context.ticket, metadata };
+				},
+			}),
+		];
+	}
+
+	// Builds the onError action array for async nodes.
+	function makeErrorActions(nodeLabel: string, label?: string) {
+		return [
+			assign({
+				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
+					const errorMsg = event.error?.message ?? String(event.error ?? `Unknown ${nodeLabel} error`);
+					const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
+					console.error(`[Workflow ${ctx.runId}] ${nodeLabel} node ${node.id} failed:`, errorMsg);
+					const metadata = persistNodeOutput(
+						ctx.db, ctx.ticket.id, node.id, ctx.runId,
+						`[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", label,
+					);
+					ctx.notifyBoardChanged?.();
+					return { ...context.ticket, metadata };
+				},
+			}),
+		];
 	}
 
 	switch (node.type) {
@@ -145,16 +176,18 @@ function buildState(
 			const config = node.config as SetMetadataConfig & { type: "setMetadata" };
 			return {
 				entry: [
-					({ context }: { context: WorkflowContext }) => {
-						executeSetMetadata(
-							ctx.db,
-							ctx.ticket.id,
-							config.key,
-							config.value,
-							context,
-						);
-					},
-					syncTicketMetadata,
+					assign({
+						ticket: ({ context }: { context: WorkflowContext }) => {
+							const metadata = executeSetMetadata(
+								ctx.db,
+								ctx.ticket.id,
+								config.key,
+								config.value,
+								context,
+							);
+							return { ...context.ticket, metadata };
+						},
+					}),
 				],
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
@@ -256,32 +289,11 @@ function buildState(
 					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							assign({
-								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-									...context.nodeOutputs,
-									[node.id]: event.output,
-								}),
-							}),
-							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success", outputLabel);
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeDoneActions((raw) => String(raw ?? ""), outputLabel),
 					},
 					onError: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							({ event }: { event: any }) => {
-								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown agent error");
-								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
-								console.error(`[Workflow ${ctx.runId}] Agent node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", outputLabel);
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeErrorActions("Agent", outputLabel),
 					},
 				},
 			};
@@ -311,32 +323,11 @@ function buildState(
 					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							assign({
-								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-									...context.nodeOutputs,
-									[node.id]: event.output,
-								}),
-							}),
-							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success");
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeDoneActions((raw) => String(raw ?? "")),
 					},
 					onError: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							({ event }: { event: any }) => {
-								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown script error");
-								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
-								console.error(`[Workflow ${ctx.runId}] Script node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeErrorActions("Script"),
 					},
 				},
 			};
@@ -364,31 +355,11 @@ function buildState(
 					input: ({ context }: { context: WorkflowContext }) => ({ context }),
 					onDone: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							assign({
-								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-									...context.nodeOutputs,
-									[node.id]: event.output,
-								}),
-							}),
-							({ event }: { event: any }) => {
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, JSON.stringify(event.output ?? ""), "success");
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeDoneActions((raw) => JSON.stringify(raw ?? "")),
 					},
 					onError: {
 						target: targets.length > 0 ? targets[0] : undefined,
-						actions: [
-							({ event }: { event: any }) => {
-								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown git action error");
-								console.error(`[Workflow ${ctx.runId}] Git action node ${node.id} failed:`, errorMsg);
-								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, "error");
-								ctx.notifyBoardChanged?.();
-							},
-							syncTicketMetadata,
-						],
+						actions: makeErrorActions("Git action"),
 					},
 				},
 			};
