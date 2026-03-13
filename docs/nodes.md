@@ -28,8 +28,9 @@ Spawns a Claude Code CLI process with the project root as the working directory.
 - `prompt` — instruction prepended to the ticket context
 - `timeoutMs` — max execution time (default: 600 000 ms)
 - `includeWorkflowOutput` — whether to include output from prior nodes
+- `worktreeEnabled` — run in an isolated git worktree (changes are left for downstream gitAction nodes)
 
-**Emits:** `AGENT_DONE` on completion
+**Emits:** `AGENT_DONE` on completion, `WORKTREE_READY` if worktree has changes
 
 ---
 
@@ -102,3 +103,42 @@ Appends a message to the ticket's run history. Useful for debugging and audit tr
 
 **Config:**
 - `message` — the message to log
+
+---
+
+## Git Action (`gitAction`)
+
+Performs Git/GitHub operations as composable workflow steps. Use downstream of a Claude Agent node (with worktree enabled) to create PRs, add reviewers, or merge.
+
+### `createPr`
+
+Creates a pull request from the worktree branch.
+
+**Config:**
+- `baseBranch` — target branch (defaults to current branch)
+- `prTitle` — PR title (defaults to ticket title, supports interpolation)
+- `prBody` — PR body (defaults to ticket description + commit log, supports interpolation)
+
+**Output:** `{ prUrl, prNumber, branch }` — also written to ticket metadata as `prUrl`, `prNumber`, `branch`.
+
+### `addReviewer`
+
+Adds a reviewer to an existing pull request.
+
+**Config:**
+- `prNumber` — PR number (use `{{ticketMetadata.prNumber}}` to reference upstream createPr)
+- `reviewer` — GitHub username
+
+**Output:** `{ success, prNumber, reviewer }`
+
+### `mergePr`
+
+Merges a pull request and cleans up the worktree.
+
+**Config:**
+- `prNumber` — PR number (use `{{ticketMetadata.prNumber}}` to reference upstream createPr)
+- `mergeMethod` — `squash`, `merge`, or `rebase` (default: `squash`)
+
+**Output:** `{ merged, prNumber, mergeMethod }`
+
+**Events:** `GIT_ACTION_STARTED`, `GIT_ACTION_PR_CREATED`, `GIT_ACTION_REVIEWER_ADDED`, `GIT_ACTION_PR_MERGED`

@@ -23,6 +23,10 @@ The workflow engine is built on top of XState and React Flow. See [workflow.md](
 
 The workflow engine uses built-in node types (see [nodes.md](docs/nodes.md) for details).
 
+### Workflow runs
+
+A workflow run tracks the execution of a workflow against a ticket, including worktree state and merge results. See [workflow-runs.md](docs/workflow-runs.md) for details.
+
 ### Feedback loop
 
 Ticket comments, output labels, and approval feedback allow users to guide agents between workflow steps. See [feedback-loop.md](docs/feedback-loop.md) for details.

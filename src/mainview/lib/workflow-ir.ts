@@ -78,6 +78,8 @@ export function getDefaultConfig(type: IRNodeType): IRNodeConfig {
 			return { type: "setMetadata", key: "", value: "" };
 		case "log":
 			return { type: "log", message: "" };
+		case "gitAction":
+			return { type: "gitAction", action: "createPr" };
 	}
 }
 
@@ -93,6 +95,7 @@ export function getNodeLabel(type: IRNodeType): string {
 		condition: "Condition",
 		setMetadata: "Set Metadata",
 		log: "Log",
+		gitAction: "Git Action",
 	};
 	return labels[type];
 }

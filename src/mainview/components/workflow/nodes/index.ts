@@ -9,6 +9,7 @@ import { MoveToLaneNode } from "./MoveToLaneNode";
 import { ConditionNode } from "./ConditionNode";
 import { SetMetadataNode } from "./SetMetadataNode";
 import { LogNode } from "./LogNode";
+import { GitActionNode } from "./GitActionNode";
 
 export const nodeTypes: NodeTypes = {
 	start: StartNode,
@@ -21,4 +22,5 @@ export const nodeTypes: NodeTypes = {
 	condition: ConditionNode,
 	setMetadata: SetMetadataNode,
 	log: LogNode,
+	gitAction: GitActionNode,
 };

@@ -101,6 +101,23 @@ export const NODE_REGISTRY: NodeRegistryGroup[] = [
 					"Appends a message to the ticket's run history. Useful for debugging and audit trails.",
 				config: ["message — the message to log"],
 			},
+			{
+				type: "gitAction",
+				color: "#f472b6",
+				label: "Git Action",
+				description:
+					"Performs Git/GitHub operations: create a PR, add a reviewer, or merge a PR. Composable with other nodes for multi-step Git workflows.",
+				config: [
+					"action — createPr, addReviewer, or mergePr",
+					"baseBranch — target branch for PR (createPr)",
+					"prTitle — PR title (createPr, supports interpolation)",
+					"prBody — PR body (createPr, supports interpolation)",
+					"reviewer — GitHub username to add (addReviewer)",
+					"prNumber — PR number (addReviewer/mergePr, supports interpolation)",
+					"mergeMethod — squash, merge, or rebase (mergePr)",
+				],
+				events: ["GIT_ACTION_PR_CREATED", "GIT_ACTION_REVIEWER_ADDED", "GIT_ACTION_PR_MERGED"],
+			},
 		],
 	},
 	{

@@ -392,6 +392,22 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 							<Button
 								variant="ghost"
 								size="sm"
+								onClick={() => {
+									const ir = reactFlowToIR(nodes, edges);
+									navigator.clipboard.writeText(JSON.stringify(ir, null, 2));
+								}}
+								className="text-[#8b949e] hover:text-[#e6edf3]"
+							>
+								Copy JSON
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Copy workflow IR as JSON</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
 								onClick={() => setShowHistory((prev) => !prev)}
 								className={showHistory ? "text-[#58a6ff]" : "text-[#8b949e] hover:text-[#e6edf3]"}
 							>

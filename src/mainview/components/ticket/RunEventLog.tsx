@@ -219,6 +219,41 @@ function EventLine({ event }: { event: RunEvent }) {
 				</div>
 			);
 
+		case "GIT_ACTION_STARTED":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-[#f472b6]">&#9654; Git action: {(event.payload as any)?.action ?? "unknown"}</span>
+				</div>
+			);
+
+		case "GIT_ACTION_PR_CREATED": {
+			const prUrl = (event.payload as any)?.prUrl;
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-emerald-400">&#10003; PR created</span>
+					{prUrl && <span className="text-[#58a6ff] ml-1.5">#{(event.payload as any)?.prNumber ?? ""}</span>}
+				</div>
+			);
+		}
+
+		case "GIT_ACTION_REVIEWER_ADDED":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-emerald-400">&#10003; Reviewer added: {(event.payload as any)?.reviewer}</span>
+				</div>
+			);
+
+		case "GIT_ACTION_PR_MERGED":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-emerald-400">&#10003; PR merged ({(event.payload as any)?.mergeMethod ?? "squash"})</span>
+				</div>
+			);
+
 		default:
 			return (
 				<div className="text-[11px] font-mono leading-relaxed">

@@ -5,8 +5,6 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import {
 	GitBranch,
@@ -22,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { rpc } from "../../rpc";
-import type { BoardSettings, MergeStrategy, CliToolCheck } from "../../../shared/types";
+import type { BoardSettings, CliToolCheck } from "../../../shared/types";
 
 // ── Types ──
 
@@ -51,8 +49,6 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 
 	// Board settings state
 	const [worktreeEnabled, setWorktreeEnabled] = useState(settings?.defaultWorktreeEnabled ?? false);
-	const [mergeStrategy, setMergeStrategy] = useState<MergeStrategy>(settings?.defaultMergeStrategy ?? "manual");
-	const [baseBranch, setBaseBranch] = useState(settings?.defaultBaseBranch ?? "");
 
 	// Git settings state
 	const [prPollingEnabled, setPrPollingEnabled] = useState(settings?.prPollingEnabled !== false);
@@ -64,8 +60,6 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 	useEffect(() => {
 		if (open) {
 			setWorktreeEnabled(settings?.defaultWorktreeEnabled ?? false);
-			setMergeStrategy(settings?.defaultMergeStrategy ?? "manual");
-			setBaseBranch(settings?.defaultBaseBranch ?? "");
 			setPrPollingEnabled(settings?.prPollingEnabled !== false);
 		}
 	}, [open, settings]);
@@ -73,8 +67,6 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 	const handleSave = () => {
 		onSave({
 			defaultWorktreeEnabled: worktreeEnabled,
-			defaultMergeStrategy: mergeStrategy,
-			defaultBaseBranch: baseBranch || undefined,
 			prPollingEnabled,
 		});
 		toast.success("Settings saved");
@@ -168,10 +160,6 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 								<BoardSection
 									worktreeEnabled={worktreeEnabled}
 									setWorktreeEnabled={setWorktreeEnabled}
-									mergeStrategy={mergeStrategy}
-									setMergeStrategy={setMergeStrategy}
-									baseBranch={baseBranch}
-									setBaseBranch={setBaseBranch}
 								/>
 							)}
 							{activeSection === "git" && (
@@ -219,17 +207,9 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 function BoardSection({
 	worktreeEnabled,
 	setWorktreeEnabled,
-	mergeStrategy,
-	setMergeStrategy,
-	baseBranch,
-	setBaseBranch,
 }: {
 	worktreeEnabled: boolean;
 	setWorktreeEnabled: (v: boolean) => void;
-	mergeStrategy: MergeStrategy;
-	setMergeStrategy: (v: MergeStrategy) => void;
-	baseBranch: string;
-	setBaseBranch: (v: string) => void;
 }) {
 	return (
 		<div className="space-y-6">
@@ -256,33 +236,6 @@ function BoardSection({
 						Enable worktree isolation by default
 					</span>
 				</label>
-
-				{worktreeEnabled && (
-					<div className="ml-6 space-y-4 border-l-2 border-[#21262d] pl-4">
-						<div>
-							<Label className="mb-1.5">Default merge strategy</Label>
-							<select
-								value={mergeStrategy}
-								onChange={(e) => setMergeStrategy(e.target.value as MergeStrategy)}
-								className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3] focus:outline-none focus:border-[#58a6ff]"
-							>
-								<option value="auto">Auto-merge</option>
-								<option value="pr">Create PR</option>
-								<option value="manual">Manual</option>
-							</select>
-						</div>
-
-						<div>
-							<Label className="mb-1.5">Default base branch</Label>
-							<Input
-								value={baseBranch}
-								onChange={(e) => setBaseBranch(e.target.value)}
-								className="h-8 text-sm"
-								placeholder="Defaults to current branch"
-							/>
-						</div>
-					</div>
-				)}
 			</div>
 		</div>
 	);

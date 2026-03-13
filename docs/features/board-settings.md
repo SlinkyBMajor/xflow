@@ -17,8 +17,7 @@ The `settings` column stores JSON:
 ```ts
 interface BoardSettings {
   defaultWorktreeEnabled?: boolean;
-  defaultMergeStrategy?: MergeStrategy;
-  defaultBaseBranch?: string;
+  prPollingEnabled?: boolean;
 }
 ```
 
@@ -32,10 +31,8 @@ interface BoardSettings {
 
 The settings gear icon in `BoardHeader.tsx` opens `BoardSettingsModal.tsx`:
 - Toggle: "Enable worktree isolation by default"
-- Dropdown: Default merge strategy (auto/pr/manual)
-- Input: Default base branch (optional)
 
-Node-level config in `NodeConfigPanel.tsx` overrides board defaults when set.
+Merge strategy and base branch are now configured per-node via the Git Action (`gitAction`) node type, not at the board level.
 
 ## Worktree Status Component
 

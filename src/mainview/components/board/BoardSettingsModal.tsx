@@ -7,10 +7,8 @@ import {
 	DialogFooter,
 	DialogDescription,
 } from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import type { BoardSettings, MergeStrategy } from "../../../shared/types";
+import type { BoardSettings } from "../../../shared/types";
 
 interface BoardSettingsModalProps {
 	open: boolean;
@@ -21,14 +19,10 @@ interface BoardSettingsModalProps {
 
 export function BoardSettingsModal({ open, onOpenChange, settings, onSave }: BoardSettingsModalProps) {
 	const [worktreeEnabled, setWorktreeEnabled] = useState(settings?.defaultWorktreeEnabled ?? false);
-	const [mergeStrategy, setMergeStrategy] = useState<MergeStrategy>(settings?.defaultMergeStrategy ?? "manual");
-	const [baseBranch, setBaseBranch] = useState(settings?.defaultBaseBranch ?? "");
 
 	const handleSave = () => {
 		onSave({
 			defaultWorktreeEnabled: worktreeEnabled,
-			defaultMergeStrategy: mergeStrategy,
-			defaultBaseBranch: baseBranch || undefined,
 		});
 		onOpenChange(false);
 	};
@@ -57,33 +51,6 @@ export function BoardSettingsModal({ open, onOpenChange, settings, onSave }: Boa
 								/>
 								<span className="text-sm text-[#e6edf3]">Enable worktree isolation by default</span>
 							</label>
-
-							{worktreeEnabled && (
-								<>
-									<div>
-										<Label className="text-xs text-[#8b949e] mb-1.5">Default merge strategy</Label>
-										<select
-											value={mergeStrategy}
-											onChange={(e) => setMergeStrategy(e.target.value as MergeStrategy)}
-											className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3] focus:outline-none focus:border-[#58a6ff]"
-										>
-											<option value="auto">Auto-merge</option>
-											<option value="pr">Create PR</option>
-											<option value="manual">Manual</option>
-										</select>
-									</div>
-
-									<div>
-										<Label className="text-xs text-[#8b949e] mb-1.5">Default base branch</Label>
-										<Input
-											value={baseBranch}
-											onChange={(e) => setBaseBranch(e.target.value)}
-											className="h-8 text-sm"
-											placeholder="Defaults to current branch"
-										/>
-									</div>
-								</>
-							)}
 						</div>
 					</div>
 

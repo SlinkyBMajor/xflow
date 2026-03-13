@@ -10,14 +10,13 @@ export interface MergeResult {
 	conflicted: boolean;
 	conflictFiles?: string[];
 	prUrl?: string;
+	prNumber?: number;
 	prMerged?: boolean;
 	error?: string;
 }
 
 export interface BoardSettings {
 	defaultWorktreeEnabled?: boolean;
-	defaultMergeStrategy?: MergeStrategy;
-	defaultBaseBranch?: string;
 	prPollingEnabled?: boolean;
 }
 
@@ -127,7 +126,8 @@ export type IRNodeType =
 	| "moveToLane"
 	| "condition"
 	| "setMetadata"
-	| "log";
+	| "log"
+	| "gitAction";
 
 export type ClaudeModel = "sonnet" | "opus" | "haiku";
 
@@ -144,8 +144,6 @@ export interface ClaudeAgentConfig {
 	timeoutMs?: number;
 	includeWorkflowOutput?: boolean;
 	worktreeEnabled?: boolean;
-	mergeStrategy?: MergeStrategy;
-	baseBranch?: string;
 	outputLabel?: string;
 	model?: ClaudeModel;
 	maxTurns?: number;
@@ -188,6 +186,19 @@ export interface LogConfig {
 	message: string;
 }
 
+export type GitActionType = "createPr" | "addReviewer" | "mergePr";
+export type MergeMethod = "squash" | "merge" | "rebase";
+
+export interface GitActionConfig {
+	action: GitActionType;
+	baseBranch?: string;
+	prTitle?: string;
+	prBody?: string;
+	reviewer?: string;
+	prNumber?: string;
+	mergeMethod?: MergeMethod;
+}
+
 export type IRNodeConfig =
 	| { type: "start" }
 	| { type: "end" }
@@ -198,7 +209,8 @@ export type IRNodeConfig =
 	| { type: "moveToLane" } & MoveToLaneConfig
 	| { type: "condition" } & ConditionConfig
 	| { type: "setMetadata" } & SetMetadataConfig
-	| { type: "log" } & LogConfig;
+	| { type: "log" } & LogConfig
+	| { type: "gitAction" } & GitActionConfig;
 
 export interface IRNode {
 	id: string;

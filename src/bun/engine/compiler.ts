@@ -11,6 +11,7 @@ import type {
 	ConditionConfig,
 	ClaudeAgentConfig,
 	CustomScriptConfig,
+	GitActionConfig,
 	RunEvent,
 	BoardSettings,
 } from "../../shared/types";
@@ -18,6 +19,7 @@ import type { WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
+import { executeGitAction } from "./git-action";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -217,8 +219,6 @@ function buildState(
 		case "claudeAgent": {
 			const config = node.config as ClaudeAgentConfig & { type: "claudeAgent" };
 			const resolvedWorktreeEnabled = config.worktreeEnabled ?? ctx.boardSettings?.defaultWorktreeEnabled;
-			const resolvedMergeStrategy = config.mergeStrategy ?? ctx.boardSettings?.defaultMergeStrategy;
-			const resolvedBaseBranch = config.baseBranch ?? ctx.boardSettings?.defaultBaseBranch;
 			const outputLabel = config.outputLabel;
 			return {
 				invoke: {
@@ -230,8 +230,6 @@ function buildState(
 							timeoutMs: config.timeoutMs,
 							includeWorkflowOutput: config.includeWorkflowOutput,
 							worktreeEnabled: resolvedWorktreeEnabled,
-							mergeStrategy: resolvedMergeStrategy,
-							baseBranch: resolvedBaseBranch,
 							model: config.model,
 							maxTurns: config.maxTurns,
 							systemPrompt: config.systemPrompt,
@@ -326,6 +324,69 @@ function buildState(
 								const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
 								console.error(`[Workflow ${ctx.runId}] Script node ${node.id} failed:`, errorMsg);
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
+								ctx.notifyBoardChanged?.();
+							},
+						],
+					},
+				},
+			};
+		}
+
+		case "gitAction": {
+			const config = node.config as GitActionConfig & { type: "gitAction" };
+			return {
+				invoke: {
+					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
+						return executeGitAction({
+							runId: ctx.runId,
+							nodeId: node.id,
+							config,
+							ticket: ctx.ticket,
+							context: input.context,
+							db: ctx.db,
+							projectPath: ctx.projectPath,
+							onEvent: (event: RunEvent) => {
+								ctx.notifyEvent?.(event);
+								ctx.notifyFrontend();
+							},
+						});
+					}),
+					input: ({ context }: { context: WorkflowContext }) => ({ context }),
+					onDone: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: [
+							assign({
+								nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
+									...context.nodeOutputs,
+									[node.id]: event.output,
+								}),
+							}),
+							({ context, event }: { context: WorkflowContext; event: any }) => {
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, JSON.stringify(event.output ?? ""), "success");
+								// Update ticket context with any metadata changes from git actions
+								if (event.output?.prNumber || event.output?.prUrl) {
+									const ticket = context.ticket;
+									context.ticket = {
+										...ticket,
+										metadata: {
+											...ticket.metadata,
+											...(event.output.prUrl && { prUrl: event.output.prUrl }),
+											...(event.output.prNumber && { prNumber: event.output.prNumber }),
+											...(event.output.branch && { branch: event.output.branch }),
+										},
+									};
+								}
+								ctx.notifyBoardChanged?.();
+							},
+						],
+					},
+					onError: {
+						target: targets.length > 0 ? targets[0] : undefined,
+						actions: [
+							({ event }: { event: any }) => {
+								const errorMsg = event.error?.message ?? String(event.error ?? "Unknown git action error");
+								console.error(`[Workflow ${ctx.runId}] Git action node ${node.id} failed:`, errorMsg);
+								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, "error");
 								ctx.notifyBoardChanged?.();
 							},
 						],

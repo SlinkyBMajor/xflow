@@ -8,8 +8,6 @@ import * as runQueries from "../db/queries/runs";
 import * as ticketQueries from "../db/queries/tickets";
 import * as commentQueries from "../db/queries/comments";
 import { isGitRepo, createWorktree, worktreeHasChanges, removeWorktree, getCurrentBranch, worktreeExists } from "../git/worktree";
-import { mergeWorktreeBranch } from "../git/merge";
-import type { MergeStrategy } from "../../shared/types";
 import { createToken, revokeToken } from "../server/agent-tokens";
 
 interface ClaudeAgentParams {
@@ -19,8 +17,6 @@ interface ClaudeAgentParams {
 	timeoutMs?: number;
 	includeWorkflowOutput?: boolean;
 	worktreeEnabled?: boolean;
-	mergeStrategy?: MergeStrategy;
-	baseBranch?: string;
 	ticket: Ticket;
 	context: WorkflowContext;
 	db: DB;
@@ -71,8 +67,6 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		timeoutMs = 10 * 60 * 1000,
 		includeWorkflowOutput = true,
 		worktreeEnabled = false,
-		mergeStrategy,
-		baseBranch: configBaseBranch,
 		ticket,
 		context,
 		db,
@@ -91,13 +85,11 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 	let agentCwd = baseCwd;
 	let worktreeBranch: string | null = null;
 	let worktreePath: string | null = null;
-	let resolvedBaseBranch: string | null = null;
 
 	// Create or reuse worktree for isolated execution if enabled
 	if (worktreeEnabled && projectPath) {
 		const isRepo = await isGitRepo(projectPath);
 		if (isRepo) {
-			resolvedBaseBranch = configBaseBranch ?? await getCurrentBranch(projectPath);
 
 			// Check if a previous run for this ticket left an existing worktree
 			const previousRun = runQueries.getLatestWorktreeRunForTicket(db, ticket.id);
@@ -381,7 +373,7 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 	writeFileSync(`${runDir}/output.md`, outputText || "(no output)");
 	insertAndEmit(db, runId, "AGENT_COMPLETED", { nodeId, outputLength: outputText.length }, onEvent);
 
-	// Handle worktree merge after successful agent execution
+	// Handle worktree after successful agent execution
 	if (worktreePath && worktreeBranch && projectPath) {
 		const hasChanges = await worktreeHasChanges(worktreePath);
 		if (!hasChanges) {
@@ -389,24 +381,11 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 			await removeWorktree(projectPath, worktreePath);
 			runQueries.updateRun(db, runId, { worktreePath: null, worktreeBranch: null });
 			insertAndEmit(db, runId, "WORKTREE_CLEANUP", { reason: "no_changes" }, onEvent);
-		} else if (mergeStrategy === "auto" && resolvedBaseBranch) {
-			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "auto", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
-			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
-			runQueries.updateRun(db, runId, { mergeResult: result });
-			if (result.success) {
-				await removeWorktree(projectPath, worktreePath);
-				runQueries.updateRun(db, runId, { worktreePath: null });
-			}
-		} else if (mergeStrategy === "pr" && resolvedBaseBranch) {
-			const result = await mergeWorktreeBranch(projectPath, worktreeBranch, "pr", resolvedBaseBranch, worktreePath ?? undefined, { ticketTitle: ticket.title, ticketBody: ticket.body });
-			insertAndEmit(db, runId, "WORKTREE_MERGE", result, onEvent);
-			runQueries.updateRun(db, runId, { mergeResult: result });
 		} else {
-			// manual strategy or no strategy set — leave for user
+			// Changes present — leave worktree for downstream gitAction nodes
 			insertAndEmit(db, runId, "WORKTREE_READY", {
 				path: worktreePath,
 				branch: worktreeBranch,
-				strategy: mergeStrategy ?? "manual",
 			}, onEvent);
 		}
 	}

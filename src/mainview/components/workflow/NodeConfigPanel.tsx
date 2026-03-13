@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Node } from "@xyflow/react";
-import type { IRNodeConfig, IRNodeType, Lane, ClaudeModel, AllowedToolsPreset } from "../../../shared/types";
+import type { IRNodeConfig, IRNodeType, Lane, ClaudeModel, AllowedToolsPreset, GitActionType, MergeMethod } from "../../../shared/types";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
@@ -20,6 +20,7 @@ const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	condition: "Branches based on a JavaScript expression",
 	setMetadata: "Sets a key-value pair on the ticket",
 	log: "Logs a message to the workflow output",
+	gitAction: "Performs Git/GitHub operations (create PR, add reviewer, merge PR)",
 };
 
 interface NodeConfigPanelProps {
@@ -303,36 +304,116 @@ function ClaudeAgentFields({ config, updateConfig }: {
 							<TooltipTrigger asChild>
 								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Use git worktree</span>
 							</TooltipTrigger>
-							<TooltipContent side="left" className="max-w-[220px]">Run the agent in an isolated git worktree so it doesn't affect other agents or the main working tree.</TooltipContent>
+							<TooltipContent side="left" className="max-w-[220px]">Run the agent in an isolated git worktree. Use a downstream Git Action node to create a PR or merge.</TooltipContent>
 						</Tooltip>
 					</label>
 				</div>
-				{config.worktreeEnabled && (
-					<>
-						<div>
-							<TipLabel label="After completion" tip="What to do with the worktree branch when the agent finishes. Auto-merge merges directly, PR creates a pull request, Manual leaves it for you." />
-							<select
-								value={config.mergeStrategy ?? "manual"}
-								onChange={(e) => updateConfig({ mergeStrategy: e.target.value })}
-								className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
-							>
-								<option value="auto">Auto-merge</option>
-								<option value="pr">Create PR</option>
-								<option value="manual">Manual</option>
-							</select>
-						</div>
-						<div>
-							<TipLabel label="Base branch" tip="Target branch for merging. Defaults to whatever branch is checked out when the workflow runs." />
-							<Input
-								value={config.baseBranch ?? ""}
-								onChange={(e) => updateConfig({ baseBranch: e.target.value || undefined })}
-								className="h-8 text-sm"
-								placeholder="Defaults to current branch"
-							/>
-						</div>
-					</>
-				)}
 			</ConfigSection>
+		</>
+	);
+}
+
+function GitActionFields({ config, updateConfig }: {
+	config: IRNodeConfig & { type: "gitAction" };
+	updateConfig: (updates: Record<string, unknown>) => void;
+}) {
+	const action = config.action as GitActionType;
+
+	return (
+		<>
+			<div>
+				<TipLabel label="Action" tip="Which Git/GitHub operation to perform." />
+				<select
+					value={action}
+					onChange={(e) => updateConfig({ action: e.target.value as GitActionType })}
+					className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+				>
+					<option value="createPr">Create Pull Request</option>
+					<option value="addReviewer">Add Reviewer</option>
+					<option value="mergePr">Merge Pull Request</option>
+				</select>
+			</div>
+
+			{action === "createPr" && (
+				<>
+					<div>
+						<TipLabel label="Base branch" tip="Target branch for the PR. Defaults to the currently checked out branch." />
+						<Input
+							value={config.baseBranch ?? ""}
+							onChange={(e) => updateConfig({ baseBranch: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="Defaults to current branch"
+						/>
+					</div>
+					<div>
+						<TipLabel label="PR Title" tip="Custom PR title. Defaults to the ticket title. Supports {{interpolation}}." />
+						<Input
+							value={config.prTitle ?? ""}
+							onChange={(e) => updateConfig({ prTitle: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="Defaults to ticket title"
+						/>
+					</div>
+					<div>
+						<TipLabel label="PR Body" tip="Custom PR body. Defaults to ticket description + commit log. Supports {{interpolation}}." />
+						<Textarea
+							value={config.prBody ?? ""}
+							onChange={(e) => updateConfig({ prBody: e.target.value || undefined })}
+							className="text-sm min-h-[60px]"
+							placeholder="Defaults to ticket body + commits"
+						/>
+					</div>
+				</>
+			)}
+
+			{action === "addReviewer" && (
+				<>
+					<div>
+						<TipLabel label="PR Number" tip="The PR to add the reviewer to. Defaults to ticketMetadata.prNumber if left empty." />
+						<Input
+							value={config.prNumber ?? ""}
+							onChange={(e) => updateConfig({ prNumber: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="Auto from ticket metadata"
+						/>
+					</div>
+					<div>
+						<TipLabel label="Reviewer" tip="GitHub username of the reviewer to add." />
+						<Input
+							value={config.reviewer ?? ""}
+							onChange={(e) => updateConfig({ reviewer: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="e.g., copilot"
+						/>
+					</div>
+				</>
+			)}
+
+			{action === "mergePr" && (
+				<>
+					<div>
+						<TipLabel label="PR Number" tip="The PR to merge. Defaults to ticketMetadata.prNumber if left empty." />
+						<Input
+							value={config.prNumber ?? ""}
+							onChange={(e) => updateConfig({ prNumber: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="Auto from ticket metadata"
+						/>
+					</div>
+					<div>
+						<TipLabel label="Merge Method" tip="How to merge the PR: squash combines all commits, merge creates a merge commit, rebase replays commits." />
+						<select
+							value={config.mergeMethod ?? "squash"}
+							onChange={(e) => updateConfig({ mergeMethod: e.target.value as MergeMethod })}
+							className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+						>
+							<option value="squash">Squash</option>
+							<option value="merge">Merge</option>
+							<option value="rebase">Rebase</option>
+						</select>
+					</div>
+				</>
+			)}
 		</>
 	);
 }
@@ -480,6 +561,8 @@ function renderConfigFields(
 					/>
 				</div>
 			);
+		case "gitAction":
+			return <GitActionFields config={config} updateConfig={updateConfig} />;
 		case "start":
 		case "end":
 			return <p className="text-xs text-[#8b949e]">No configuration needed.</p>;
