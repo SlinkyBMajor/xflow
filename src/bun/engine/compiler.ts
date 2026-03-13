@@ -20,6 +20,7 @@ import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evalu
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
 import { executeGitAction } from "./git-action";
+import * as ticketQueries from "../db/queries/tickets";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -102,6 +103,16 @@ function buildState(
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
 
+	// Refresh ticket metadata from DB into XState context.
+	// Needed after any action that writes metadata (persistNodeOutput, git actions, agent API)
+	// so downstream condition nodes see up-to-date values.
+	const syncTicketMetadata = assign({
+		ticket: ({ context }: { context: WorkflowContext }) => {
+			const fresh = ticketQueries.getTicket(ctx.db, ctx.ticket.id);
+			return fresh ? { ...context.ticket, metadata: fresh.metadata } : context.ticket;
+		},
+	});
+
 	function makeTransitions(): Record<string, any> {
 		const on: Record<string, any> = {};
 		for (const targetId of targets) {
@@ -133,23 +144,18 @@ function buildState(
 		case "setMetadata": {
 			const config = node.config as SetMetadataConfig & { type: "setMetadata" };
 			return {
-				entry: ({
-					context,
-				}: {
-					context: WorkflowContext;
-				}) => {
-					const updatedMeta = executeSetMetadata(
-						ctx.db,
-						ctx.ticket.id,
-						config.key,
-						config.value,
-						context,
-					);
-					context.ticket = {
-						...context.ticket,
-						metadata: updatedMeta,
-					};
-				},
+				entry: [
+					({ context }: { context: WorkflowContext }) => {
+						executeSetMetadata(
+							ctx.db,
+							ctx.ticket.id,
+							config.key,
+							config.value,
+							context,
+						);
+					},
+					syncTicketMetadata,
+				],
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
 		}
@@ -261,6 +267,7 @@ function buildState(
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success", outputLabel);
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 					onError: {
@@ -273,6 +280,7 @@ function buildState(
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", outputLabel);
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 				},
@@ -314,6 +322,7 @@ function buildState(
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, String(event.output ?? ""), "success");
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 					onError: {
@@ -326,6 +335,7 @@ function buildState(
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, isTimeout ? "timeout" : "error");
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 				},
@@ -361,23 +371,11 @@ function buildState(
 									[node.id]: event.output,
 								}),
 							}),
-							({ context, event }: { context: WorkflowContext; event: any }) => {
+							({ event }: { event: any }) => {
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, JSON.stringify(event.output ?? ""), "success");
-								// Update ticket context with any metadata changes from git actions
-								if (event.output?.prNumber || event.output?.prUrl) {
-									const ticket = context.ticket;
-									context.ticket = {
-										...ticket,
-										metadata: {
-											...ticket.metadata,
-											...(event.output.prUrl && { prUrl: event.output.prUrl }),
-											...(event.output.prNumber && { prNumber: event.output.prNumber }),
-											...(event.output.branch && { branch: event.output.branch }),
-										},
-									};
-								}
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 					onError: {
@@ -389,6 +387,7 @@ function buildState(
 								persistNodeOutput(ctx.db, ctx.ticket.id, node.id, ctx.runId, `[Error] ${errorMsg}`, "error");
 								ctx.notifyBoardChanged?.();
 							},
+							syncTicketMetadata,
 						],
 					},
 				},
