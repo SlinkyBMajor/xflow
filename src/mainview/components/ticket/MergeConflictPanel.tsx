@@ -27,7 +27,7 @@ export function MergeConflictPanel({ runId, conflictFiles, onResolved }: MergeCo
 
 	const handleRetryMerge = () => {
 		setLoading(true);
-		rpc.request.mergeWorktreeBranch({ runId, strategy: "auto" });
+		rpc.request.mergeWorktreeBranch({ runId, strategy: "direct" });
 	};
 
 	const handleCleanup = () => {

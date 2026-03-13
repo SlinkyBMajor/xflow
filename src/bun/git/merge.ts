@@ -1,4 +1,4 @@
-export type MergeStrategy = "auto" | "pr" | "manual";
+export type MergeStrategy = "direct" | "pr";
 
 export interface MergeResult {
 	success: boolean;
@@ -58,29 +58,37 @@ export async function mergeWorktreeBranch(
 ): Promise<MergeResult> {
 	console.log(`[Merge] Strategy: ${strategy}, branch: ${branch}, base: ${baseBranch}, worktree: ${worktreePath ?? "n/a"}`);
 	switch (strategy) {
-		case "auto":
-			return autoMerge(projectPath, branch, baseBranch);
+		case "direct":
+			return directMerge(projectPath, branch, baseBranch, worktreePath);
 		case "pr":
 			return createPR(projectPath, branch, baseBranch, worktreePath, prContext);
-		case "manual":
-			return { success: true, strategy: "manual", conflicted: false };
 	}
 }
 
-async function autoMerge(projectPath: string, branch: string, baseBranch: string): Promise<MergeResult> {
-	console.log(`[Merge] Auto-merging ${branch} into ${baseBranch}`);
+async function directMerge(projectPath: string, branch: string, baseBranch: string, worktreePath?: string): Promise<MergeResult> {
+	console.log(`[Merge] Direct-merging ${branch} into ${baseBranch}`);
+
+	// Commit any uncommitted changes in the worktree before merging
+	if (worktreePath) {
+		const committed = await commitWorktreeChanges(worktreePath);
+		if (!committed) {
+			const error = "Failed to commit agent changes in worktree before merge";
+			console.error(`[Merge] ${error}`);
+			return { success: false, strategy: "direct", conflicted: false, error };
+		}
+	}
 
 	const checkout = await runGit(projectPath, ["checkout", baseBranch]);
 	if (checkout.exitCode !== 0) {
 		const error = `Failed to checkout ${baseBranch}: ${checkout.stderr}`;
 		console.error(`[Merge] ${error}`);
-		return { success: false, strategy: "auto", conflicted: false, error };
+		return { success: false, strategy: "direct", conflicted: false, error };
 	}
 
 	const merge = await runGit(projectPath, ["merge", "--no-ff", branch]);
 	if (merge.exitCode === 0) {
-		console.log(`[Merge] Auto-merge succeeded`);
-		return { success: true, strategy: "auto", conflicted: false };
+		console.log(`[Merge] Direct merge succeeded`);
+		return { success: true, strategy: "direct", conflicted: false };
 	}
 
 	// Check if it's a conflict
@@ -89,14 +97,14 @@ async function autoMerge(projectPath: string, branch: string, baseBranch: string
 		const conflictFiles = status.stdout.split("\n").filter(Boolean);
 		console.error(`[Merge] Conflicts in: ${conflictFiles.join(", ")}`);
 		await runGit(projectPath, ["merge", "--abort"]);
-		return { success: false, strategy: "auto", conflicted: true, conflictFiles };
+		return { success: false, strategy: "direct", conflicted: true, conflictFiles };
 	}
 
 	// Non-conflict merge failure
 	const error = merge.stderr;
-	console.error(`[Merge] Auto-merge failed: ${error}`);
+	console.error(`[Merge] Direct merge failed: ${error}`);
 	await runGit(projectPath, ["merge", "--abort"]);
-	return { success: false, strategy: "auto", conflicted: false, error };
+	return { success: false, strategy: "direct", conflicted: false, error };
 }
 
 async function commitWorktreeChanges(worktreePath: string): Promise<boolean> {

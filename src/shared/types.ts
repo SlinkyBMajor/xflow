@@ -2,7 +2,7 @@ import type { RPCSchema } from "electrobun/bun";
 
 // ── Data Types ──
 
-export type MergeStrategy = "auto" | "pr" | "manual";
+export type MergeStrategy = "direct" | "pr";
 
 export interface MergeResult {
 	success: boolean;

@@ -52,11 +52,9 @@ ALTER TABLE workflow_runs ADD worktree_branch text;
 In `ClaudeAgentConfig` (`src/shared/types.ts`):
 ```ts
 worktreeEnabled?: boolean;
-mergeStrategy?: "auto" | "pr" | "manual";
-baseBranch?: string;
 ```
 
-The UI checkbox and merge options appear in `NodeConfigPanel.tsx` under the Claude Agent section. Board-level defaults can be set via the Board Settings modal.
+The worktree checkbox appears in `NodeConfigPanel.tsx` under the Claude Agent section. Merge strategy is handled by downstream `gitAction` nodes or manually via the worktree panel in the ticket modal.
 
 ## .gitignore
 

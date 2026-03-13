@@ -166,27 +166,21 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 									<div className="space-y-3">
 										{buildTimeline(outputEntries, comments).map((item) =>
 											item.kind === "output" ? (
-												<div key={`output-${item.nodeId}`} className="relative group">
-													<WorkflowOutputBlock
-														nodeId={item.nodeId}
-														entry={item.entry}
-														allCollapsed={allCollapsed}
-														onOpenViewer={() => setViewerOutput({
-															label: item.entry.label ?? item.nodeId.slice(0, 8),
-															content: item.entry.output || "(no output)",
-														})}
-														onOpenInEditor={() => rpc.request.openInEditor({
-															content: item.entry.output || "",
-															label: item.entry.label ?? item.nodeId.slice(0, 8),
-														})}
-													/>
-													<button
-														onClick={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
-														className="absolute top-2 right-[4.5rem] opacity-0 group-hover:opacity-100 transition-opacity text-[#6e7681] hover:text-[#58a6ff] hover:bg-[#21262d] p-1 rounded"
-													>
-														<Reply size={12} />
-													</button>
-												</div>
+												<WorkflowOutputBlock
+													key={`output-${item.nodeId}`}
+													nodeId={item.nodeId}
+													entry={item.entry}
+													allCollapsed={allCollapsed}
+													onOpenViewer={() => setViewerOutput({
+														label: item.entry.label ?? item.nodeId.slice(0, 8),
+														content: item.entry.output || "(no output)",
+													})}
+													onOpenInEditor={() => rpc.request.openInEditor({
+														content: item.entry.output || "",
+														label: item.entry.label ?? item.nodeId.slice(0, 8),
+													})}
+													onReply={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
+												/>
 											) : (
 												<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} onEdit={editComment} />
 											),
@@ -404,12 +398,13 @@ const STATUS_STYLES: Record<WorkflowOutputStatus | "empty", {
 	empty:   { border: "border-l-[#30363d]", text: "text-[#6e7681]", bg: "", icon: "\u2014", label: "No output" },
 };
 
-function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpenInEditor }: {
+function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpenInEditor, onReply }: {
 	nodeId: string;
 	entry: WorkflowOutputEntry;
 	allCollapsed: boolean;
 	onOpenViewer: () => void;
 	onOpenInEditor: () => void;
+	onReply?: () => void;
 }) {
 	const [expanded, setExpanded] = useState(true);
 
@@ -464,6 +459,19 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 						</TooltipTrigger>
 						<TooltipContent>Open in editor</TooltipContent>
 					</Tooltip>
+					{onReply && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									onClick={(e) => { e.stopPropagation(); onReply(); }}
+									className="opacity-0 group-hover:opacity-100 transition-all text-[#6e7681] hover:text-[#58a6ff] hover:bg-[#21262d] p-1 rounded"
+								>
+									<Reply size={12} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent>Reply with feedback</TooltipContent>
+						</Tooltip>
+					)}
 				</div>
 			</div>
 			{expanded && (

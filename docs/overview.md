@@ -57,11 +57,10 @@ A React Flow canvas where you build automations by connecting nodes. Ten node ty
 Workflows are versioned — you can view history and restore previous versions.
 
 ### Agent Integration
-Claude Code agents run in your project directory with full codebase access. Each agent run can optionally create an isolated Git worktree, so changes happen on a separate branch. When the agent finishes, you choose how to land the changes:
+Claude Code agents run in your project directory with full codebase access. Each agent run can optionally create an isolated Git worktree, so changes happen on a separate branch. When the agent finishes, downstream Git Action nodes or the manual worktree panel handle the changes:
 
-- **Auto-merge** — merge and clean up automatically
-- **Pull request** — create a PR via GitHub CLI
-- **Manual** — review and merge yourself
+- **Direct merge** — merge into the base branch and clean up
+- **Pull request** — create a PR via GitHub CLI, optionally add reviewers or auto-merge
 
 The agent panel shows real-time output from all active runs, and ticket detail views display the full run history with diffs and merge status.
 

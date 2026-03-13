@@ -408,14 +408,14 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					try {
 						const { getCurrentBranch } = await import("./git/worktree");
 						const baseBranch = await getCurrentBranch(projectPath);
-						const mergeStrategy = strategy ?? "auto";
+						const mergeStrategy = strategy ?? "direct";
 						const result = await mergeWorktreeBranch(projectPath, run.worktreeBranch!, mergeStrategy, baseBranch, run.worktreePath ?? undefined, prContext);
 
 						console.log(`[RPC] mergeWorktreeBranch result:`, JSON.stringify(result));
 
 						runQueries.updateRun(db, runId, { mergeResult: result });
 
-						if (result.success && mergeStrategy === "auto" && run.worktreePath) {
+						if (result.success && mergeStrategy === "direct" && run.worktreePath) {
 							await removeWorktree(projectPath, run.worktreePath);
 							runQueries.updateRun(db, runId, { worktreePath: null });
 						}
@@ -425,7 +425,7 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 						console.error(`[RPC] mergeWorktreeBranch error:`, err);
 						mainWindow?.webview.rpc.send.worktreeMergeResult({
 							runId,
-							result: { success: false, strategy: strategy ?? "auto", conflicted: false, error: String(err) },
+							result: { success: false, strategy: strategy ?? "direct", conflicted: false, error: String(err) },
 						});
 					}
 				})();

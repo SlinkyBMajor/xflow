@@ -131,7 +131,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 		rpc.request.getWorktreeDiff({ runId: run.id });
 	};
 
-	const handleMerge = (strategy?: "auto" | "pr") => {
+	const handleMerge = (strategy?: "direct" | "pr") => {
 		setLoading(true);
 		setMergeResult(null);
 		rpc.request.mergeWorktreeBranch({ runId: run.id, strategy });
@@ -155,7 +155,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 
 	const hasBody = run.worktreeBranch
 		|| (mergeResult?.conflicted && mergeResult.conflictFiles)
-		|| (mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl)
+		|| (mergeResult?.success && mergeResult.strategy === "direct" && !mergeResult.prUrl)
 		|| mergeResult?.prUrl
 		|| (mergeResult && !mergeResult.success && !mergeResult.conflicted && mergeResult.error)
 		|| loading
@@ -208,7 +208,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 					)}
 
 					{/* Success message */}
-					{mergeResult?.success && mergeResult.strategy === "auto" && !mergeResult.prUrl && (
+					{mergeResult?.success && mergeResult.strategy === "direct" && !mergeResult.prUrl && (
 						<div className="flex items-center gap-2 text-xs text-green-400">
 							<GitMerge size={12} />
 							<span>Merged successfully</span>
@@ -266,7 +266,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => handleMerge("auto")}
+										onClick={() => handleMerge("direct")}
 										disabled={loading}
 										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
 									>
@@ -315,7 +315,7 @@ export function WorktreeStatus({ run }: WorktreeStatusProps) {
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => handleMerge("auto")}
+										onClick={() => handleMerge("direct")}
 										disabled={loading}
 										className="text-[11px] h-7 px-2.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d]"
 									>

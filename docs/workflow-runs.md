@@ -61,7 +61,7 @@ The `merge_result` column stores a `MergeResult` JSON object, written by:
 ```ts
 interface MergeResult {
   success: boolean;
-  strategy: MergeStrategy;    // "auto" | "pr" | "manual"
+  strategy: MergeStrategy;    // "direct" | "pr"
   conflicted: boolean;
   conflictFiles?: string[];
   prUrl?: string;

@@ -51,7 +51,7 @@ Merge strategy and base branch are now configured per-node via the Git Action (`
 
 - **Branch name** — Click to copy to clipboard
 - **View Diff** — Calls `getWorktreeDiff` RPC, shows in a `<pre>` block
-- **Merge** — Calls `mergeWorktreeBranch` with `auto` strategy
+- **Merge** — Calls `mergeWorktreeBranch` with `direct` strategy
 - **Create PR** — Calls `mergeWorktreeBranch` with `pr` strategy
 - **Cleanup** — Calls `cleanupWorktree` to remove worktree and branch
 
@@ -60,7 +60,7 @@ Merge strategy and base branch are now configured per-node via the Git Action (`
 `src/mainview/components/ticket/MergeConflictPanel.tsx` is shown when a merge attempt returns conflicts.
 
 - Lists conflicted files
-- "Retry Merge" button — re-attempts auto-merge after user resolves conflicts in terminal
+- "Retry Merge" button — re-attempts direct merge after user resolves conflicts in terminal
 - "Abort & Cleanup" button — removes the worktree entirely
 
 ## Workflow Editor Visual
