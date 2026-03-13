@@ -24,6 +24,7 @@ const worktreeMergeResultListeners = new Set<WorktreeMergeResultListener>();
 const worktreeDiffResultListeners = new Set<WorktreeDiffResultListener>();
 const worktreeCleanupDoneListeners = new Set<WorktreeCleanupDoneListener>();
 const ticketCommentListeners = new Set<TicketCommentListener>();
+const ticketCommentUpdatedListeners = new Set<TicketCommentListener>();
 const workflowGenerationResultListeners = new Set<WorkflowGenerationResultListener>();
 const workflowGenerationEventListeners = new Set<WorkflowGenerationEventListener>();
 
@@ -60,6 +61,9 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			ticketCommentAdded: (data) => {
 				for (const listener of ticketCommentListeners) listener(data);
+			},
+			ticketCommentUpdated: (data) => {
+				for (const listener of ticketCommentUpdatedListeners) listener(data);
 			},
 			workflowGenerationResult: (data) => {
 				for (const listener of workflowGenerationResultListeners) listener(data);
@@ -118,6 +122,11 @@ export function onWorktreeCleanupDone(listener: WorktreeCleanupDoneListener): ()
 export function onTicketCommentAdded(listener: TicketCommentListener): () => void {
 	ticketCommentListeners.add(listener);
 	return () => ticketCommentListeners.delete(listener);
+}
+
+export function onTicketCommentUpdated(listener: TicketCommentListener): () => void {
+	ticketCommentUpdatedListeners.add(listener);
+	return () => ticketCommentUpdatedListeners.delete(listener);
 }
 
 export function onWorkflowGenerationResult(listener: WorkflowGenerationResultListener): () => void {

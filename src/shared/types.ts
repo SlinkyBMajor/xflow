@@ -113,6 +113,7 @@ export interface TicketComment {
 	refNodeId: string | null;
 	refLabel: string | null;
 	createdAt: string;
+	updatedAt: string | null;
 }
 
 // ── Workflow IR Types ──
@@ -484,6 +485,10 @@ export type XFlowRPC = {
 				params: { ticketId: string; body: string; refNodeId?: string; refLabel?: string };
 				response: TicketComment;
 			};
+			updateTicketComment: {
+				params: { id: string; body: string };
+				response: TicketComment;
+			};
 			deleteTicketComment: {
 				params: { id: string };
 				response: void;
@@ -552,6 +557,7 @@ export type XFlowRPC = {
 			worktreeDiffResult: { runId: string; diff: string };
 			worktreeCleanupDone: { runId: string };
 			ticketCommentAdded: TicketComment;
+			ticketCommentUpdated: TicketComment;
 			workflowGenerationResult: { ir: WorkflowIR | null; error: string | null; mode: "replace" | "add" };
 			workflowGenerationEvent: { type: "text" | "tool_use" | "tool_result" | "status"; content: string };
 		};

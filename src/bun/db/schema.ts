@@ -96,4 +96,5 @@ export const ticketComments = sqliteTable("ticket_comments", {
 	refNodeId: text("ref_node_id"),
 	refLabel: text("ref_label"),
 	createdAt: text("created_at").notNull(),
+	updatedAt: text("updated_at"),
 });
