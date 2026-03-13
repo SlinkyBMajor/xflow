@@ -477,13 +477,9 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 			</div>
 			{expanded && (
 				<div className="px-3 pb-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent">
-					{displayOutput && looksLikeMarkdown(displayOutput) ? (
-						<MarkdownRenderer content={displayOutput} className={style.text} />
-					) : (
-						<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed ${style.text}`}>
-							{displayOutput || "(no output)"}
-						</pre>
-					)}
+					<pre className={`text-[12px] font-mono whitespace-pre-wrap break-words leading-relaxed ${style.text}`}>
+						{displayOutput || "(no output)"}
+					</pre>
 				</div>
 			)}
 		</div>
