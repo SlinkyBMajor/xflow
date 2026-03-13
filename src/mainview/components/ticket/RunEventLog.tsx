@@ -44,7 +44,7 @@ export function RunEventLog({ events, isActive, fullHeight }: RunEventLogProps) 
 			<div
 				ref={scrollRef}
 				onScroll={handleScroll}
-				className={`overflow-y-auto bg-[#0d1117] p-3 pb-6 scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${
+				className={`overflow-y-auto bg-[#0d1117] p-3 pb-6 select-text scrollbar-thin scrollbar-thumb-[#30363d] scrollbar-track-transparent ${
 				fullHeight ? "flex-1 min-h-0" : "max-h-80 border border-[#21262d] rounded-lg"
 			}`}
 			>
@@ -93,6 +93,68 @@ function EventLine({ event }: { event: RunEvent }) {
 				<div className="text-[11px] font-mono leading-relaxed">
 					{prefix}
 					<span className="text-red-400">&#10005; Agent timed out</span>
+				</div>
+			);
+
+		case "SCRIPT_STARTED":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-[#58a6ff]">&#9654; Script started</span>
+					<span className="text-[#6e7681] ml-1.5">({(event.payload as any)?.interpreter ?? "sh"})</span>
+				</div>
+			);
+
+		case "SCRIPT_OUTPUT": {
+			const chunk = (event.payload as any)?.chunk;
+			if (!chunk) return null;
+			return (
+				<div className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all">
+					{prefix}
+					<span className="text-[#e6edf3]">{chunk}</span>
+				</div>
+			);
+		}
+
+		case "SCRIPT_STDERR": {
+			const chunk = (event.payload as any)?.chunk;
+			if (!chunk) return null;
+			return (
+				<div className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all">
+					{prefix}
+					<span className="text-amber-400">{chunk}</span>
+				</div>
+			);
+		}
+
+		case "SCRIPT_ERROR":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-red-400">
+						&#10005; Script failed (exit code {(event.payload as any)?.exitCode ?? "?"})
+					</span>
+					{(event.payload as any)?.stderr && (
+						<pre className="mt-1 ml-[4.5rem] text-[10px] text-red-400/80 whitespace-pre-wrap break-all max-h-40 overflow-y-auto bg-red-400/5 rounded px-2 py-1 border border-red-400/10">
+							{(event.payload as any).stderr}
+						</pre>
+					)}
+				</div>
+			);
+
+		case "SCRIPT_TIMEOUT":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-red-400">&#10005; Script timed out after {(event.payload as any)?.timeoutMs ?? "?"}ms</span>
+				</div>
+			);
+
+		case "SCRIPT_COMPLETED":
+			return (
+				<div className="text-[11px] font-mono leading-relaxed">
+					{prefix}
+					<span className="text-emerald-400">&#10003; Script completed</span>
 				</div>
 			);
 
