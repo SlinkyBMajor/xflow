@@ -420,7 +420,7 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 		: entry.output;
 
 	return (
-		<div className={`bg-[#161b22] border border-[#21262d] border-l-2 ${style.border} rounded-lg overflow-hidden ${style.bg}`}>
+		<div className={`bg-[#161b22] border border-[#21262d] border-l-2 ${style.border} rounded-lg overflow-hidden ${style.bg} group`}>
 			<div className="flex items-center justify-between px-3 py-2">
 				<button
 					onClick={() => setExpanded(!expanded)}
