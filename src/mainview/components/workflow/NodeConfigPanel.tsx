@@ -3,7 +3,7 @@ import type { Node } from "@xyflow/react";
 import type { IRNodeConfig, IRNodeType, Lane, ClaudeModel, AllowedToolsPreset, GitActionType, MergeMethod } from "../../../shared/types";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
+import { ExpandableTextarea } from "../ui/expandable-textarea";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
@@ -156,7 +156,8 @@ function ClaudeAgentFields({ config, updateConfig }: {
 			{/* Always visible: core task fields */}
 			<div>
 				<TipLabel label="Prompt" tip="The task instructions sent to the agent. Supports {{ticket.title}}, {{ticket.body}}, and {{ticket.metadata.*}} interpolation." />
-				<Textarea
+				<ExpandableTextarea
+					label="Edit Prompt"
 					value={config.prompt}
 					onChange={(e) => updateConfig({ prompt: e.target.value })}
 					className="text-sm min-h-[80px]"
@@ -204,7 +205,8 @@ function ClaudeAgentFields({ config, updateConfig }: {
 				</div>
 				<div>
 					<TipLabel label="System Prompt" tip="Appended to Claude's default system prompt. Use for persistent instructions like coding style, constraints, or persona that shouldn't mix with the task prompt." />
-					<Textarea
+					<ExpandableTextarea
+						label="Edit System Prompt"
 						value={config.systemPrompt ?? ""}
 						onChange={(e) => updateConfig({ systemPrompt: e.target.value || undefined })}
 						className="text-sm min-h-[60px]"
@@ -356,7 +358,8 @@ function GitActionFields({ config, updateConfig }: {
 					</div>
 					<div>
 						<TipLabel label="PR Body" tip="Custom PR body. Defaults to ticket description + commit log. Supports {{interpolation}}." />
-						<Textarea
+						<ExpandableTextarea
+							label="Edit PR Body"
 							value={config.prBody ?? ""}
 							onChange={(e) => updateConfig({ prBody: e.target.value || undefined })}
 							className="text-sm min-h-[60px]"
@@ -431,7 +434,9 @@ function renderConfigFields(
 				<>
 					<div>
 						<Label className="text-xs text-[#8b949e] mb-1">Script</Label>
-						<Textarea
+						<ExpandableTextarea
+							label="Edit Script"
+							mono
 							value={config.script}
 							onChange={(e) => updateConfig({ script: e.target.value })}
 							className="text-sm min-h-[80px] font-mono"
@@ -477,7 +482,8 @@ function renderConfigFields(
 					</div>
 					<div>
 						<Label className="text-xs text-[#8b949e] mb-1">Body</Label>
-						<Textarea
+						<ExpandableTextarea
+							label="Edit Notification Body"
 							value={config.body}
 							onChange={(e) => updateConfig({ body: e.target.value })}
 							className="text-sm min-h-[60px]"
@@ -489,7 +495,8 @@ function renderConfigFields(
 			return (
 				<div>
 					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
-					<Textarea
+					<ExpandableTextarea
+						label="Edit Approval Message"
 						value={config.message}
 						onChange={(e) => updateConfig({ message: e.target.value })}
 						className="text-sm min-h-[60px]"
@@ -520,7 +527,9 @@ function renderConfigFields(
 			return (
 				<div>
 					<Label className="text-xs text-[#8b949e] mb-1">Expression</Label>
-					<Textarea
+					<ExpandableTextarea
+						label="Edit Condition Expression"
+						mono
 						value={config.expression}
 						onChange={(e) => updateConfig({ expression: e.target.value })}
 						className="text-sm min-h-[60px] font-mono"
@@ -553,7 +562,8 @@ function renderConfigFields(
 			return (
 				<div>
 					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
-					<Textarea
+					<ExpandableTextarea
+						label="Edit Log Message"
 						value={config.message}
 						onChange={(e) => updateConfig({ message: e.target.value })}
 						className="text-sm min-h-[60px]"
