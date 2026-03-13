@@ -11,6 +11,7 @@ function rowToComment(row: typeof ticketComments.$inferSelect): TicketComment {
 		refNodeId: row.refNodeId,
 		refLabel: row.refLabel,
 		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
 	};
 }
 
@@ -40,8 +41,20 @@ export function createComment(
 		refNodeId: refNodeId ?? null,
 		refLabel: refLabel ?? null,
 		createdAt: now,
+		updatedAt: null,
 	};
 	db.insert(ticketComments).values(row).run();
+	return rowToComment(row);
+}
+
+export function updateComment(db: DB, id: string, body: string): TicketComment {
+	const now = new Date().toISOString();
+	db.update(ticketComments)
+		.set({ body, updatedAt: now })
+		.where(eq(ticketComments.id, id))
+		.run();
+	const row = db.select().from(ticketComments).where(eq(ticketComments.id, id)).get();
+	if (!row) throw new Error(`Comment ${id} not found`);
 	return rowToComment(row);
 }
 

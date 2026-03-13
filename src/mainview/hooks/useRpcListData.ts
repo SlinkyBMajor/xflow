@@ -31,5 +31,5 @@ export function useRpcListData<T>(
 		});
 	}, [id, subscribeFn, matchFn, mergeFn]);
 
-	return { data, refresh: fetch };
+	return { data, refresh: fetch, setData };
 }

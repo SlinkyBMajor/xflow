@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send, Maximize2, FileCode } from "lucide-react";
+import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send, Maximize2, FileCode, Pencil } from "lucide-react";
 import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus, TicketComment } from "../../../shared/types";
 import {
 	Dialog,
@@ -42,7 +42,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch || r.mergeResult);
 	const { events } = useRunEvents(activeRun?.id ?? null);
 
-	const { comments, addComment } = useTicketComments(open ? ticket.id : null);
+	const { comments, addComment, editComment } = useTicketComments(open ? ticket.id : null);
 	const [replyTo, setReplyTo] = useState<{ nodeId: string; label: string } | null>(null);
 	const [commentText, setCommentText] = useState("");
 	const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -188,7 +188,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 													</button>
 												</div>
 											) : (
-												<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} />
+												<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} onEdit={editComment} />
 											),
 										)}
 									</div>
@@ -543,9 +543,23 @@ function OutputViewerModal({ open, label, content, onClose }: { open: boolean; l
 	);
 }
 
-function CommentBlock({ comment }: { comment: TicketComment }) {
+function CommentBlock({ comment, onEdit }: { comment: TicketComment; onEdit: (id: string, body: string) => Promise<void> }) {
+	const [editing, setEditing] = useState(false);
+	const [editText, setEditText] = useState(comment.body);
+
+	const handleSave = async () => {
+		const trimmed = editText.trim();
+		if (!trimmed || trimmed === comment.body) {
+			setEditing(false);
+			setEditText(comment.body);
+			return;
+		}
+		await onEdit(comment.id, trimmed);
+		setEditing(false);
+	};
+
 	return (
-		<div className="bg-[#161b22] border border-[#21262d] border-l-2 border-l-[#58a6ff] rounded-lg px-3 py-2">
+		<div className="bg-[#161b22] border border-[#21262d] border-l-2 border-l-[#58a6ff] rounded-lg px-3 py-2 group/comment">
 			<div className="flex items-center justify-between mb-1">
 				<span className="text-[11px] font-mono text-[#58a6ff]/70 flex items-center gap-1.5">
 					Feedback
@@ -555,13 +569,60 @@ function CommentBlock({ comment }: { comment: TicketComment }) {
 						</span>
 					)}
 				</span>
-				<span className="text-[10px] text-[#6e7681] font-mono">
-					{formatDate(comment.createdAt)}
-				</span>
+				<div className="flex items-center gap-1.5">
+					{comment.updatedAt && (
+						<span className="text-[10px] text-[#6e7681] font-mono italic">edited</span>
+					)}
+					<span className="text-[10px] text-[#6e7681] font-mono">
+						{formatDate(comment.createdAt)}
+					</span>
+					{!editing && (
+						<button
+							onClick={() => { setEditText(comment.body); setEditing(true); }}
+							className="opacity-0 group-hover/comment:opacity-100 transition-opacity text-[#6e7681] hover:text-[#e6edf3] hover:bg-[#21262d] p-0.5 rounded"
+						>
+							<Pencil size={11} />
+						</button>
+					)}
+				</div>
 			</div>
-			<p className="text-[12px] text-[#e6edf3] whitespace-pre-wrap leading-relaxed">
-				{comment.body}
-			</p>
+			{editing ? (
+				<div className="mt-1">
+					<Textarea
+						value={editText}
+						onChange={(e) => setEditText(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && e.metaKey) { e.preventDefault(); handleSave(); }
+							if (e.key === "Escape") { setEditing(false); setEditText(comment.body); }
+						}}
+						className="text-[12px] min-h-[40px] max-h-[120px] bg-[#0d1117] border-[#30363d] resize-none w-full"
+						rows={2}
+						autoFocus
+					/>
+					<div className="flex justify-end gap-1.5 mt-1.5">
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => { setEditing(false); setEditText(comment.body); }}
+							className="h-6 px-2 text-[11px] text-[#8b949e] hover:text-[#e6edf3]"
+						>
+							Cancel
+						</Button>
+						<Button
+							size="sm"
+							onClick={handleSave}
+							disabled={!editText.trim() || editText.trim() === comment.body}
+							className="h-6 px-2 text-[11px] bg-[#21262d] hover:bg-[#30363d] text-[#e6edf3] border-0"
+						>
+							Save
+						</Button>
+					</div>
+				</div>
+			) : (
+				<p className="text-[12px] text-[#e6edf3] whitespace-pre-wrap leading-relaxed">
+					{comment.body}
+				</p>
+			)}
 		</div>
 	);
 }

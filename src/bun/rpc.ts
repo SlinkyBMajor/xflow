@@ -350,6 +350,13 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return comment;
 			},
 
+			updateTicketComment: ({ id, body }) => {
+				const db = getDb();
+				const comment = commentQueries.updateComment(db, id, body);
+				mainWindow?.webview.rpc.send.ticketCommentUpdated(comment);
+				return comment;
+			},
+
 			deleteTicketComment: ({ id }) => {
 				const db = getDb();
 				commentQueries.deleteComment(db, id);
