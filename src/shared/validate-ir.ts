@@ -1,6 +1,9 @@
-import type { WorkflowIR, IRNodeType } from "./types";
+import { z } from "zod";
+import type { WorkflowIR } from "./types";
 
-const VALID_NODE_TYPES: Set<string> = new Set<IRNodeType>([
+// ── Enum schemas ──
+
+const IRNodeTypeSchema = z.enum([
 	"start",
 	"end",
 	"claudeAgent",
@@ -14,73 +17,154 @@ const VALID_NODE_TYPES: Set<string> = new Set<IRNodeType>([
 	"gitAction",
 ]);
 
+const ClaudeModelSchema = z.enum(["sonnet", "opus", "haiku"]);
+
+const AllowedToolsPresetSchema = z.enum(["plan-only", "read-only", "edit", "full", "custom"]);
+
+const GitActionTypeSchema = z.enum(["createPr", "addReviewer", "mergePr"]);
+
+const MergeMethodSchema = z.enum(["squash", "merge", "rebase"]);
+
+// ── Per-node-type config schemas ──
+
+const StartConfigSchema = z.looseObject({ type: z.literal("start") });
+
+const EndConfigSchema = z.looseObject({ type: z.literal("end") });
+
+const ClaudeAgentConfigSchema = z.looseObject({
+	type: z.literal("claudeAgent"),
+	prompt: z.string(),
+	timeoutMs: z.number().optional(),
+	includeWorkflowOutput: z.boolean().optional(),
+	worktreeEnabled: z.boolean().optional(),
+	outputLabel: z.string().optional(),
+	model: ClaudeModelSchema.optional(),
+	maxTurns: z.number().optional(),
+	systemPrompt: z.string().optional(),
+	skipPermissions: z.boolean().optional(),
+	allowedToolsPreset: AllowedToolsPresetSchema.optional(),
+	allowedToolsCustom: z.string().optional(),
+});
+
+const CustomScriptConfigSchema = z.looseObject({
+	type: z.literal("customScript"),
+	script: z.string(),
+	interpreter: z.enum(["bun", "sh"]).optional(),
+	timeoutMs: z.number().optional(),
+});
+
+const NotifyConfigSchema = z.looseObject({
+	type: z.literal("notify"),
+	title: z.string(),
+	body: z.string(),
+});
+
+const WaitForApprovalConfigSchema = z.looseObject({
+	type: z.literal("waitForApproval"),
+	message: z.string(),
+});
+
+const MoveToLaneConfigSchema = z.looseObject({
+	type: z.literal("moveToLane"),
+	laneId: z.string(),
+	laneName: z.string(),
+});
+
+const ConditionConfigSchema = z.looseObject({
+	type: z.literal("condition"),
+	expression: z.string(),
+});
+
+const SetMetadataConfigSchema = z.looseObject({
+	type: z.literal("setMetadata"),
+	key: z.string(),
+	value: z.string(),
+});
+
+const LogConfigSchema = z.looseObject({
+	type: z.literal("log"),
+	message: z.string(),
+});
+
+const GitActionConfigSchema = z.looseObject({
+	type: z.literal("gitAction"),
+	action: GitActionTypeSchema,
+	baseBranch: z.string().optional(),
+	prTitle: z.string().optional(),
+	prBody: z.string().optional(),
+	reviewer: z.string().optional(),
+	prNumber: z.string().optional(),
+	mergeMethod: MergeMethodSchema.optional(),
+});
+
+// ── Discriminated union for all node configs ──
+
+const IRNodeConfigSchema = z.discriminatedUnion("type", [
+	StartConfigSchema,
+	EndConfigSchema,
+	ClaudeAgentConfigSchema,
+	CustomScriptConfigSchema,
+	NotifyConfigSchema,
+	WaitForApprovalConfigSchema,
+	MoveToLaneConfigSchema,
+	ConditionConfigSchema,
+	SetMetadataConfigSchema,
+	LogConfigSchema,
+	GitActionConfigSchema,
+]);
+
+// ── Structural schemas ──
+
+const PositionSchema = z.object({ x: z.number(), y: z.number() });
+
+const IRNodeSchema = z.object({
+	id: z.string(),
+	type: IRNodeTypeSchema,
+	position: PositionSchema,
+	label: z.string().optional(),
+	config: IRNodeConfigSchema,
+});
+
+const IREdgeSchema = z.object({
+	id: z.string(),
+	from: z.string(),
+	to: z.string(),
+	on: z.string().optional(),
+});
+
+const WorkflowIRSchema = z.object({
+	version: z.literal(1),
+	nodes: z.array(IRNodeSchema),
+	edges: z.array(IREdgeSchema),
+});
+
+// ── Helpers ──
+
+function formatZodPath(path: (string | number)[]): string {
+	return path.reduce<string>((acc, seg) => {
+		if (typeof seg === "number") return `${acc}[${seg}]`;
+		return acc ? `${acc}.${seg}` : seg;
+	}, "");
+}
+
+function formatZodErrors(error: z.ZodError): string[] {
+	return error.issues.map((issue) => {
+		const path = formatZodPath(issue.path);
+		return path ? `${path}: ${issue.message}` : issue.message;
+	});
+}
+
+// ── Public API ──
+
 export function parseAndValidateIR(raw: unknown): { valid: boolean; errors: string[]; ir?: WorkflowIR } {
-	const errors: string[] = [];
+	const result = WorkflowIRSchema.safeParse(raw);
 
-	if (raw == null || typeof raw !== "object") {
-		return { valid: false, errors: ["Expected a JSON object"] };
+	if (!result.success) {
+		return { valid: false, errors: formatZodErrors(result.error) };
 	}
 
-	const obj = raw as Record<string, unknown>;
-
-	if (obj.version !== 1) {
-		errors.push('Missing or invalid "version" (must be 1)');
-	}
-
-	if (!Array.isArray(obj.nodes)) {
-		errors.push('"nodes" must be an array');
-	}
-
-	if (!Array.isArray(obj.edges)) {
-		errors.push('"edges" must be an array');
-	}
-
-	// If basic structure is wrong, return early
-	if (errors.length > 0) {
-		return { valid: false, errors };
-	}
-
-	const nodes = obj.nodes as unknown[];
-	const edges = obj.edges as unknown[];
-
-	for (let i = 0; i < nodes.length; i++) {
-		const n = nodes[i];
-		if (n == null || typeof n !== "object") {
-			errors.push(`nodes[${i}]: must be an object`);
-			continue;
-		}
-		const node = n as Record<string, unknown>;
-		if (typeof node.id !== "string") errors.push(`nodes[${i}]: missing "id" (string)`);
-		if (typeof node.type !== "string" || !VALID_NODE_TYPES.has(node.type)) {
-			errors.push(`nodes[${i}]: invalid "type" "${String(node.type)}"`);
-		}
-		const pos = node.position;
-		if (pos == null || typeof pos !== "object" || typeof (pos as Record<string, unknown>).x !== "number" || typeof (pos as Record<string, unknown>).y !== "number") {
-			errors.push(`nodes[${i}]: "position" must have numeric x and y`);
-		}
-		if (node.config == null || typeof node.config !== "object") {
-			errors.push(`nodes[${i}]: missing "config" (object)`);
-		}
-	}
-
-	for (let i = 0; i < edges.length; i++) {
-		const e = edges[i];
-		if (e == null || typeof e !== "object") {
-			errors.push(`edges[${i}]: must be an object`);
-			continue;
-		}
-		const edge = e as Record<string, unknown>;
-		if (typeof edge.id !== "string") errors.push(`edges[${i}]: missing "id" (string)`);
-		if (typeof edge.from !== "string") errors.push(`edges[${i}]: missing "from" (string)`);
-		if (typeof edge.to !== "string") errors.push(`edges[${i}]: missing "to" (string)`);
-	}
-
-	if (errors.length > 0) {
-		return { valid: false, errors };
-	}
-
-	// Structure is valid — cast and run graph-level checks
-	const ir = raw as WorkflowIR;
+	// Structure is valid — run graph-level checks
+	const ir = result.data as WorkflowIR;
 	const graphResult = validateIR(ir);
 	if (!graphResult.valid) {
 		return { valid: false, errors: graphResult.errors };
