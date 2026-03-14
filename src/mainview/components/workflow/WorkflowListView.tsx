@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Workflow, Lane } from "../../../shared/types";
 import { useWorkflow } from "../../hooks/useWorkflow";
+import { useConfirm } from "../../hooks/useConfirm";
 import { WorkflowEditor } from "./WorkflowEditor";
 import { Button } from "../ui/button";
 import { relativeTime } from "../../lib/date-utils";
@@ -14,6 +15,7 @@ interface WorkflowListViewProps {
 
 export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelectWorkflow }: WorkflowListViewProps) {
 	const { listWorkflows, deleteWorkflow } = useWorkflow();
+	const confirm = useConfirm();
 	const [workflows, setWorkflows] = useState<Workflow[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -29,6 +31,14 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 
 	const handleDelete = async (e: React.MouseEvent, id: string) => {
 		e.stopPropagation();
+		const wf = workflows.find((w) => w.id === id);
+		const confirmed = await confirm({
+			title: `Delete "${wf?.name ?? "workflow"}"?`,
+			description: "This will permanently delete the workflow and all its run history. Lanes using this workflow will be detached.",
+			confirmLabel: "Delete",
+			variant: "danger",
+		});
+		if (!confirmed) return;
 		await deleteWorkflow(id);
 		if (selectedId === id) onSelectWorkflow(null);
 		refresh();
@@ -89,10 +99,13 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 							const attached = getLanesForWorkflow(wf.id);
 							const isSelected = selectedId === wf.id;
 							return (
-								<button
+								<div
 									key={wf.id}
+									role="button"
+									tabIndex={0}
 									onClick={() => onSelectWorkflow(wf.id)}
-									className={`group w-full text-left px-3 py-2.5 transition-all duration-100 border-l-2 ${
+									onKeyDown={(e) => { if (e.key === "Enter") onSelectWorkflow(wf.id); }}
+									className={`group w-full text-left px-3 py-2.5 transition-all duration-100 border-l-2 cursor-pointer ${
 										isSelected
 											? "bg-[#21262d]/50 border-l-[#58a6ff]"
 											: "border-l-transparent hover:bg-[#21262d]/30"
@@ -130,7 +143,7 @@ export function WorkflowListView({ lanes, onCreateWorkflow, selectedId, onSelect
 										)}
 										<span className="text-[10px] text-[#484f58] font-mono ml-auto">{relativeTime(wf.updatedAt)}</span>
 									</div>
-								</button>
+								</div>
 							);
 						})
 					)}
