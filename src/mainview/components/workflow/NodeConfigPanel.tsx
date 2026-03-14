@@ -23,6 +23,8 @@ const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	gitAction: "Performs Git/GitHub operations (create PR, add reviewer, merge PR)",
 };
 
+const INTERPOLATION_NODE_TYPES = new Set<IRNodeType>(["claudeAgent", "customScript", "notify", "log", "setMetadata", "gitAction"]);
+
 interface NodeConfigPanelProps {
 	node: Node;
 	lanes: Lane[];
@@ -94,6 +96,8 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 				</div>
 
 				{renderConfigFields(config, updateConfig, lanes)}
+
+				{INTERPOLATION_NODE_TYPES.has(nodeType) && <InterpolationReference />}
 			</div>
 
 			{!isFlowNode && (
@@ -145,6 +149,35 @@ function TipLabel({ label, tip }: { label: string; tip: string }) {
 	);
 }
 
+const INTERPOLATION_VARS = [
+	{ token: "{{ticket.title}}", desc: "Ticket title" },
+	{ token: "{{ticket.id}}", desc: "Ticket ID" },
+	{ token: "{{ticket.body}}", desc: "Ticket description" },
+	{ token: "{{ticket.laneId}}", desc: "Current lane ID" },
+	{ token: "{{ticket.metadata.KEY}}", desc: "Ticket metadata value (e.g. prUrl, branch)" },
+	{ token: "{{outputs.NODE_ID}}", desc: "Output from a previous node (use the node's ID)" },
+];
+
+const INTERPOLATION_TIP = "Supports {{ticket.*}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} template variables.";
+
+function InterpolationReference() {
+	return (
+		<ConfigSection title="Template Variables" defaultOpen>
+			<p className="text-xs text-[#8b949e]">
+				Inject runtime values into text fields using <code className="text-[#79c0ff]">{"{{double braces}}"}</code>:
+			</p>
+			<div className="space-y-2">
+				{INTERPOLATION_VARS.map(({ token, desc }) => (
+					<div key={token} className="flex flex-col gap-0.5">
+						<code className="text-xs text-[#79c0ff] font-mono break-all">{token}</code>
+						<span className="text-xs text-[#8b949e] pl-1">{desc}</span>
+					</div>
+				))}
+			</div>
+		</ConfigSection>
+	);
+}
+
 function ClaudeAgentFields({ config, updateConfig }: {
 	config: IRNodeConfig & { type: "claudeAgent" };
 	updateConfig: (updates: Record<string, unknown>) => void;
@@ -155,7 +188,7 @@ function ClaudeAgentFields({ config, updateConfig }: {
 		<>
 			{/* Always visible: core task fields */}
 			<div>
-				<TipLabel label="Prompt" tip="The task instructions sent to the agent. Supports {{ticket.title}}, {{ticket.body}}, and {{ticket.metadata.*}} interpolation." />
+				<TipLabel label="Prompt" tip={`The task instructions sent to the agent. ${INTERPOLATION_TIP}`} />
 				<ExpandableTextarea
 					label="Edit Prompt"
 					value={config.prompt}
@@ -346,7 +379,7 @@ function GitActionFields({ config, updateConfig }: {
 						/>
 					</div>
 					<div>
-						<TipLabel label="PR Title" tip="Custom PR title. Defaults to the ticket title. Supports {{interpolation}}." />
+						<TipLabel label="PR Title" tip={`Custom PR title. Defaults to the ticket title. ${INTERPOLATION_TIP}`} />
 						<Input
 							value={config.prTitle ?? ""}
 							onChange={(e) => updateConfig({ prTitle: e.target.value || undefined })}
@@ -355,7 +388,7 @@ function GitActionFields({ config, updateConfig }: {
 						/>
 					</div>
 					<div>
-						<TipLabel label="PR Body" tip="Custom PR body. Defaults to ticket description + commit log. Supports {{interpolation}}." />
+						<TipLabel label="PR Body" tip={`Custom PR body. Defaults to ticket description + commit log. ${INTERPOLATION_TIP}`} />
 						<ExpandableTextarea
 							label="Edit PR Body"
 							value={config.prBody ?? ""}
@@ -431,7 +464,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Script</Label>
+						<TipLabel label="Script" tip={`Script to execute. ${INTERPOLATION_TIP}`} />
 						<ExpandableTextarea
 							label="Edit Script"
 							mono
@@ -471,7 +504,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Title</Label>
+						<TipLabel label="Title" tip={`Notification title. ${INTERPOLATION_TIP}`} />
 						<Input
 							value={config.title}
 							onChange={(e) => updateConfig({ title: e.target.value })}
@@ -479,7 +512,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Body</Label>
+						<TipLabel label="Body" tip={`Notification body. ${INTERPOLATION_TIP}`} />
 						<ExpandableTextarea
 							label="Edit Notification Body"
 							value={config.body}
@@ -547,7 +580,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Value</Label>
+						<TipLabel label="Value" tip={`Value to set. ${INTERPOLATION_TIP}`} />
 						<Input
 							value={config.value}
 							onChange={(e) => updateConfig({ value: e.target.value })}
@@ -559,7 +592,7 @@ function renderConfigFields(
 		case "log":
 			return (
 				<div>
-					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
+					<TipLabel label="Message" tip={`Log message. ${INTERPOLATION_TIP}`} />
 					<ExpandableTextarea
 						label="Edit Log Message"
 						value={config.message}
