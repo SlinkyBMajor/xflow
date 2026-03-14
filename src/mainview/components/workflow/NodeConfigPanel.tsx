@@ -94,6 +94,7 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 				</div>
 
 				{renderConfigFields(config, updateConfig, lanes)}
+				{SUPPORTS_INTERPOLATION.has(nodeType) && <InterpolationReference />}
 			</div>
 
 			{!isFlowNode && (
@@ -142,6 +143,37 @@ function TipLabel({ label, tip }: { label: string; tip: string }) {
 			</TooltipTrigger>
 			<TooltipContent side="left" className="max-w-[220px]">{tip}</TooltipContent>
 		</Tooltip>
+	);
+}
+
+const INTERPOLATION_VARS = [
+	{ variable: "{{ticket.title}}", description: "Ticket title" },
+	{ variable: "{{ticket.id}}", description: "Ticket ID" },
+	{ variable: "{{ticket.body}}", description: "Ticket description" },
+	{ variable: "{{ticket.laneId}}", description: "Current lane ID" },
+	{ variable: "{{ticket.metadata.KEY}}", description: "Ticket metadata value" },
+	{ variable: "{{outputs.NODE_ID}}", description: "Output from a prior node" },
+];
+
+const SUPPORTS_INTERPOLATION = new Set<IRNodeType>([
+	"claudeAgent", "customScript", "notify", "waitForApproval", "setMetadata", "log", "gitAction",
+]);
+
+function InterpolationReference() {
+	return (
+		<ConfigSection title="Template Variables" defaultOpen>
+			<p className="text-xs text-[#8b949e]">
+				Use <code className="text-[#79c0ff] font-mono">{"{{"}</code>variable<code className="text-[#79c0ff] font-mono">{"}}"}</code> syntax in text fields to inject runtime values:
+			</p>
+			<div className="space-y-1">
+				{INTERPOLATION_VARS.map((v) => (
+					<div key={v.variable} className="flex items-start gap-2 text-xs">
+						<code className="text-[#79c0ff] font-mono shrink-0 bg-[#0d1117] rounded px-1 py-0.5">{v.variable}</code>
+						<span className="text-[#8b949e]">{v.description}</span>
+					</div>
+				))}
+			</div>
+		</ConfigSection>
 	);
 }
 
@@ -431,7 +463,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Script</Label>
+						<TipLabel label="Script" tip="Shell or Bun script to execute. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 						<ExpandableTextarea
 							label="Edit Script"
 							mono
@@ -471,7 +503,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Title</Label>
+						<TipLabel label="Title" tip="Notification title. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 						<Input
 							value={config.title}
 							onChange={(e) => updateConfig({ title: e.target.value })}
@@ -479,7 +511,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Body</Label>
+						<TipLabel label="Body" tip="Notification body. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 						<ExpandableTextarea
 							label="Edit Notification Body"
 							value={config.body}
@@ -492,7 +524,7 @@ function renderConfigFields(
 		case "waitForApproval":
 			return (
 				<div>
-					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
+					<TipLabel label="Message" tip="Message shown to the approver. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 					<ExpandableTextarea
 						label="Edit Approval Message"
 						value={config.message}
@@ -547,7 +579,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Value</Label>
+						<TipLabel label="Value" tip="Value to store. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 						<Input
 							value={config.value}
 							onChange={(e) => updateConfig({ value: e.target.value })}
@@ -559,7 +591,7 @@ function renderConfigFields(
 		case "log":
 			return (
 				<div>
-					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
+					<TipLabel label="Message" tip="Log message template. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 					<ExpandableTextarea
 						label="Edit Log Message"
 						value={config.message}
