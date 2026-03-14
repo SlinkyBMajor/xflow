@@ -7,7 +7,7 @@ import { ExpandableTextarea } from "../ui/expandable-textarea";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
-import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Copy, Check, ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
 
 const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	start: "Entry point of the workflow",
@@ -117,7 +117,7 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 	);
 }
 
-function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function ConfigSection({ title, children, defaultOpen = false }: { title: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
 	const [open, setOpen] = useState(defaultOpen);
 	return (
 		<div className="border-t border-[#21262d] pt-2 -mx-0.5">
@@ -232,7 +232,7 @@ function ClaudeAgentFields({ config, updateConfig }: {
 			</ConfigSection>
 
 			{/* Permissions section */}
-			<ConfigSection title="Permissions">
+			<ConfigSection title={<span className="flex items-center gap-1">Permissions<Tooltip><TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-[#484f58] hover:text-[#8b949e] transition-colors cursor-default" /></TooltipTrigger><TooltipContent side="right" className="max-w-[260px]">Skip permissions auto-approves tool use. Allowed tools restricts which tools are available. Use both together to auto-approve a restricted set (e.g. skip + plan-only).</TooltipContent></Tooltip></span>}>
 				<div>
 					<label className="flex items-center gap-2 cursor-pointer">
 						<input
