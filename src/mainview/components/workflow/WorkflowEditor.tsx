@@ -30,6 +30,7 @@ import { WorkflowAIAssistant } from "./WorkflowAIAssistant";
 import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Sparkles, Boxes, Braces, History, Save } from "lucide-react";
 
 interface WorkflowEditorProps {
 	workflowId: string;
@@ -368,6 +369,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 									onClick={() => setShowAIAssistant(true)}
 									className="text-[#8b949e] hover:text-[#e6edf3]"
 								>
+									<Sparkles size={14} />
 									AI
 								</Button>
 							</TooltipTrigger>
@@ -382,6 +384,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 								onClick={() => setShowNodeReference(true)}
 								className="text-[#8b949e] hover:text-[#e6edf3]"
 							>
+								<Boxes size={14} />
 								Nodes
 							</Button>
 						</TooltipTrigger>
@@ -398,11 +401,13 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 								}}
 								className="text-[#8b949e] hover:text-[#e6edf3]"
 							>
+								<Braces size={14} />
 								Copy JSON
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>Copy workflow IR as JSON</TooltipContent>
 					</Tooltip>
+					<div className="w-px h-4 bg-[#30363d]" />
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
@@ -411,6 +416,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 								onClick={() => setShowHistory((prev) => !prev)}
 								className={showHistory ? "text-[#58a6ff]" : "text-[#8b949e] hover:text-[#e6edf3]"}
 							>
+								<History size={14} />
 								History
 							</Button>
 						</TooltipTrigger>
@@ -424,6 +430,7 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 								disabled={!isDirty || isRunning}
 								className={isDirty && !isRunning ? "bg-[#238636] hover:bg-[#2ea043] text-white" : ""}
 							>
+								<Save size={14} />
 								{isDirty ? "Save" : "Saved"}
 							</Button>
 						</TooltipTrigger>
