@@ -29,6 +29,9 @@ Spawns a Claude Code CLI process with the project root as the working directory.
 - `timeoutMs` — max execution time (default: 600 000 ms)
 - `includeWorkflowOutput` — whether to include output from prior nodes
 - `worktreeEnabled` — run in an isolated git worktree (changes are left for downstream gitAction nodes)
+- `skipPermissions` — auto-approve all tool use without prompting
+- `allowedToolsPreset` — restricts which tools the agent can use. Works alongside `skipPermissions`. Presets: `plan-only` (read-only + find/ls), `read-only`, `edit`, `full`, `custom`
+- `allowedToolsCustom` — comma-separated tool list when preset is `custom` (e.g. `Read,Edit,Bash(git:*)`)
 
 **Emits:** `AGENT_DONE` on completion, `WORKTREE_READY` if worktree has changes
 

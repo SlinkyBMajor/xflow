@@ -276,17 +276,19 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 
 	if (skipPermissions) {
 		cliArgs.push("--dangerously-skip-permissions");
-	} else {
-		// Resolve allowed tools from preset or custom list
-		let tools: string[] | undefined;
-		if (allowedToolsPreset === "custom" && allowedToolsCustom) {
-			tools = allowedToolsCustom.split(",").map((t) => t.trim()).filter(Boolean);
-		} else if (allowedToolsPreset && allowedToolsPreset !== "custom") {
-			tools = ALLOWED_TOOLS_PRESETS[allowedToolsPreset];
-		}
-		if (tools && tools.length > 0) {
-			cliArgs.push("--allowedTools", tools.join(","));
-		}
+	}
+
+	// Resolve allowed tools from preset or custom list.
+	// This works alongside skipPermissions — skip auto-approves tool use,
+	// allowedTools restricts which tools are available.
+	let tools: string[] | undefined;
+	if (allowedToolsPreset === "custom" && allowedToolsCustom) {
+		tools = allowedToolsCustom.split(",").map((t) => t.trim()).filter(Boolean);
+	} else if (allowedToolsPreset && allowedToolsPreset !== "custom") {
+		tools = ALLOWED_TOOLS_PRESETS[allowedToolsPreset];
+	}
+	if (tools && tools.length > 0) {
+		cliArgs.push("--allowedTools", tools.join(","));
 	}
 
 	const proc = Bun.spawn(cliArgs, {

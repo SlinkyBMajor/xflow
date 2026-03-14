@@ -143,9 +143,10 @@ export type IRNodeType =
 
 export type ClaudeModel = "sonnet" | "opus" | "haiku";
 
-export type AllowedToolsPreset = "read-only" | "edit" | "full" | "custom";
+export type AllowedToolsPreset = "plan-only" | "read-only" | "edit" | "full" | "custom";
 
 export const ALLOWED_TOOLS_PRESETS: Record<Exclude<AllowedToolsPreset, "custom">, string[]> = {
+	"plan-only": ["Read", "Grep", "Glob", "Bash(find:*)", "Bash(ls:*)"],
 	"read-only": ["Read", "Grep", "Glob"],
 	"edit": ["Read", "Write", "Edit", "Grep", "Glob"],
 	"full": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent"],

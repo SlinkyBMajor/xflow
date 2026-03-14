@@ -245,37 +245,35 @@ function ClaudeAgentFields({ config, updateConfig }: {
 							<TooltipTrigger asChild>
 								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Skip permission checks</span>
 							</TooltipTrigger>
-							<TooltipContent side="left" className="max-w-[220px]">Auto-approve all tool use without prompting. When off, you can restrict which tools the agent may use.</TooltipContent>
+							<TooltipContent side="left" className="max-w-[220px]">Auto-approve all tool use without prompting. Can be combined with Allowed Tools to auto-approve a restricted set.</TooltipContent>
 						</Tooltip>
 					</label>
 				</div>
-				{!skipPermissions && (
-					<>
-						<div>
-							<TipLabel label="Allowed Tools" tip="Preset sets of tools the agent can use. Read-only for analysis, Edit for code changes, Full for unrestricted tool access." />
-							<select
-								value={config.allowedToolsPreset ?? "edit"}
-								onChange={(e) => updateConfig({ allowedToolsPreset: e.target.value as AllowedToolsPreset })}
-								className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
-							>
-								<option value="read-only">Read-only (Read, Grep, Glob)</option>
-								<option value="edit">Edit (Read, Write, Edit, Grep, Glob)</option>
-								<option value="full">Full (Read, Write, Edit, Bash, Grep, Glob, Agent)</option>
-								<option value="custom">Custom</option>
-							</select>
-						</div>
-						{config.allowedToolsPreset === "custom" && (
-							<div>
-								<TipLabel label="Custom Tools" tip="Comma-separated list of Claude Code tool names. Supports patterns like Bash(git:*) to allow only specific commands." />
-								<Input
-									value={config.allowedToolsCustom ?? ""}
-									onChange={(e) => updateConfig({ allowedToolsCustom: e.target.value || undefined })}
-									className="h-8 text-sm"
-									placeholder="Read,Edit,Bash(git:*)"
-								/>
-							</div>
-						)}
-					</>
+				<div>
+					<TipLabel label="Allowed Tools" tip="Restricts which tools the agent can use. Works with or without skip permissions — skip auto-approves, this controls which tools are available." />
+					<select
+						value={config.allowedToolsPreset ?? ""}
+						onChange={(e) => updateConfig({ allowedToolsPreset: (e.target.value || undefined) as AllowedToolsPreset | undefined })}
+						className="w-full h-8 text-sm bg-[#0d1117] border border-[#30363d] rounded-md px-2 text-[#e6edf3]"
+					>
+						<option value="">All tools (no restriction)</option>
+						<option value="plan-only">Plan only (Read, Grep, Glob — no edits)</option>
+						<option value="read-only">Read-only (Read, Grep, Glob)</option>
+						<option value="edit">Edit (Read, Write, Edit, Grep, Glob)</option>
+						<option value="full">Full (Read, Write, Edit, Bash, Grep, Glob, Agent)</option>
+						<option value="custom">Custom</option>
+					</select>
+				</div>
+				{config.allowedToolsPreset === "custom" && (
+					<div>
+						<TipLabel label="Custom Tools" tip="Comma-separated list of Claude Code tool names. Supports patterns like Bash(git:*) to allow only specific commands." />
+						<Input
+							value={config.allowedToolsCustom ?? ""}
+							onChange={(e) => updateConfig({ allowedToolsCustom: e.target.value || undefined })}
+							className="h-8 text-sm"
+							placeholder="Read,Edit,Bash(git:*)"
+						/>
+					</div>
 				)}
 			</ConfigSection>
 
