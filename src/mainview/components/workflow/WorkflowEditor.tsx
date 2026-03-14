@@ -30,7 +30,9 @@ import { WorkflowAIAssistant } from "./WorkflowAIAssistant";
 import { WorkflowToolbox, type WorkflowToolboxState, type EdgeStyle } from "./WorkflowToolbox";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { Sparkles, Boxes, Braces, History, Save } from "lucide-react";
+import { Sparkles, Boxes, Braces, ClipboardPaste, History, Save } from "lucide-react";
+import { toast } from "sonner";
+import { parseAndValidateIR } from "../../../shared/validate-ir";
 
 interface WorkflowEditorProps {
 	workflowId: string;
@@ -406,6 +408,44 @@ function WorkflowEditorInner({ workflowId, lanes, onNameChange }: WorkflowEditor
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>Copy workflow IR as JSON</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={async () => {
+									let text: string;
+									try {
+										text = await navigator.clipboard.readText();
+									} catch {
+										toast.error("Could not read clipboard");
+										return;
+									}
+									let raw: unknown;
+									try {
+										raw = JSON.parse(text);
+									} catch {
+										toast.error("Clipboard does not contain valid JSON");
+										return;
+									}
+									const result = parseAndValidateIR(raw);
+									if (!result.valid || !result.ir) {
+										toast.error(`Invalid workflow: ${result.errors.join(", ")}`);
+										return;
+									}
+									const { nodes: rfNodes, edges: rfEdges } = irToReactFlow(result.ir);
+									setNodes(rfNodes);
+									setEdges(rfEdges);
+									toast.success("Workflow pasted from clipboard");
+								}}
+								className="text-[#8b949e] hover:text-[#e6edf3]"
+							>
+								<ClipboardPaste size={14} />
+								Paste JSON
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Paste workflow IR from JSON</TooltipContent>
 					</Tooltip>
 					<div className="w-px h-4 bg-[#30363d]" />
 					<Tooltip>
