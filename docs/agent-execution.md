@@ -29,7 +29,7 @@ The `result` event always appears last and contains the complete output as a str
 
 Agent output is persisted in two places:
 
-1. **Ticket metadata** — `ticket.metadata._workflowOutput[nodeId]` (max 10KB, via `persistNodeOutput` in `executor.ts`)
+1. **Ticket metadata** — `ticket.metadata._workflowOutput` array (max 10KB per entry, 50-entry cap, via `persistNodeOutput` in `executor.ts`)
 2. **Filesystem** — `.xflow/runs/{runId}/output.md` (full output) and `context.md` (input sent to agent)
 
 ## Data Flow
@@ -42,7 +42,7 @@ executeClaudeAgent (agent.ts)
       ↓
 compiler.ts onDone actions
   → saves to context.nodeOutputs (for downstream interpolation)
-  → persistNodeOutput → ticket.metadata._workflowOutput[nodeId]
+  → persistNodeOutput → appends to ticket.metadata._workflowOutput array
   → notifyBoardChanged → frontend receives boardUpdated
       ↓
 compiler.ts onError actions (if agent throws)
