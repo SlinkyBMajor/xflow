@@ -136,10 +136,13 @@ function buildState(
 	function makeDoneActions(serializeOutput: (raw: unknown) => string, label?: string) {
 		return [
 			assign({
-				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
-					...context.nodeOutputs,
-					[node.id]: { status: "success", output: event.output } satisfies NodeResult,
-				}),
+				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => {
+					console.log(`[NodeDone] ${node.type} ${node.id.slice(0, 8)} → status=success, output=${typeof event.output}(${String(event.output)?.length ?? 0})`);
+					return {
+						...context.nodeOutputs,
+						[node.id]: { status: "success", output: event.output } satisfies NodeResult,
+					};
+				},
 				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
 					const metadata = persistNodeOutput(
 						ctx.db, ctx.ticket.id, node.id, ctx.runId,
@@ -159,6 +162,7 @@ function buildState(
 				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => {
 					const errorMsg = event.error?.message ?? String(event.error ?? `Unknown ${nodeLabel} error`);
 					const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
+					console.log(`[NodeError] ${node.type} ${node.id.slice(0, 8)} → status=${isTimeout ? "timeout" : "error"}: ${errorMsg.slice(0, 200)}`);
 					return {
 						...context.nodeOutputs,
 						[node.id]: { status: isTimeout ? "timeout" : "error", output: errorMsg } satisfies NodeResult,

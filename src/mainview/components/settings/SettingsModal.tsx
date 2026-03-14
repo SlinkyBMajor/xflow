@@ -17,20 +17,25 @@ import {
 	Github,
 	ChevronRight,
 	Kanban,
+	Database,
+	Download,
+	Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { rpc } from "../../rpc";
+import { rpc, requestFilePicker } from "../../rpc";
+import { useConfirm } from "../../hooks/useConfirm";
 import type { BoardSettings, CliToolCheck } from "../../../shared/types";
 
 // ── Types ──
 
-type SettingsSection = "board" | "git" | "cli-tools";
+type SettingsSection = "board" | "git" | "cli-tools" | "data";
 
 interface SettingsModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	settings: BoardSettings | null | undefined;
 	onSave: (settings: BoardSettings) => void;
+	onDatabaseReset?: () => void;
 }
 
 // ── Tool definitions ──
@@ -44,7 +49,7 @@ const CLI_TOOLS = [
 
 // ── Component ──
 
-export function SettingsModal({ open, onOpenChange, settings, onSave }: SettingsModalProps) {
+export function SettingsModal({ open, onOpenChange, settings, onSave, onDatabaseReset }: SettingsModalProps) {
 	const [activeSection, setActiveSection] = useState<SettingsSection>("board");
 
 	// Board settings state
@@ -116,6 +121,11 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 			label: "CLI Tools",
 			icon: <Terminal size={14} />,
 		},
+		{
+			id: "data",
+			label: "Data",
+			icon: <Database size={14} />,
+		},
 	];
 
 	return (
@@ -173,6 +183,14 @@ export function SettingsModal({ open, onOpenChange, settings, onSave }: Settings
 									toolChecks={toolChecks}
 									onCheckTool={checkTool}
 									onCheckAll={checkAllTools}
+								/>
+							)}
+							{activeSection === "data" && (
+								<DataSection
+									onDatabaseReset={() => {
+										onOpenChange(false);
+										onDatabaseReset?.();
+									}}
 								/>
 							)}
 						</div>
@@ -366,6 +384,235 @@ function ToolIcon({ toolId }: { toolId: string }) {
 			return <Terminal size={16} className={cls} />;
 	}
 }
+
+// ── Data Section ──
+
+function DataSection({ onDatabaseReset }: { onDatabaseReset: () => void }) {
+	const confirm = useConfirm();
+	const [resettingTickets, setResettingTickets] = useState(false);
+	const [resettingDb, setResettingDb] = useState(false);
+	const [exporting, setExporting] = useState(false);
+	const [importing, setImporting] = useState(false);
+
+	const handleExport = async () => {
+		setExporting(true);
+		try {
+			const { path } = await rpc.request.exportBoard({});
+			toast.success(`Board exported to ${path}`);
+		} catch (err) {
+			toast.error(`Export failed: ${err}`);
+		} finally {
+			setExporting(false);
+		}
+	};
+
+	const handleImport = async () => {
+		setImporting(true);
+		try {
+			const path = await requestFilePicker();
+			if (!path) {
+				setImporting(false);
+				return;
+			}
+
+			const confirmed = await confirm({
+				title: "Import board configuration?",
+				description:
+					"This will replace all lanes and workflows with the imported configuration. All existing tickets will be deleted.",
+				confirmLabel: "Import",
+				variant: "danger",
+			});
+			if (!confirmed) {
+				setImporting(false);
+				return;
+			}
+
+			await rpc.request.importBoard({ path });
+			toast.success("Board imported successfully");
+			onDatabaseReset();
+		} catch (err) {
+			toast.error(`Import failed: ${err}`);
+		} finally {
+			setImporting(false);
+		}
+	};
+
+	const handleResetTickets = async () => {
+		const confirmed = await confirm({
+			title: "Delete all tickets?",
+			description:
+				"This will permanently delete all tickets, comments, and run history. Lanes and workflows will be kept.",
+			confirmLabel: "Delete All Tickets",
+			variant: "danger",
+		});
+		if (!confirmed) return;
+
+		setResettingTickets(true);
+		try {
+			await rpc.request.resetAllTickets({});
+			toast.success("All tickets deleted");
+			onDatabaseReset();
+		} catch (err) {
+			toast.error(`Failed to delete tickets: ${err}`);
+			setResettingTickets(false);
+		}
+	};
+
+	const handleResetDatabase = async () => {
+		const confirmed = await confirm({
+			title: "Reset entire database?",
+			description:
+				"This will permanently delete everything — boards, lanes, tickets, workflows, and run history. This cannot be undone.",
+			confirmLabel: "Reset Database",
+			variant: "danger",
+		});
+		if (!confirmed) return;
+
+		setResettingDb(true);
+		try {
+			await rpc.request.resetDatabase({});
+			toast.success("Database reset successfully");
+			onDatabaseReset();
+		} catch (err) {
+			toast.error(`Failed to reset database: ${err}`);
+			setResettingDb(false);
+		}
+	};
+
+	return (
+		<div className="space-y-6">
+			<div>
+				<h3
+					className="text-[13px] font-semibold text-[#e6edf3] mb-1"
+					style={{ fontFamily: "var(--font-display)" }}
+				>
+					Data
+				</h3>
+				<p className="text-[11px] text-[#8b949e]">
+					Manage the local database for this project.
+				</p>
+			</div>
+
+			<div className="space-y-4">
+				<h4 className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+					Backup & Restore
+				</h4>
+
+				<div className="rounded-lg border border-[#30363d] divide-y divide-[#30363d]">
+					<div className="flex items-center justify-between gap-4 p-4">
+						<div>
+							<p className="text-[13px] font-medium text-[#e6edf3]">
+								Export board
+							</p>
+							<p className="text-[11px] text-[#8b949e] mt-0.5">
+								Save lanes, workflows, and board settings to a JSON file.
+							</p>
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleExport}
+							disabled={exporting}
+							className="border-[#30363d] text-[#e6edf3] hover:bg-[#21262d] flex-shrink-0"
+						>
+							{exporting ? (
+								<Loader2 size={12} className="animate-spin" />
+							) : (
+								<Download size={12} />
+							)}
+							Export
+						</Button>
+					</div>
+
+					<div className="flex items-center justify-between gap-4 p-4">
+						<div>
+							<p className="text-[13px] font-medium text-[#e6edf3]">
+								Import board
+							</p>
+							<p className="text-[11px] text-[#8b949e] mt-0.5">
+								Load lanes and workflows from a previously exported JSON file. Replaces current configuration.
+							</p>
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleImport}
+							disabled={importing}
+							className="border-[#30363d] text-[#e6edf3] hover:bg-[#21262d] flex-shrink-0"
+						>
+							{importing ? (
+								<Loader2 size={12} className="animate-spin" />
+							) : (
+								<Upload size={12} />
+							)}
+							Import
+						</Button>
+					</div>
+				</div>
+			</div>
+
+			<div className="space-y-4">
+				<h4 className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+					Danger Zone
+				</h4>
+
+				<div className="rounded-lg border border-[#f8514930] divide-y divide-[#f8514930]">
+					<div className="flex items-center justify-between gap-4 p-4">
+						<div>
+							<p className="text-[13px] font-medium text-[#e6edf3]">
+								Delete all tickets
+							</p>
+							<p className="text-[11px] text-[#8b949e] mt-0.5">
+								Remove all tickets, comments, and run history. Lanes and workflows are preserved.
+							</p>
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleResetTickets}
+							disabled={resettingTickets}
+							className="border-[#f8514930] text-[#f85149] hover:bg-[#f8514915] hover:text-[#f85149] flex-shrink-0"
+						>
+							{resettingTickets ? (
+								<Loader2 size={12} className="animate-spin" />
+							) : (
+								<Database size={12} />
+							)}
+							Delete
+						</Button>
+					</div>
+
+					<div className="flex items-center justify-between gap-4 p-4">
+						<div>
+							<p className="text-[13px] font-medium text-[#e6edf3]">
+								Reset database
+							</p>
+							<p className="text-[11px] text-[#8b949e] mt-0.5">
+								Delete all data and start fresh. Lanes, workflows, tickets, and run history will be permanently removed.
+							</p>
+						</div>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleResetDatabase}
+							disabled={resettingDb}
+							className="border-[#f8514930] text-[#f85149] hover:bg-[#f8514915] hover:text-[#f85149] flex-shrink-0"
+						>
+							{resettingDb ? (
+								<Loader2 size={12} className="animate-spin" />
+							) : (
+								<Database size={12} />
+							)}
+							Reset
+						</Button>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// ── Tool Row ──
 
 function ToolRow({
 	tool,

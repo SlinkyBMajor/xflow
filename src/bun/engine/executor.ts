@@ -75,8 +75,18 @@ export function evaluateCondition(
 	};
 	try {
 		const fn = new Function(...Object.keys(scope), `return Boolean(${expression})`);
-		return fn(...Object.values(scope));
-	} catch {
+		const result = fn(...Object.values(scope));
+		// Compact debug line — remove once condition evaluation is verified
+		const outputSummary = Object.fromEntries(
+			Object.entries(scope.outputs).map(([k, v]) => [
+				k.slice(0, 8),
+				v && typeof v === "object" && "status" in v ? (v as any).status : `raw(${typeof v})`,
+			]),
+		);
+		console.log(`[Condition] "${expression}" → ${result}`, JSON.stringify(outputSummary));
+		return result;
+	} catch (err) {
+		console.error(`[Condition] ERROR evaluating "${expression}":`, err);
 		return false;
 	}
 }

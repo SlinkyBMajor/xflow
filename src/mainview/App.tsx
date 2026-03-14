@@ -111,6 +111,10 @@ export default function App() {
 					onOpenChange={setShowSettings}
 					settings={boardData.board.settings}
 					onSave={handleSaveSettings}
+					onDatabaseReset={async () => {
+						const fresh = await rpc.request.getBoard({});
+						setBoardData(fresh);
+					}}
 				/>
 				<Toaster position="bottom-right" />
 			</TooltipProvider></ConfirmProvider>

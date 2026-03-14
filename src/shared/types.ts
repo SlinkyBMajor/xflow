@@ -319,6 +319,22 @@ export interface BoardTemplate {
 	builtIn?: boolean;
 }
 
+// ── Board Export Types ──
+
+export interface BoardExport {
+	version: 1;
+	exportedAt: string;
+	boardSettings?: BoardSettings;
+	lanes: Array<{
+		name: string;
+		color: string | null;
+		order: number;
+		wipLimit: number | null;
+		allowTicketCreation: boolean;
+		workflow?: { name: string; definition: WorkflowIR };
+	}>;
+}
+
 // ── Run Visualization Types ──
 
 export type NodeRunStatus = "idle" | "active" | "completed" | "error";
@@ -561,6 +577,22 @@ export type XFlowRPC = {
 				params: { content: string; label: string };
 				response: void;
 			};
+			resetDatabase: {
+				params: {};
+				response: ProjectOpenResult;
+			};
+			resetAllTickets: {
+				params: {};
+				response: void;
+			};
+			exportBoard: {
+				params: {};
+				response: { path: string };
+			};
+			importBoard: {
+				params: { path: string };
+				response: void;
+			};
 			generateWorkflowFromPrompt: {
 				params: { prompt: string; existingIR?: WorkflowIR; mode: "replace" | "add" };
 				response: void;
@@ -569,6 +601,7 @@ export type XFlowRPC = {
 		messages: {
 			openProjectPicker: {};
 			openExternal: { url: string };
+			openFilePicker: { accept?: string };
 			toggleMaximize: {};
 		};
 	}>;
@@ -584,6 +617,7 @@ export type XFlowRPC = {
 			worktreeMergeResult: { runId: string; result: MergeResult };
 			worktreeDiffResult: { runId: string; diff: string };
 			worktreeCleanupDone: { runId: string };
+			filePickerResult: { path: string | null };
 			ticketCommentAdded: TicketComment;
 			ticketCommentUpdated: TicketComment;
 			workflowGenerationResult: { ir: WorkflowIR | null; error: string | null; mode: "replace" | "add" };

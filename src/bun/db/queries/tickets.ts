@@ -1,6 +1,6 @@
 import { eq, asc, and, desc } from "drizzle-orm";
 import type { DB } from "../connection";
-import { tickets, workflowRuns, runEvents, lanes } from "../schema";
+import { tickets, workflowRuns, runEvents, ticketComments, lanes } from "../schema";
 import type { Ticket, TicketMetadata, TicketDerivedData } from "../../../shared/types";
 
 function deleteTicketRunData(db: DB, ticketId: string): void {
@@ -111,8 +111,15 @@ export function resetTicket(db: DB, ticketId: string): Ticket | undefined {
 
 export function deleteTicket(db: DB, ticketId: string): void {
 	deleteTicketRunData(db, ticketId);
-	// Delete the ticket
+	db.delete(ticketComments).where(eq(ticketComments.ticketId, ticketId)).run();
 	db.delete(tickets).where(eq(tickets.id, ticketId)).run();
+}
+
+export function deleteAllTickets(db: DB): void {
+	db.delete(runEvents).run();
+	db.delete(workflowRuns).run();
+	db.delete(ticketComments).run();
+	db.delete(tickets).run();
 }
 
 export function moveTicket(

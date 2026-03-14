@@ -1,8 +1,8 @@
 import { BrowserView, Utils } from "electrobun/bun";
-import type { XFlowRPC, WorkflowRunState } from "../shared/types";
+import type { XFlowRPC, WorkflowRunState, BoardExport } from "../shared/types";
 import { openProject, getBoardData } from "./project/open";
 import { getRecents, removeRecent } from "./project/recents";
-import { getConnection } from "./db/connection";
+import { getConnection, closeConnection } from "./db/connection";
 import * as boardQueries from "./db/queries/boards";
 import * as laneQueries from "./db/queries/lanes";
 import * as ticketQueries from "./db/queries/tickets";
@@ -17,6 +17,7 @@ import * as templates from "./project/templates";
 import { getInterruptedRuns } from "./engine/recovery";
 import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
 import { getAgentApiPort } from "./server/agent-api";
+import { unlinkSync, readFileSync, writeFileSync } from "fs";
 import { removeWorktree } from "./git/worktree";
 import { directMerge, createPR, getWorktreeDiff } from "./git/merge";
 import { getChangeSummary } from "./git/status";
@@ -611,6 +612,135 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 					}
 				})();
 			},
+			resetAllTickets: () => {
+				const db = getDb();
+				ticketQueries.deleteAllTickets(db);
+			},
+
+			exportBoard: () => {
+				const db = getDb();
+				if (!activeProjectPath) throw new Error("No project open");
+
+				const board = boardQueries.getFirstBoard(db);
+				if (!board) throw new Error("No board found");
+
+				const boardLanes = laneQueries.getLanesByBoard(db, board.id);
+
+				const exportData: BoardExport = {
+					version: 1,
+					exportedAt: new Date().toISOString(),
+					boardSettings: board.settings ?? undefined,
+					lanes: boardLanes.map((lane) => {
+						let workflow: { name: string; definition: any } | undefined;
+						if (lane.workflowId) {
+							const wf = workflowQueries.getWorkflowById(db, lane.workflowId);
+							if (wf) workflow = { name: wf.name, definition: wf.definition };
+						}
+						return {
+							name: lane.name,
+							color: lane.color,
+							order: lane.order,
+							wipLimit: lane.wipLimit,
+							allowTicketCreation: lane.allowTicketCreation,
+							workflow,
+						};
+					}),
+				};
+
+				const filePath = `${activeProjectPath}/.xflow/board-export.json`;
+				writeFileSync(filePath, JSON.stringify(exportData, null, 2));
+				return { path: filePath };
+			},
+
+			importBoard: ({ path }) => {
+				const db = getDb();
+				if (!activeProjectPath) throw new Error("No project open");
+
+				const raw = readFileSync(path, "utf-8");
+				const data = JSON.parse(raw) as BoardExport;
+
+				if (data.version !== 1) throw new Error(`Unsupported export version: ${data.version}`);
+				if (!Array.isArray(data.lanes)) throw new Error("Invalid export: missing lanes array");
+
+				const board = boardQueries.getFirstBoard(db);
+				if (!board) throw new Error("No board found");
+
+				// Delete all existing tickets, runs, comments first
+				ticketQueries.deleteAllTickets(db);
+
+				// Delete existing lanes (and detach workflows)
+				const existingLanes = laneQueries.getLanesByBoard(db, board.id);
+				const existingWorkflowIds = new Set<string>();
+				for (const lane of existingLanes) {
+					if (lane.workflowId) existingWorkflowIds.add(lane.workflowId);
+					laneQueries.deleteLane(db, lane.id);
+				}
+				// Delete orphaned workflows that were attached to deleted lanes
+				for (const wfId of existingWorkflowIds) {
+					workflowQueries.deleteWorkflow(db, wfId);
+				}
+
+				// Build lane name → new id map for moveToLane remapping
+				const laneNameToId = new Map<string, string>();
+				const laneRecords: { id: string; lane: BoardExport["lanes"][0] }[] = [];
+
+				for (const exportLane of data.lanes) {
+					const laneId = crypto.randomUUID();
+					laneNameToId.set(exportLane.name, laneId);
+					laneRecords.push({ id: laneId, lane: exportLane });
+					laneQueries.createLane(db, laneId, board.id, exportLane.name, exportLane.color);
+
+					// Apply additional lane properties
+					const updates: Record<string, unknown> = {};
+					if (exportLane.wipLimit !== null && exportLane.wipLimit !== undefined) updates.wipLimit = exportLane.wipLimit;
+					if (exportLane.allowTicketCreation === false) updates.allowTicketCreation = false;
+					if (Object.keys(updates).length > 0) {
+						laneQueries.updateLane(db, laneId, updates as any);
+					}
+				}
+
+				// Create workflows and attach to lanes
+				for (const rec of laneRecords) {
+					if (!rec.lane.workflow) continue;
+					const workflowId = crypto.randomUUID();
+					const remappedIR = templates.remapMoveToLaneNodes(rec.lane.workflow.definition, laneNameToId);
+					const workflowName = rec.lane.workflow.name ?? `${rec.lane.name} Workflow`;
+					workflowQueries.createWorkflow(db, workflowId, workflowName, remappedIR);
+					laneQueries.attachWorkflow(db, rec.id, workflowId);
+				}
+
+				// Apply board settings if present
+				if (data.boardSettings) {
+					boardQueries.updateBoardSettings(db, board.id, data.boardSettings);
+				}
+			},
+
+			resetDatabase: () => {
+				if (!activeProjectPath) throw new Error("No project open");
+				const projectPath = activeProjectPath;
+
+				// Close the DB connection
+				closeConnection(projectPath);
+
+				// Delete the SQLite files
+				const dbPath = `${projectPath}/.xflow/db.sqlite`;
+				for (const suffix of ["", "-shm", "-wal"]) {
+					try { unlinkSync(dbPath + suffix); } catch {}
+				}
+
+				// Re-open the project (creates fresh DB with migrations + default board)
+				const notifyBoardChanged = () => {
+					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
+				};
+				const result = openProject(projectPath, (run) => {
+					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+				}, (event) => {
+					mainWindow?.webview.rpc.send.runEventAdded(event);
+				}, notifyBoardChanged);
+
+				return result;
+			},
+
 			markPrMerged: ({ runId }) => {
 				const db = getDb();
 				const run = runQueries.getRunById(db, runId);
@@ -650,6 +780,20 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 			},
 			openExternal: ({ url }) => {
 				Utils.openExternal(url);
+			},
+			openFilePicker: async () => {
+				try {
+					const paths = await Utils.openFileDialog({
+						canChooseFiles: true,
+						canChooseDirectory: false,
+						allowsMultipleSelection: false,
+					});
+					const path = paths && paths.length > 0 ? paths[0] : null;
+					mainWindow?.webview.rpc.send.filePickerResult({ path });
+				} catch (err) {
+					console.error("[RPC] openFilePicker error:", err);
+					mainWindow?.webview.rpc.send.filePickerResult({ path: null });
+				}
 			},
 			openProjectPicker: async () => {
 				console.log("[RPC] openProjectPicker message received");

@@ -13,10 +13,12 @@ type WorktreeCleanupDoneListener = (data: { runId: string }) => void;
 type TicketCommentListener = (comment: TicketComment) => void;
 type WorkflowGenerationResultListener = (data: { ir: WorkflowIR | null; error: string | null; mode: "replace" | "add" }) => void;
 type WorkflowGenerationEventListener = (data: { type: "text" | "tool_use" | "tool_result" | "status"; content: string }) => void;
+type FilePickerResultListener = (path: string | null) => void;
 
 const boardListeners = new Set<BoardUpdateListener>();
 const projectListeners = new Set<ProjectOpenedListener>();
 const pickerListeners = new Set<PickerResultListener>();
+const filePickerListeners = new Set<FilePickerResultListener>();
 const workflowRunListeners = new Set<WorkflowRunUpdateListener>();
 const interruptedRunsListeners = new Set<InterruptedRunsListener>();
 const runEventListeners = new Set<RunEventListener>();
@@ -55,6 +57,9 @@ const rpcDef = Electroview.defineRPC<XFlowRPC>({
 			},
 			worktreeDiffResult: (data) => {
 				for (const listener of worktreeDiffResultListeners) listener(data);
+			},
+			filePickerResult: ({ path }) => {
+				for (const listener of filePickerListeners) listener(path);
 			},
 			worktreeCleanupDone: (data) => {
 				for (const listener of worktreeCleanupDoneListeners) listener(data);
@@ -155,5 +160,16 @@ export function requestProjectPicker(): Promise<string | null> {
 		};
 		pickerListeners.add(onResult);
 		rpc.send.openProjectPicker({});
+	});
+}
+
+export function requestFilePicker(): Promise<string | null> {
+	return new Promise((resolve) => {
+		const onResult: FilePickerResultListener = (path) => {
+			filePickerListeners.delete(onResult);
+			resolve(path);
+		};
+		filePickerListeners.add(onResult);
+		rpc.send.openFilePicker({});
 	});
 }
