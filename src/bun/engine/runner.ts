@@ -47,7 +47,7 @@ export function startRun(
 	const machine = compileWorkflow(ir, ticket, runId, db, () => {
 		const updatedRun = runQueries.getRunById(db, runId);
 		if (updatedRun) notifyFrontend(updatedRun);
-	}, undefined, projectPath, notifyEvent, notifyBoardChanged, apiPort, boardSettings);
+	}, undefined, projectPath, notifyEvent, notifyBoardChanged, apiPort, boardSettings, notifyFrontend);
 
 	const actor = createActor(machine);
 
@@ -147,6 +147,7 @@ export function resumeRun(
 		notifyBoardChanged,
 		apiPort,
 		boardSettings,
+		notifyFrontend,
 	);
 
 	const actor = createActor(machine);

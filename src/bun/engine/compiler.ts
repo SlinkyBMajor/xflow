@@ -15,12 +15,14 @@ import type {
 	RunEvent,
 	BoardSettings,
 	NodeResult,
+	WorkflowRun,
 } from "../../shared/types";
 import { interpolate, type WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
 import { executeGitAction } from "./git-action";
+import { triggerWorkflowIfAttached } from "./trigger";
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -34,6 +36,7 @@ export function compileWorkflow(
 	notifyBoardChanged?: () => void,
 	apiPort?: number,
 	boardSettings?: BoardSettings,
+	notifyRunUpdated?: (run: WorkflowRun) => void,
 ): AnyStateMachine {
 	const startNode = ir.nodes.find((n) => n.type === "start");
 	if (!startNode) throw new Error("Workflow IR missing start node");
@@ -63,6 +66,7 @@ export function compileWorkflow(
 			notifyBoardChanged,
 			apiPort,
 			boardSettings,
+			notifyRunUpdated,
 		});
 	}
 
@@ -116,6 +120,7 @@ function buildState(
 		notifyBoardChanged?: () => void;
 		apiPort?: number;
 		boardSettings?: BoardSettings;
+		notifyRunUpdated?: (run: WorkflowRun) => void;
 	},
 ): any {
 	const targets = edgesFrom.get(node.id) ?? [];
@@ -239,6 +244,18 @@ function buildState(
 					src: fromPromise(async () => {
 						executeMoveToLane(ctx.db, ctx.ticket.id, config.laneId);
 						ctx.notifyBoardChanged?.();
+						if (ctx.notifyRunUpdated) {
+							triggerWorkflowIfAttached(
+								ctx.db,
+								ctx.ticket.id,
+								config.laneId,
+								ctx.notifyRunUpdated,
+								ctx.projectPath,
+								ctx.notifyEvent,
+								ctx.notifyBoardChanged,
+								ctx.apiPort,
+							);
+						}
 					}),
 					onDone: targets.length > 0 ? { target: targets[0] } : undefined,
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
