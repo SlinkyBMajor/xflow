@@ -9,6 +9,49 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
 import { Copy, Check, ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
 
+const SUPPORTS_INTERPOLATION = new Set<IRNodeType>([
+	"claudeAgent",
+	"customScript",
+	"log",
+	"setMetadata",
+	"notify",
+	"gitAction",
+]);
+
+const TEMPLATE_VARS = [
+	{ token: "{{ticket.title}}", desc: "Ticket title" },
+	{ token: "{{ticket.id}}", desc: "Ticket ID" },
+	{ token: "{{ticket.laneId}}", desc: "Current lane ID" },
+	{ token: "{{ticket.body}}", desc: "Ticket description" },
+	{ token: "{{ticket.metadata.KEY}}", desc: "Ticket metadata value" },
+	{ token: "{{outputs.NODE_ID}}", desc: "Output from a prior node" },
+];
+
+const CONDITION_SCOPE_VARS = [
+	{ token: "ticket.title", desc: "Ticket title" },
+	{ token: "ticket.id", desc: "Ticket ID" },
+	{ token: "ticket.laneId", desc: "Current lane ID" },
+	{ token: "ticket.body", desc: "Ticket description" },
+	{ token: "ticket.metadata.KEY", desc: "Ticket metadata value" },
+	{ token: 'outputs["node-id"]?.status', desc: '"success" | "error" | "timeout"' },
+	{ token: 'outputs["node-id"]?.output', desc: "Raw output from a prior node" },
+];
+
+function VariableReference({ title, vars, defaultOpen = true }: { title: string; vars: { token: string; desc: string }[]; defaultOpen?: boolean }) {
+	return (
+		<ConfigSection title={title} defaultOpen={defaultOpen}>
+			<div className="space-y-1.5">
+				{vars.map((v) => (
+					<div key={v.token} className="flex items-start gap-2">
+						<code className="text-[10px] text-[#58a6ff] bg-[#0d1117] border border-[#30363d] rounded px-1 py-0.5 shrink-0 font-mono">{v.token}</code>
+						<span className="text-[10px] text-[#8b949e] leading-relaxed">{v.desc}</span>
+					</div>
+				))}
+			</div>
+		</ConfigSection>
+	);
+}
+
 const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	start: "Entry point of the workflow",
 	end: "Terminal node — ends the workflow run",
@@ -94,6 +137,12 @@ export function NodeConfigPanel({ node, lanes, onUpdate, onDelete }: NodeConfigP
 				</div>
 
 				{renderConfigFields(config, updateConfig, lanes)}
+				{SUPPORTS_INTERPOLATION.has(nodeType) && (
+					<VariableReference title="Template Variables" vars={TEMPLATE_VARS} />
+				)}
+				{nodeType === "condition" && (
+					<VariableReference title="Condition Scope" vars={CONDITION_SCOPE_VARS} />
+				)}
 			</div>
 
 			{!isFlowNode && (
@@ -204,7 +253,7 @@ function ClaudeAgentFields({ config, updateConfig }: {
 					/>
 				</div>
 				<div>
-					<TipLabel label="System Prompt" tip="Appended to Claude's default system prompt. Use for persistent instructions like coding style, constraints, or persona that shouldn't mix with the task prompt." />
+					<TipLabel label="System Prompt" tip="Appended to Claude's default system prompt. Use for persistent instructions like coding style, constraints, or persona. Supports {{ticket.*}} and {{outputs.NODE_ID}} interpolation." />
 					<ExpandableTextarea
 						label="Edit System Prompt"
 						value={config.systemPrompt ?? ""}
@@ -431,7 +480,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Script</Label>
+						<TipLabel label="Script" tip="The script to execute. Supports {{ticket.title}}, {{ticket.metadata.KEY}}, and {{outputs.NODE_ID}} interpolation." />
 						<ExpandableTextarea
 							label="Edit Script"
 							mono
@@ -442,7 +491,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Interpreter</Label>
+						<TipLabel label="Interpreter" tip="Runtime used to execute the script." />
 						<select
 							value={config.interpreter ?? "bun"}
 							onChange={(e) => updateConfig({ interpreter: e.target.value })}
@@ -453,7 +502,7 @@ function renderConfigFields(
 						</select>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Timeout (seconds)</Label>
+						<TipLabel label="Timeout (seconds)" tip="Maximum wall-clock time before the script is killed." />
 						<Input
 							type="number"
 							min={5}
@@ -471,7 +520,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Title</Label>
+						<TipLabel label="Title" tip="Notification title. Supports {{ticket.*}} and {{outputs.NODE_ID}} interpolation." />
 						<Input
 							value={config.title}
 							onChange={(e) => updateConfig({ title: e.target.value })}
@@ -479,7 +528,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Body</Label>
+						<TipLabel label="Body" tip="Notification body. Supports {{ticket.*}} and {{outputs.NODE_ID}} interpolation." />
 						<ExpandableTextarea
 							label="Edit Notification Body"
 							value={config.body}
@@ -524,7 +573,7 @@ function renderConfigFields(
 		case "condition":
 			return (
 				<div>
-					<Label className="text-xs text-[#8b949e] mb-1">Expression</Label>
+					<TipLabel label="Expression" tip="JavaScript expression evaluated against the workflow scope. Access ticket fields and node outputs directly (no {{}} needed)." />
 					<ExpandableTextarea
 						label="Edit Condition Expression"
 						mono
@@ -539,7 +588,7 @@ function renderConfigFields(
 			return (
 				<>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Key</Label>
+						<TipLabel label="Key" tip="The metadata key to set on the ticket." />
 						<Input
 							value={config.key}
 							onChange={(e) => updateConfig({ key: e.target.value })}
@@ -547,7 +596,7 @@ function renderConfigFields(
 						/>
 					</div>
 					<div>
-						<Label className="text-xs text-[#8b949e] mb-1">Value</Label>
+						<TipLabel label="Value" tip="The value to store. Supports {{ticket.*}} and {{outputs.NODE_ID}} interpolation." />
 						<Input
 							value={config.value}
 							onChange={(e) => updateConfig({ value: e.target.value })}
@@ -559,7 +608,7 @@ function renderConfigFields(
 		case "log":
 			return (
 				<div>
-					<Label className="text-xs text-[#8b949e] mb-1">Message</Label>
+					<TipLabel label="Message" tip="The message to log. Supports {{ticket.*}} and {{outputs.NODE_ID}} interpolation." />
 					<ExpandableTextarea
 						label="Edit Log Message"
 						value={config.message}
