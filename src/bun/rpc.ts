@@ -287,6 +287,21 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 				return runQueries.getRunsByTicket(db, ticketId);
 			},
 
+			getEnrichedRunsForTicket: ({ ticketId }) => {
+				const db = getDb();
+				const runs = runQueries.getRunsByTicket(db, ticketId);
+				// Runs come back DESC — reverse for 1-based numbering
+				const runsAsc = [...runs].reverse();
+				return runsAsc.map((run, i) => {
+					const workflow = workflowQueries.getWorkflowById(db, run.workflowId);
+					return {
+						run,
+						workflowName: workflow?.name ?? "Unknown Workflow",
+						runNumber: i + 1,
+					};
+				});
+			},
+
 			getRunEvents: ({ runId }) => {
 				const db = getDb();
 				return runQueries.getEventsByRun(db, runId);

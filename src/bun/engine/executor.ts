@@ -1,5 +1,5 @@
 import type { DB } from "../db/connection";
-import type { WorkflowOutputStatus } from "../../shared/types";
+import type { WorkflowOutputStatus, WorkflowOutputEntry, IRNodeType } from "../../shared/types";
 import * as ticketQueries from "../db/queries/tickets";
 import * as runQueries from "../db/queries/runs";
 import { interpolate, type WorkflowContext } from "./interpolate";
@@ -89,23 +89,42 @@ export function persistNodeOutput(
 	output: string,
 	status?: WorkflowOutputStatus,
 	label?: string,
+	nodeType?: IRNodeType,
 ): Record<string, unknown> {
 	const ticket = ticketQueries.getTicket(db, ticketId);
 	if (!ticket) return {};
 
-	const existing = (ticket.metadata._workflowOutput as Record<string, unknown>) ?? {};
+	const raw = ticket.metadata._workflowOutput;
+	// Migrate old object format to array on first write
+	let existing: WorkflowOutputEntry[];
+	if (Array.isArray(raw)) {
+		existing = raw as WorkflowOutputEntry[];
+	} else if (raw && typeof raw === "object") {
+		// Old format: Record<nodeId, entry>
+		existing = Object.entries(raw as Record<string, any>).map(([nId, entry]) => ({
+			...entry,
+			nodeId: nId,
+		}));
+	} else {
+		existing = [];
+	}
+
+	const newEntry: WorkflowOutputEntry = {
+		output: output.slice(0, 10_000),
+		runId,
+		nodeId,
+		completedAt: new Date().toISOString(),
+		...(nodeType && { nodeType }),
+		...(status && { status }),
+		...(label && { label }),
+	};
+
+	// Append and cap at 50 entries
+	const entries = [...existing, newEntry].slice(-50);
+
 	const updatedMetadata = {
 		...ticket.metadata,
-		_workflowOutput: {
-			...existing,
-			[nodeId]: {
-				output: output.slice(0, 10_000),
-				runId,
-				completedAt: new Date().toISOString(),
-				...(status && { status }),
-				...(label && { label }),
-			},
-		},
+		_workflowOutput: entries,
 	};
 	ticketQueries.updateTicket(db, ticketId, { metadata: updatedMetadata });
 	return updatedMetadata;

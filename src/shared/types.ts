@@ -97,9 +97,17 @@ export type WorkflowOutputStatus = "success" | "error" | "timeout" | "partial";
 export interface WorkflowOutputEntry {
 	output: string;
 	runId: string;
+	nodeId: string;
+	nodeType?: IRNodeType;
 	completedAt: string;
 	status?: WorkflowOutputStatus;
 	label?: string;
+}
+
+export interface EnrichedWorkflowRun {
+	run: WorkflowRun;
+	workflowName: string;
+	runNumber: number;
 }
 
 export interface TicketComment {
@@ -437,6 +445,10 @@ export type XFlowRPC = {
 			getWorkflowRunsForTicket: {
 				params: { ticketId: string };
 				response: WorkflowRun[];
+			};
+			getEnrichedRunsForTicket: {
+				params: { ticketId: string };
+				response: EnrichedWorkflowRun[];
 			};
 			getRunEvents: {
 				params: { runId: string };

@@ -146,15 +146,18 @@ describe("persistNodeOutput", () => {
 		vi.clearAllMocks();
 	});
 
-	it("stores output under _workflowOutput in ticket metadata", () => {
+	it("stores output as array entry under _workflowOutput", () => {
 		vi.mocked(ticketQueries.getTicket).mockReturnValue(makeTicket());
 
 		persistNodeOutput(mockDb, "t-1", "node-1", "run-1", "some output");
 
 		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
 		const meta = call[2].metadata as any;
-		expect(meta._workflowOutput["node-1"].output).toBe("some output");
-		expect(meta._workflowOutput["node-1"].runId).toBe("run-1");
+		expect(Array.isArray(meta._workflowOutput)).toBe(true);
+		expect(meta._workflowOutput).toHaveLength(1);
+		expect(meta._workflowOutput[0].output).toBe("some output");
+		expect(meta._workflowOutput[0].runId).toBe("run-1");
+		expect(meta._workflowOutput[0].nodeId).toBe("node-1");
 	});
 
 	it("truncates output to 10,000 characters", () => {
@@ -165,7 +168,7 @@ describe("persistNodeOutput", () => {
 
 		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
 		const meta = call[2].metadata as any;
-		expect(meta._workflowOutput["node-1"].output.length).toBe(10_000);
+		expect(meta._workflowOutput[0].output.length).toBe(10_000);
 	});
 
 	it("includes status when provided", () => {
@@ -175,7 +178,17 @@ describe("persistNodeOutput", () => {
 
 		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
 		const meta = call[2].metadata as any;
-		expect(meta._workflowOutput["node-1"].status).toBe("success");
+		expect(meta._workflowOutput[0].status).toBe("success");
+	});
+
+	it("includes nodeType when provided", () => {
+		vi.mocked(ticketQueries.getTicket).mockReturnValue(makeTicket());
+
+		persistNodeOutput(mockDb, "t-1", "node-1", "run-1", "done", "success", undefined, "claudeAgent");
+
+		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
+		const meta = call[2].metadata as any;
+		expect(meta._workflowOutput[0].nodeType).toBe("claudeAgent");
 	});
 
 	it("omits status when not provided", () => {
@@ -185,7 +198,7 @@ describe("persistNodeOutput", () => {
 
 		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
 		const meta = call[2].metadata as any;
-		expect(meta._workflowOutput["node-1"].status).toBeUndefined();
+		expect(meta._workflowOutput[0].status).toBeUndefined();
 	});
 
 	it("does nothing if ticket not found", () => {
@@ -196,17 +209,55 @@ describe("persistNodeOutput", () => {
 		expect(ticketQueries.updateTicket).not.toHaveBeenCalled();
 	});
 
-	it("preserves existing _workflowOutput entries", () => {
+	it("appends to existing array entries", () => {
+		const existingEntries = [
+			{ output: "old output", runId: "run-0", nodeId: "old-node", completedAt: "2024-01-01" },
+		];
 		vi.mocked(ticketQueries.getTicket).mockReturnValue(
-			makeTicket({ metadata: { _workflowOutput: { "old-node": { output: "old" } } } }),
+			makeTicket({ metadata: { _workflowOutput: existingEntries } }),
 		);
 
 		persistNodeOutput(mockDb, "t-1", "new-node", "run-1", "new output");
 
 		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
 		const meta = call[2].metadata as any;
-		expect(meta._workflowOutput["old-node"]).toEqual({ output: "old" });
-		expect(meta._workflowOutput["new-node"].output).toBe("new output");
+		expect(meta._workflowOutput).toHaveLength(2);
+		expect(meta._workflowOutput[0].nodeId).toBe("old-node");
+		expect(meta._workflowOutput[1].nodeId).toBe("new-node");
+	});
+
+	it("migrates old object format to array on write", () => {
+		vi.mocked(ticketQueries.getTicket).mockReturnValue(
+			makeTicket({ metadata: { _workflowOutput: { "old-node": { output: "old", completedAt: "2024-01-01", runId: "run-0" } } } }),
+		);
+
+		persistNodeOutput(mockDb, "t-1", "new-node", "run-1", "new output");
+
+		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
+		const meta = call[2].metadata as any;
+		expect(Array.isArray(meta._workflowOutput)).toBe(true);
+		expect(meta._workflowOutput).toHaveLength(2);
+		expect(meta._workflowOutput[0].nodeId).toBe("old-node");
+		expect(meta._workflowOutput[0].output).toBe("old");
+		expect(meta._workflowOutput[1].nodeId).toBe("new-node");
+	});
+
+	it("caps at 50 entries", () => {
+		const existingEntries = Array.from({ length: 50 }, (_, i) => ({
+			output: `output-${i}`, runId: "run-0", nodeId: `node-${i}`, completedAt: "2024-01-01",
+		}));
+		vi.mocked(ticketQueries.getTicket).mockReturnValue(
+			makeTicket({ metadata: { _workflowOutput: existingEntries } }),
+		);
+
+		persistNodeOutput(mockDb, "t-1", "node-new", "run-1", "newest");
+
+		const call = vi.mocked(ticketQueries.updateTicket).mock.calls[0];
+		const meta = call[2].metadata as any;
+		expect(meta._workflowOutput).toHaveLength(50);
+		// Oldest entry dropped, newest appended
+		expect(meta._workflowOutput[0].nodeId).toBe("node-1");
+		expect(meta._workflowOutput[49].nodeId).toBe("node-new");
 	});
 });
 

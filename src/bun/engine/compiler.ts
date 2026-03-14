@@ -15,7 +15,7 @@ import type {
 	RunEvent,
 	BoardSettings,
 } from "../../shared/types";
-import type { WorkflowContext } from "./interpolate";
+import { interpolate, type WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
@@ -125,7 +125,7 @@ function buildState(
 				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
 					const metadata = persistNodeOutput(
 						ctx.db, ctx.ticket.id, node.id, ctx.runId,
-						serializeOutput(event.output), "success", label,
+						serializeOutput(event.output), "success", label, node.type,
 					);
 					ctx.notifyBoardChanged?.();
 					return { ...context.ticket, metadata };
@@ -144,7 +144,7 @@ function buildState(
 					console.error(`[Workflow ${ctx.runId}] ${nodeLabel} node ${node.id} failed:`, errorMsg);
 					const metadata = persistNodeOutput(
 						ctx.db, ctx.ticket.id, node.id, ctx.runId,
-						`[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", label,
+						`[Error] ${errorMsg}`, isTimeout ? "timeout" : "error", label, node.type,
 					);
 					ctx.notifyBoardChanged?.();
 					return { ...context.ticket, metadata };
@@ -153,28 +153,36 @@ function buildState(
 		];
 	}
 
+	// Nodes that already persist their own output via makeDoneActions/makeErrorActions
+	const SELF_PERSISTING = new Set(["claudeAgent", "customScript", "gitAction", "start", "end"]);
+
+	let stateConfig: any;
+
 	switch (node.type) {
 		case "start":
-			return {
+			stateConfig = {
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
+			break;
 
 		case "end":
-			return { type: "final" as const };
+			stateConfig = { type: "final" as const };
+			break;
 
 		case "log": {
 			const config = node.config as LogConfig & { type: "log" };
-			return {
+			stateConfig = {
 				entry: ({ context }: { context: WorkflowContext }) => {
 					executeLog(ctx.db, ctx.runId, config.message, context);
 				},
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
+			break;
 		}
 
 		case "setMetadata": {
 			const config = node.config as SetMetadataConfig & { type: "setMetadata" };
-			return {
+			stateConfig = {
 				entry: [
 					assign({
 						ticket: ({ context }: { context: WorkflowContext }) => {
@@ -191,11 +199,12 @@ function buildState(
 				],
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
+			break;
 		}
 
 		case "moveToLane": {
 			const config = node.config as MoveToLaneConfig & { type: "moveToLane" };
-			return {
+			stateConfig = {
 				invoke: {
 					src: fromPromise(async () => {
 						executeMoveToLane(ctx.db, ctx.ticket.id, config.laneId);
@@ -205,6 +214,7 @@ function buildState(
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
 				},
 			};
+			break;
 		}
 
 		case "waitForApproval": {
@@ -213,18 +223,20 @@ function buildState(
 				const label = edgeLabels.get(`${node.id}->${targetId}`) ?? "NEXT";
 				on[label] = { target: targetId };
 			}
-			return { on };
+			stateConfig = { on };
+			break;
 		}
 
 		case "notify": {
 			const config = node.config as NotifyConfig & { type: "notify" };
-			return {
+			stateConfig = {
 				entry: ({ context }: { context: WorkflowContext }) => {
 					executeNotify(ctx.db, ctx.runId, config.title, config.body, context);
 					ctx.notifyFrontend();
 				},
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
+			break;
 		}
 
 		case "condition": {
@@ -250,16 +262,17 @@ function buildState(
 						!evaluateCondition(config.expression, context),
 				});
 			}
-			return {
+			stateConfig = {
 				always: alwaysTransitions.length > 0 ? alwaysTransitions : undefined,
 			};
+			break;
 		}
 
 		case "claudeAgent": {
 			const config = node.config as ClaudeAgentConfig & { type: "claudeAgent" };
 			const resolvedWorktreeEnabled = config.worktreeEnabled ?? ctx.boardSettings?.defaultWorktreeEnabled;
 			const outputLabel = config.outputLabel;
-			return {
+			stateConfig = {
 				invoke: {
 					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
 						return executeClaudeAgent({
@@ -297,11 +310,12 @@ function buildState(
 					},
 				},
 			};
+			break;
 		}
 
 		case "customScript": {
 			const config = node.config as CustomScriptConfig & { type: "customScript" };
-			return {
+			stateConfig = {
 				invoke: {
 					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
 						return executeCustomScript({
@@ -331,11 +345,12 @@ function buildState(
 					},
 				},
 			};
+			break;
 		}
 
 		case "gitAction": {
 			const config = node.config as GitActionConfig & { type: "gitAction" };
-			return {
+			stateConfig = {
 				invoke: {
 					src: fromPromise(({ input }: { input: { context: WorkflowContext } }) => {
 						return executeGitAction({
@@ -363,11 +378,74 @@ function buildState(
 					},
 				},
 			};
+			break;
 		}
 
 		default:
-			return {
+			stateConfig = {
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
+			break;
+	}
+
+	// ── Automatic output persistence for non-self-persisting nodes ──
+	// Adds an exit action that persists a summary of what the node did.
+	// This fires when XState transitions out of the state, so it works
+	// uniformly for sync (always), async (invoke), and event-driven (on) nodes.
+	if (!SELF_PERSISTING.has(node.type)) {
+		const existingExit = stateConfig.exit;
+		stateConfig.exit = [
+			...(Array.isArray(existingExit) ? existingExit : existingExit ? [existingExit] : []),
+			assign({
+				ticket: ({ context }: { context: WorkflowContext }) => {
+					const summary = deriveSyncNodeOutput(node, context);
+					const metadata = persistNodeOutput(
+						ctx.db, ctx.ticket.id, node.id, ctx.runId,
+						summary, "success", node.label, node.type,
+					);
+					ctx.notifyBoardChanged?.();
+					return { ...context.ticket, metadata };
+				},
+			}),
+		];
+	}
+
+	return stateConfig;
+}
+
+/**
+ * Derives a human-readable output summary for non-async nodes.
+ * Each node type produces a short description of what it did.
+ */
+function deriveSyncNodeOutput(node: IRNode, context: WorkflowContext): string {
+	switch (node.type) {
+		case "log": {
+			const config = node.config as LogConfig & { type: "log" };
+			return interpolate(config.message, context);
+		}
+		case "setMetadata": {
+			const config = node.config as SetMetadataConfig & { type: "setMetadata" };
+			const value = interpolate(config.value, context);
+			return `${config.key} = ${value}`;
+		}
+		case "notify": {
+			const config = node.config as NotifyConfig & { type: "notify" };
+			const title = interpolate(config.title, context);
+			const body = interpolate(config.body, context);
+			return `${title}: ${body}`;
+		}
+		case "moveToLane": {
+			const config = node.config as MoveToLaneConfig & { type: "moveToLane" };
+			return `Moved to lane: ${config.laneName}`;
+		}
+		case "condition": {
+			const config = node.config as ConditionConfig & { type: "condition" };
+			const result = evaluateCondition(config.expression, context);
+			return `${config.expression} \u2192 ${result}`;
+		}
+		case "waitForApproval":
+			return "Approval gate passed";
+		default:
+			return `${node.type} completed`;
 	}
 }

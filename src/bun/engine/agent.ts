@@ -131,7 +131,27 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 	// Separate workflow output from user metadata
 	const { _workflowOutput, ...userMetadata } = freshTicket.metadata as Record<string, unknown>;
-	const workflowOutput = _workflowOutput as Record<string, { output: string; completedAt: string; label?: string }> | undefined;
+	// Handle both array (new) and object (old) formats
+	const workflowOutputEntries: { nodeId: string; output: string; completedAt: string; label?: string }[] = [];
+	if (Array.isArray(_workflowOutput)) {
+		for (const entry of _workflowOutput) {
+			workflowOutputEntries.push({
+				nodeId: entry.nodeId,
+				output: entry.output,
+				completedAt: entry.completedAt,
+				label: entry.label,
+			});
+		}
+	} else if (_workflowOutput && typeof _workflowOutput === "object") {
+		for (const [nodeId, entry] of Object.entries(_workflowOutput as Record<string, any>)) {
+			workflowOutputEntries.push({
+				nodeId,
+				output: entry.output,
+				completedAt: entry.completedAt,
+				label: entry.label,
+			});
+		}
+	}
 
 	// Fetch comments for this ticket
 	const comments = commentQueries.getCommentsByTicket(db, ticket.id);
@@ -149,7 +169,7 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 		sections.push(`\n## Tags\n${freshTicket.tags.join(", ")}`);
 	}
 
-	const hasOutputs = includeWorkflowOutput && workflowOutput && Object.keys(workflowOutput).length > 0;
+	const hasOutputs = includeWorkflowOutput && workflowOutputEntries.length > 0;
 	const hasComments = comments.length > 0;
 
 	if (hasOutputs || hasComments) {
@@ -160,11 +180,11 @@ export async function executeClaudeAgent(params: ClaudeAgentParams): Promise<str
 
 		const timeline: TimelineItem[] = [];
 
-		if (hasOutputs && workflowOutput) {
-			for (const [nodeId, entry] of Object.entries(workflowOutput)) {
+		if (hasOutputs) {
+			for (const entry of workflowOutputEntries) {
 				timeline.push({
 					kind: "output",
-					label: entry.label ?? `Node ${nodeId.slice(0, 8)}`,
+					label: entry.label ?? `Node ${entry.nodeId.slice(0, 8)}`,
 					timestamp: entry.completedAt,
 					content: entry.output,
 				});

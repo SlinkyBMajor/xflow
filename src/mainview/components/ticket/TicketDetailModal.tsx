@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send, Maximize2, FileCode, Pencil } from "lucide-react";
-import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus, TicketComment } from "../../../shared/types";
+import { Copy, Check, ChevronsDownUp, ChevronsUpDown, Reply, X, Send, Maximize2, FileCode, Pencil, ChevronDown, ChevronRight, ScrollText } from "lucide-react";
+import type { Ticket, WorkflowOutputEntry, WorkflowOutputStatus, TicketComment, EnrichedWorkflowRun, IRNodeType } from "../../../shared/types";
 import {
 	Dialog,
 	DialogContent,
@@ -16,11 +16,14 @@ import { TicketView } from "./TicketView";
 import { RunEventLog } from "./RunEventLog";
 import { WorktreeStatus } from "./WorktreeStatus";
 import { useWorkflowRuns } from "../../hooks/useWorkflowRuns";
+import { useEnrichedRuns } from "../../hooks/useEnrichedRuns";
 import { useRunEvents } from "../../hooks/useRunEvents";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { useTicketComments } from "../../hooks/useTicketComments";
 import { rpc } from "../../rpc";
 import { MarkdownRenderer, looksLikeMarkdown } from "../shared/MarkdownRenderer";
+import { normalizeWorkflowOutput } from "../../lib/normalize-workflow-output";
+import { getRegistryItem } from "../../../shared/node-registry";
 
 interface TicketDetailModalProps {
 	open: boolean;
@@ -39,9 +42,10 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const { copied: idCopied, copy: copyId } = useCopyFeedback();
 	const { copied: metaCopied, copy: copyMeta } = useCopyFeedback();
 	const { runs } = useWorkflowRuns(open ? ticket.id : null);
+	const { enrichedRuns } = useEnrichedRuns(open ? ticket.id : null);
 	const activeRun = runs.find((r) => r.status === "active");
 	const worktreeRun = runs.find((r) => r.worktreePath || r.worktreeBranch || r.mergeResult);
-	const { events } = useRunEvents(activeRun?.id ?? null);
+	const { events: activeRunEvents } = useRunEvents(activeRun?.id ?? null);
 
 	const { comments, addComment, editComment } = useTicketComments(open ? ticket.id : null);
 	const [replyTo, setReplyTo] = useState<{ nodeId: string; label: string } | null>(null);
@@ -49,8 +53,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	const composerRef = useRef<HTMLTextAreaElement>(null);
 
 	const metadataEntries = Object.entries(ticket.metadata ?? {}).filter(([key]) => !key.startsWith("_"));
-	const workflowOutput = (ticket.metadata?._workflowOutput ?? {}) as Record<string, WorkflowOutputEntry>;
-	const outputEntries = Object.entries(workflowOutput);
+	const outputEntries = normalizeWorkflowOutput(ticket.metadata?._workflowOutput);
 	const [allCollapsed, setAllCollapsed] = useState(false);
 	const [viewerOutput, setViewerOutput] = useState<{ label: string; content: string } | null>(null);
 	const confirm = useConfirm();
@@ -67,6 +70,10 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	useEffect(() => {
 		setEditing(!ticket.body);
 	}, [ticket.id]);
+
+	// Build grouped timeline
+	const timeline = buildGroupedTimeline(outputEntries, comments, enrichedRuns, activeRun?.id ?? null);
+	const hasContent = outputEntries.length > 0 || comments.length > 0;
 
 	return (
 		<>
@@ -144,7 +151,7 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 							)}
 
 							{/* Workflow Output & Feedback Timeline */}
-							{(outputEntries.length > 0 || comments.length > 0) && (
+							{hasContent && (
 								<div className="mt-6 pt-4 border-t border-[#21262d]">
 									<div className="flex items-center justify-between mb-3">
 										<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider">
@@ -165,38 +172,51 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 										)}
 									</div>
 									<div className="space-y-3">
-										{buildTimeline(outputEntries, comments).map((item) =>
-											item.kind === "output" ? (
-												<WorkflowOutputBlock
-													key={`output-${item.nodeId}`}
-													nodeId={item.nodeId}
-													entry={item.entry}
+										{timeline.map((item) => {
+											if (item.kind === "comment") {
+												return <CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} onEdit={editComment} />;
+											}
+											if (item.kind === "ungrouped") {
+												return (
+													<UngroupedOutputs
+														key="ungrouped"
+														entries={item.entries}
+														allCollapsed={allCollapsed}
+														onOpenViewer={(entry) => setViewerOutput({
+															label: entry.label ?? entry.nodeId.slice(0, 8),
+															content: entry.output || "(no output)",
+														})}
+														onOpenInEditor={(entry) => rpc.request.openInEditor({
+															content: entry.output || "",
+															label: entry.label ?? entry.nodeId.slice(0, 8),
+														})}
+														onReply={(entry) => setReplyTo({ nodeId: entry.nodeId, label: entry.label ?? entry.nodeId.slice(0, 8) })}
+													/>
+												);
+											}
+											// item.kind === "runGroup"
+											const isActive = item.enrichedRun.run.status === "active";
+											return (
+												<RunGroupCard
+													key={`run-${item.enrichedRun.run.id}`}
+													enrichedRun={item.enrichedRun}
+													entries={item.entries}
 													allCollapsed={allCollapsed}
-													onOpenViewer={() => setViewerOutput({
-														label: item.entry.label ?? item.nodeId.slice(0, 8),
-														content: item.entry.output || "(no output)",
+													isActive={isActive}
+													activeEvents={isActive ? activeRunEvents : undefined}
+													onOpenViewer={(entry) => setViewerOutput({
+														label: entry.label ?? entry.nodeId.slice(0, 8),
+														content: entry.output || "(no output)",
 													})}
-													onOpenInEditor={() => rpc.request.openInEditor({
-														content: item.entry.output || "",
-														label: item.entry.label ?? item.nodeId.slice(0, 8),
+													onOpenInEditor={(entry) => rpc.request.openInEditor({
+														content: entry.output || "",
+														label: entry.label ?? entry.nodeId.slice(0, 8),
 													})}
-													onReply={() => setReplyTo({ nodeId: item.nodeId, label: item.entry.label ?? item.nodeId.slice(0, 8) })}
+													onReply={(entry) => setReplyTo({ nodeId: entry.nodeId, label: entry.label ?? entry.nodeId.slice(0, 8) })}
 												/>
-											) : (
-												<CommentBlock key={`comment-${item.comment.id}`} comment={item.comment} onEdit={editComment} />
-											),
-										)}
+											);
+										})}
 									</div>
-								</div>
-							)}
-
-							{/* Live event log */}
-							{activeRun && (
-								<div className="mt-6 pt-4 border-t border-[#21262d]">
-									<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-3">
-										Workflow Activity
-									</span>
-									<RunEventLog events={events} isActive={true} />
 								</div>
 							)}
 						</div>
@@ -378,6 +398,177 @@ export function TicketDetailModal({ open, ticket, laneName, laneColor, onClose, 
 	);
 }
 
+// ── Run Group Card ──
+
+const RUN_STATUS_CONFIG: Record<string, { accent: string; label: string; textColor: string }> = {
+	completed: { accent: "border-l-emerald-600", label: "Completed", textColor: "text-emerald-400" },
+	error: { accent: "border-l-red-600", label: "Error", textColor: "text-red-400" },
+	failed: { accent: "border-l-red-600", label: "Failed", textColor: "text-red-400" },
+	active: { accent: "border-l-[#58a6ff]", label: "Running", textColor: "text-[#58a6ff]" },
+	aborted: { accent: "border-l-amber-600", label: "Aborted", textColor: "text-amber-400" },
+};
+
+function formatDuration(startedAt: string, finishedAt: string | null): string {
+	if (!finishedAt) return "";
+	const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+	if (ms < 1000) return `${ms}ms`;
+	const secs = Math.floor(ms / 1000);
+	if (secs < 60) return `${secs}s`;
+	const mins = Math.floor(secs / 60);
+	const remSecs = secs % 60;
+	return remSecs > 0 ? `${mins}m ${remSecs}s` : `${mins}m`;
+}
+
+function RunGroupCard({
+	enrichedRun,
+	entries,
+	allCollapsed,
+	isActive,
+	activeEvents,
+	onOpenViewer,
+	onOpenInEditor,
+	onReply,
+}: {
+	enrichedRun: EnrichedWorkflowRun;
+	entries: WorkflowOutputEntry[];
+	allCollapsed: boolean;
+	isActive: boolean;
+	activeEvents?: import("../../../shared/types").RunEvent[];
+	onOpenViewer: (entry: WorkflowOutputEntry) => void;
+	onOpenInEditor: (entry: WorkflowOutputEntry) => void;
+	onReply: (entry: WorkflowOutputEntry) => void;
+}) {
+	const [logExpanded, setLogExpanded] = useState(false);
+	const { run, workflowName, runNumber } = enrichedRun;
+	const statusConfig = RUN_STATUS_CONFIG[run.status] ?? { accent: "border-l-[#30363d]", label: run.status, textColor: "text-[#8b949e]" };
+	const duration = formatDuration(run.startedAt, run.finishedAt);
+
+	return (
+		<div className={`border border-[#21262d] border-l-2 ${statusConfig.accent} rounded-lg overflow-hidden bg-[#0d1117]/40`}>
+			{/* Run header */}
+			<div className="flex items-center justify-between px-3 py-2 bg-[#161b22]/80">
+				<div className="flex items-center gap-2 min-w-0">
+					<span className="text-[11px] font-mono text-[#e6edf3] truncate">{workflowName}</span>
+					<span className="text-[10px] font-mono text-[#8b949e] bg-[#21262d] px-1.5 py-0.5 rounded shrink-0">
+						#{runNumber}
+					</span>
+				</div>
+				<div className="flex items-center gap-2 shrink-0">
+					{duration && (
+						<span className="text-[10px] font-mono text-[#6e7681]">{duration}</span>
+					)}
+					{isActive ? (
+						<span className="flex items-center gap-1.5">
+							<span className="relative flex h-1.5 w-1.5">
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58a6ff] opacity-75" />
+								<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58a6ff]" />
+							</span>
+							<span className="text-[10px] font-mono text-[#58a6ff]">Running</span>
+						</span>
+					) : (
+						<span className={`text-[10px] font-mono ${statusConfig.textColor}`}>{statusConfig.label}</span>
+					)}
+				</div>
+			</div>
+
+			{/* Output entries */}
+			{entries.length > 0 && (
+				<div className="px-2 py-2 space-y-2">
+					{entries.map((entry, i) => (
+						<WorkflowOutputBlock
+							key={`${entry.nodeId}-${i}`}
+							nodeId={entry.nodeId}
+							entry={entry}
+							allCollapsed={allCollapsed}
+							onOpenViewer={() => onOpenViewer(entry)}
+							onOpenInEditor={() => onOpenInEditor(entry)}
+							onReply={() => onReply(entry)}
+						/>
+					))}
+				</div>
+			)}
+
+			{/* Active run: live event log */}
+			{isActive && activeEvents && (
+				<div className="border-t border-[#21262d] px-3 py-2">
+					<span className="text-[10px] font-mono text-[#6e7681] uppercase tracking-wider block mb-2">
+						Live Activity
+					</span>
+					<RunEventLog events={activeEvents} isActive={true} />
+				</div>
+			)}
+
+			{/* Completed run: toggle event log */}
+			{!isActive && (
+				<RunLogToggle runId={run.id} logExpanded={logExpanded} onToggle={() => setLogExpanded(!logExpanded)} />
+			)}
+		</div>
+	);
+}
+
+function RunLogToggle({ runId, logExpanded, onToggle }: { runId: string; logExpanded: boolean; onToggle: () => void }) {
+	const { events } = useRunEvents(logExpanded ? runId : null);
+
+	return (
+		<div className="border-t border-[#21262d]">
+			<button
+				onClick={onToggle}
+				className="flex items-center gap-1.5 px-3 py-1.5 w-full text-left hover:bg-[#161b22]/60 transition-colors"
+			>
+				{logExpanded ? <ChevronDown size={10} className="text-[#6e7681]" /> : <ChevronRight size={10} className="text-[#6e7681]" />}
+				<ScrollText size={10} className="text-[#6e7681]" />
+				<span className="text-[10px] font-mono text-[#6e7681]">
+					{logExpanded ? "Hide run log" : "View run log"}
+				</span>
+			</button>
+			{logExpanded && events.length > 0 && (
+				<div className="px-3 pb-2">
+					<RunEventLog events={events} isActive={false} />
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ── Ungrouped Outputs (old format fallback) ──
+
+function UngroupedOutputs({
+	entries,
+	allCollapsed,
+	onOpenViewer,
+	onOpenInEditor,
+	onReply,
+}: {
+	entries: WorkflowOutputEntry[];
+	allCollapsed: boolean;
+	onOpenViewer: (entry: WorkflowOutputEntry) => void;
+	onOpenInEditor: (entry: WorkflowOutputEntry) => void;
+	onReply: (entry: WorkflowOutputEntry) => void;
+}) {
+	return (
+		<div className="border border-[#21262d] border-l-2 border-l-[#30363d] rounded-lg overflow-hidden bg-[#0d1117]/40">
+			<div className="px-3 py-2 bg-[#161b22]/80">
+				<span className="text-[11px] font-mono text-[#8b949e]">Previous Output</span>
+			</div>
+			<div className="px-2 py-2 space-y-2">
+				{entries.map((entry, i) => (
+					<WorkflowOutputBlock
+						key={`ungrouped-${entry.nodeId}-${i}`}
+						nodeId={entry.nodeId}
+						entry={entry}
+						allCollapsed={allCollapsed}
+						onOpenViewer={() => onOpenViewer(entry)}
+						onOpenInEditor={() => onOpenInEditor(entry)}
+						onReply={() => onReply(entry)}
+					/>
+				))}
+			</div>
+		</div>
+	);
+}
+
+// ── Output Block ──
+
 function deriveOutputStatus(entry: WorkflowOutputEntry): WorkflowOutputStatus | "empty" {
 	if (entry.status) return entry.status;
 	if (!entry.output) return "empty";
@@ -399,6 +590,12 @@ const STATUS_STYLES: Record<WorkflowOutputStatus | "empty", {
 	empty:   { border: "border-l-[#30363d]", text: "text-[#6e7681]", bg: "", icon: "\u2014", label: "No output" },
 };
 
+function getNodeTypeLabel(nodeType?: IRNodeType): string | null {
+	if (!nodeType) return null;
+	const item = getRegistryItem(nodeType);
+	return item?.label ?? null;
+}
+
 function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpenInEditor, onReply }: {
 	nodeId: string;
 	entry: WorkflowOutputEntry;
@@ -414,6 +611,7 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 	}, [allCollapsed]);
 	const status = deriveOutputStatus(entry);
 	const style = STATUS_STYLES[status];
+	const nodeTypeLabel = getNodeTypeLabel(entry.nodeType);
 
 	// Strip redundant [Error] prefix when status already indicates error
 	const displayOutput = (status === "error" || status === "timeout") && entry.output.startsWith("[Error] ")
@@ -432,6 +630,9 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 							{style.icon}
 						</span>
 						{expanded ? "\u25BE" : "\u25B8"} {entry.label ?? nodeId.slice(0, 8)}
+						{nodeTypeLabel && (
+							<span className="text-[10px] text-[#6e7681]">{nodeTypeLabel}</span>
+						)}
 					</span>
 				</button>
 				<div className="flex items-center gap-1">
@@ -486,6 +687,8 @@ function WorkflowOutputBlock({ nodeId, entry, allCollapsed, onOpenViewer, onOpen
 	);
 }
 
+// ── Helpers ──
+
 function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div>
@@ -509,24 +712,88 @@ function formatMetadataForClipboard(entries: [string, unknown][]): string {
 	}).join("\n");
 }
 
-type TimelineItem =
-	| { kind: "output"; nodeId: string; entry: WorkflowOutputEntry; timestamp: string }
+// ── Grouped Timeline ──
+
+type GroupedTimelineItem =
+	| { kind: "runGroup"; enrichedRun: EnrichedWorkflowRun; entries: WorkflowOutputEntry[]; timestamp: string }
+	| { kind: "ungrouped"; entries: WorkflowOutputEntry[]; timestamp: string }
 	| { kind: "comment"; comment: TicketComment; timestamp: string };
 
-function buildTimeline(
-	outputEntries: [string, WorkflowOutputEntry][],
+function buildGroupedTimeline(
+	outputEntries: WorkflowOutputEntry[],
 	comments: TicketComment[],
-): TimelineItem[] {
-	const items: TimelineItem[] = [];
-	for (const [nodeId, entry] of outputEntries) {
-		items.push({ kind: "output", nodeId, entry, timestamp: entry.completedAt });
+	enrichedRuns: EnrichedWorkflowRun[],
+	activeRunId: string | null,
+): GroupedTimelineItem[] {
+	// Group outputs by runId
+	const byRunId = new Map<string, WorkflowOutputEntry[]>();
+	const ungrouped: WorkflowOutputEntry[] = [];
+
+	for (const entry of outputEntries) {
+		if (!entry.runId) {
+			ungrouped.push(entry);
+			continue;
+		}
+		const list = byRunId.get(entry.runId) ?? [];
+		list.push(entry);
+		byRunId.set(entry.runId, list);
 	}
+
+	// Build enriched run lookup
+	const enrichedByRunId = new Map<string, EnrichedWorkflowRun>();
+	for (const er of enrichedRuns) {
+		enrichedByRunId.set(er.run.id, er);
+	}
+
+	const items: GroupedTimelineItem[] = [];
+
+	// Add ungrouped outputs
+	if (ungrouped.length > 0) {
+		const earliest = ungrouped.reduce((min, e) => e.completedAt < min ? e.completedAt : min, ungrouped[0].completedAt);
+		items.push({ kind: "ungrouped", entries: ungrouped, timestamp: earliest });
+	}
+
+	// Add run groups — include enriched runs even if they have no outputs yet (active runs)
+	const processedRunIds = new Set<string>();
+
+	for (const [runId, entries] of byRunId) {
+		processedRunIds.add(runId);
+		const enrichedRun = enrichedByRunId.get(runId);
+		if (enrichedRun) {
+			const timestamp = entries.reduce((min, e) => e.completedAt < min ? e.completedAt : min, entries[0].completedAt);
+			items.push({ kind: "runGroup", enrichedRun, entries, timestamp });
+		} else {
+			// Outputs with a runId but no matching enriched run — treat as ungrouped
+			ungrouped.push(...entries);
+		}
+	}
+
+	// Add active run even if it has no outputs yet
+	if (activeRunId && !processedRunIds.has(activeRunId)) {
+		const enrichedRun = enrichedByRunId.get(activeRunId);
+		if (enrichedRun) {
+			items.push({ kind: "runGroup", enrichedRun, entries: [], timestamp: enrichedRun.run.startedAt });
+		}
+	}
+
+	// Add comments
 	for (const comment of comments) {
 		items.push({ kind: "comment", comment, timestamp: comment.createdAt });
 	}
-	items.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+	// Sort chronologically — active runs always last
+	items.sort((a, b) => {
+		const aActive = a.kind === "runGroup" && a.enrichedRun.run.status === "active";
+		const bActive = b.kind === "runGroup" && b.enrichedRun.run.status === "active";
+		if (aActive && !bActive) return 1;
+		if (!aActive && bActive) return -1;
+		return a.timestamp.localeCompare(b.timestamp);
+	});
+
 	return items;
 }
+
+// ── Output Viewer Modal ──
 
 function OutputViewerModal({ open, label, content, onClose }: { open: boolean; label: string; content: string; onClose: () => void }) {
 	return (
@@ -555,6 +822,8 @@ function OutputViewerModal({ open, label, content, onClose }: { open: boolean; l
 		</Dialog>
 	);
 }
+
+// ── Comment Block ──
 
 function CommentBlock({ comment, onEdit }: { comment: TicketComment; onEdit: (id: string, body: string) => Promise<void> }) {
 	const [editing, setEditing] = useState(false);
