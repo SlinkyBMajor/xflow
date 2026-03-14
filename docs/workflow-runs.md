@@ -78,7 +78,7 @@ Each node's result is stored in two places that serve different purposes:
 
 | Store | Location | Lifetime | Used by |
 |-------|----------|----------|---------|
-| **In-memory** | `context.nodeOutputs[nodeId]` | Current XState actor | Condition expressions (`outputs["id"]?.status`), interpolation (`{{nodeOutputs.ID}}`) |
+| **In-memory** | `context.nodeOutputs[nodeId]` | Current XState actor | Condition expressions (`outputs["id"]?.status`), interpolation (`{{outputs.ID}}`) |
 | **DB-persisted** | `ticket.metadata._workflowOutput` array | Permanent (capped at 50 entries) | Ticket detail modal, agent prompts, resume hydration |
 
 Both are written together in the `assign()` block of `makeDoneActions` / `makeErrorActions` in `compiler.ts`. The in-memory store holds `NodeResult { status, output }` objects. The DB store holds `WorkflowOutputEntry` objects with additional fields (`runId`, `completedAt`, `label`, `nodeType`).

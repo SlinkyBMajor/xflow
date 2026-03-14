@@ -135,7 +135,7 @@ Creates a pull request from the worktree branch.
 Adds a reviewer to an existing pull request.
 
 **Config:**
-- `prNumber` — PR number (use `{{ticketMetadata.prNumber}}` to reference upstream createPr)
+- `prNumber` — PR number (use `{{ticket.metadata.prNumber}}` to reference upstream createPr)
 - `reviewer` — GitHub username
 
 **Output:** `{ success, prNumber, reviewer }`
@@ -145,7 +145,7 @@ Adds a reviewer to an existing pull request.
 Merges a pull request and cleans up the worktree.
 
 **Config:**
-- `prNumber` — PR number (use `{{ticketMetadata.prNumber}}` to reference upstream createPr)
+- `prNumber` — PR number (use `{{ticket.metadata.prNumber}}` to reference upstream createPr)
 - `mergeMethod` — `squash`, `merge`, or `rebase` (default: `squash`)
 
 **Output:** `{ merged, prNumber, mergeMethod }`

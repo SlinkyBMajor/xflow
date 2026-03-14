@@ -370,7 +370,7 @@ function GitActionFields({ config, updateConfig }: {
 			{action === "addReviewer" && (
 				<>
 					<div>
-						<TipLabel label="PR Number" tip="The PR to add the reviewer to. Defaults to ticketMetadata.prNumber if left empty." />
+						<TipLabel label="PR Number" tip="The PR to add the reviewer to. Defaults to ticket.metadata.prNumber if left empty." />
 						<Input
 							value={config.prNumber ?? ""}
 							onChange={(e) => updateConfig({ prNumber: e.target.value || undefined })}
@@ -393,7 +393,7 @@ function GitActionFields({ config, updateConfig }: {
 			{action === "mergePr" && (
 				<>
 					<div>
-						<TipLabel label="PR Number" tip="The PR to merge. Defaults to ticketMetadata.prNumber if left empty." />
+						<TipLabel label="PR Number" tip="The PR to merge. Defaults to ticket.metadata.prNumber if left empty." />
 						<Input
 							value={config.prNumber ?? ""}
 							onChange={(e) => updateConfig({ prNumber: e.target.value || undefined })}

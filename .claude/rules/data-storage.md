@@ -23,7 +23,7 @@ The DB schema (`src/bun/db/schema.ts`) is the permanent record. Data here surviv
 
 The `metadata` column on the `tickets` table is a JSON object for semi-structured data. It holds two kinds of data:
 
-**User-facing metadata** — counters, error messages, custom key-value pairs set by `setMetadata` nodes. Accessed via `{{ticketMetadata.KEY}}` interpolation or `metadata.KEY` in conditions.
+**User-facing metadata** — counters, error messages, custom key-value pairs set by `setMetadata` nodes. Accessed via `{{ticket.metadata.KEY}}` interpolation or `metadata.KEY` in conditions.
 
 **Internal metadata** — prefixed with `_` to avoid collisions:
 - `_workflowOutput` — array of `WorkflowOutputEntry` objects recording each node's result across all runs. Capped at 50 entries, output truncated to 10KB each. Written by `persistNodeOutput()` in `executor.ts`.
@@ -51,7 +51,7 @@ interface NodeResult {
 **`nodeOutputs`** is the runtime cache of node results:
 - Written by `makeDoneActions` (success) and `makeErrorActions` (error/timeout) in `compiler.ts`
 - Read by condition expressions: `outputs["node-id"]?.status === "success"`
-- Read by interpolation: `{{nodeOutputs.NODE_ID}}` — auto-unwraps `NodeResult.output` to a string
+- Read by interpolation: `{{outputs.NODE_ID}}` — auto-unwraps `NodeResult.output` to a string
 - On resume, hydrated from `_workflowOutput` entries matching the current `runId`
 
 **Rules:**

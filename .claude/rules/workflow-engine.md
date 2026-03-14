@@ -33,9 +33,9 @@ interface NodeResult {
 ### Interpolation
 
 Node configs support template variables resolved at runtime via `interpolate()`:
-- `{{ticketTitle}}`, `{{ticketId}}`, `{{ticketLaneId}}` — ticket fields
-- `{{ticketMetadata.KEY}}` — ticket metadata values (e.g. `{{ticketMetadata.prNumber}}`)
-- `{{nodeOutputs.NODE_ID}}` — output text from a prior node (auto-unwraps `NodeResult.output`)
+- `{{ticket.title}}`, `{{ticket.id}}`, `{{ticket.laneId}}`, `{{ticket.body}}` — ticket fields
+- `{{ticket.metadata.KEY}}` — ticket metadata values (e.g. `{{ticket.metadata.prNumber}}`)
+- `{{outputs.NODE_ID}}` — output text from a prior node (auto-unwraps `NodeResult.output`)
 
 ### Event pattern
 

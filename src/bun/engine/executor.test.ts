@@ -92,7 +92,7 @@ describe("executeLog", () => {
 
 	it("inserts a run event with the interpolated message", () => {
 		const ctx = makeContext({ title: "Fix login" });
-		executeLog(mockDb, "run-1", "Working on: {{ticketTitle}}", ctx);
+		executeLog(mockDb, "run-1", "Working on: {{ticket.title}}", ctx);
 
 		expect(runQueries.insertRunEvent).toHaveBeenCalledOnce();
 		const call = vi.mocked(runQueries.insertRunEvent).mock.calls[0];
@@ -147,7 +147,7 @@ describe("executeSetMetadata", () => {
 		vi.mocked(ticketQueries.getTicket).mockReturnValue(makeTicket());
 		const ctx = makeContext({ title: "Deploy" });
 
-		const result = executeSetMetadata(mockDb, "t-1", "source", "{{ticketTitle}}", ctx);
+		const result = executeSetMetadata(mockDb, "t-1", "source", "{{ticket.title}}", ctx);
 
 		expect(result.source).toBe("Deploy");
 	});

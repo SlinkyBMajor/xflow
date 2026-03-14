@@ -9,7 +9,7 @@ function makeContext(overrides: Partial<Ticket> = {}, nodeOutputs: Record<string
 			boardId: "b-1",
 			laneId: "l-1",
 			title: "Fix bug",
-			body: null,
+			body: "Some body text",
 			tags: [],
 			metadata: { priority: "high" },
 			laneEnteredAt: null,
@@ -23,46 +23,58 @@ function makeContext(overrides: Partial<Ticket> = {}, nodeOutputs: Record<string
 }
 
 describe("interpolate", () => {
-	it("substitutes {{ticketTitle}}", () => {
-		expect(interpolate("Task: {{ticketTitle}}", makeContext())).toBe("Task: Fix bug");
+	it("substitutes {{ticket.title}}", () => {
+		expect(interpolate("Task: {{ticket.title}}", makeContext())).toBe("Task: Fix bug");
 	});
 
-	it("substitutes {{ticketId}}", () => {
-		expect(interpolate("ID: {{ticketId}}", makeContext())).toBe("ID: t-1");
+	it("substitutes {{ticket.id}}", () => {
+		expect(interpolate("ID: {{ticket.id}}", makeContext())).toBe("ID: t-1");
 	});
 
-	it("substitutes {{ticketLaneId}}", () => {
-		expect(interpolate("Lane: {{ticketLaneId}}", makeContext())).toBe("Lane: l-1");
+	it("substitutes {{ticket.laneId}}", () => {
+		expect(interpolate("Lane: {{ticket.laneId}}", makeContext())).toBe("Lane: l-1");
 	});
 
-	it("reads {{ticketMetadata.someKey}}", () => {
-		expect(interpolate("{{ticketMetadata.priority}}", makeContext())).toBe("high");
+	it("substitutes {{ticket.body}}", () => {
+		expect(interpolate("Body: {{ticket.body}}", makeContext())).toBe("Body: Some body text");
 	});
 
-	it("returns empty string for missing metadata key", () => {
-		expect(interpolate("{{ticketMetadata.missing}}", makeContext())).toBe("");
+	it("returns empty string for null body", () => {
+		expect(interpolate("Body: {{ticket.body}}", makeContext({ body: null }))).toBe("Body: ");
 	});
 
-	it("reads {{nodeOutputs.step1}} from raw string", () => {
+	it("reads {{ticket.metadata.someKey}}", () => {
+		expect(interpolate("{{ticket.metadata.priority}}", makeContext())).toBe("high");
+	});
+
+	it("throws for missing metadata key", () => {
+		expect(() => interpolate("{{ticket.metadata.missing}}", makeContext())).toThrow(
+			'key "missing" not found in ticket metadata',
+		);
+	});
+
+	it("reads {{outputs.step1}} from raw string", () => {
 		const ctx = makeContext({}, { step1: "result" });
-		expect(interpolate("{{nodeOutputs.step1}}", ctx)).toBe("result");
+		expect(interpolate("{{outputs.step1}}", ctx)).toBe("result");
 	});
 
-	it("unwraps NodeResult for {{nodeOutputs.step1}}", () => {
+	it("unwraps NodeResult for {{outputs.step1}}", () => {
 		const ctx = makeContext({}, { step1: { status: "success", output: "agent result" } });
-		expect(interpolate("{{nodeOutputs.step1}}", ctx)).toBe("agent result");
+		expect(interpolate("{{outputs.step1}}", ctx)).toBe("agent result");
 	});
 
-	it("returns empty string for missing node output", () => {
-		expect(interpolate("{{nodeOutputs.missing}}", makeContext())).toBe("");
+	it("throws for missing node output", () => {
+		expect(() => interpolate("{{outputs.missing}}", makeContext())).toThrow(
+			'no output found for node "missing"',
+		);
 	});
 
-	it("returns empty string for unknown tokens", () => {
-		expect(interpolate("{{unknown}}", makeContext())).toBe("");
+	it("throws for unknown tokens", () => {
+		expect(() => interpolate("{{unknown}}", makeContext())).toThrow("unknown variable pattern");
 	});
 
 	it("substitutes multiple placeholders in one string", () => {
-		const result = interpolate("[{{ticketId}}] {{ticketTitle}}", makeContext());
+		const result = interpolate("[{{ticket.id}}] {{ticket.title}}", makeContext());
 		expect(result).toBe("[t-1] Fix bug");
 	});
 
@@ -71,6 +83,6 @@ describe("interpolate", () => {
 	});
 
 	it("trims whitespace in keys", () => {
-		expect(interpolate("{{ ticketTitle }}", makeContext())).toBe("Fix bug");
+		expect(interpolate("{{ ticket.title }}", makeContext())).toBe("Fix bug");
 	});
 });

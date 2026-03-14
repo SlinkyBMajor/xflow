@@ -34,7 +34,7 @@ export const BUILTIN_TEMPLATES: BoardTemplate[] = [
 							type: "claudeAgent",
 							position: { x: 250, y: 150 },
 							label: "AI Review",
-							config: { type: "claudeAgent", prompt: "Review this ticket and provide analysis:\n\nTitle: {{ticketTitle}}", timeoutMs: 120000 },
+							config: { type: "claudeAgent", prompt: "Review this ticket and provide analysis:\n\nTitle: {{ticket.title}}", timeoutMs: 120000 },
 						},
 						{
 							id: "move",

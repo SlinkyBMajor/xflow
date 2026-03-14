@@ -6,23 +6,35 @@ export interface WorkflowContext {
 }
 
 export function interpolate(template: string, context: WorkflowContext): string {
-	return template.replace(/\{\{(.+?)\}\}/g, (_match, key: string) => {
+	let error: Error | null = null;
+	const result = template.replace(/\{\{(.+?)\}\}/g, (_match, key: string) => {
 		const trimmed = key.trim();
 
-		if (trimmed === "ticketTitle") return context.ticket.title;
-		if (trimmed === "ticketId") return context.ticket.id;
-		if (trimmed === "ticketLaneId") return context.ticket.laneId;
+		// ticket.title, ticket.id, ticket.laneId, ticket.body
+		if (trimmed === "ticket.title") return context.ticket.title;
+		if (trimmed === "ticket.id") return context.ticket.id;
+		if (trimmed === "ticket.laneId") return context.ticket.laneId;
+		if (trimmed === "ticket.body") return context.ticket.body ?? "";
 
-		if (trimmed.startsWith("ticketMetadata.")) {
-			const metaKey = trimmed.slice("ticketMetadata.".length);
+		// ticket.metadata.KEY
+		if (trimmed.startsWith("ticket.metadata.")) {
+			const metaKey = trimmed.slice("ticket.metadata.".length);
 			const value = context.ticket.metadata[metaKey];
-			return value !== undefined ? String(value) : "";
+			if (value === undefined) {
+				error = new Error(`Unresolved variable: {{${trimmed}}} — key "${metaKey}" not found in ticket metadata`);
+				return "";
+			}
+			return String(value);
 		}
 
-		if (trimmed.startsWith("nodeOutputs.")) {
-			const outputKey = trimmed.slice("nodeOutputs.".length);
+		// outputs.NODE_ID
+		if (trimmed.startsWith("outputs.")) {
+			const outputKey = trimmed.slice("outputs.".length);
 			const value = context.nodeOutputs[outputKey];
-			if (value === undefined) return "";
+			if (value === undefined) {
+				error = new Error(`Unresolved variable: {{${trimmed}}} — no output found for node "${outputKey}"`);
+				return "";
+			}
 			// Unwrap NodeResult to its output text for interpolation
 			if (value && typeof value === "object" && "output" in value) {
 				return String((value as any).output ?? "");
@@ -30,6 +42,9 @@ export function interpolate(template: string, context: WorkflowContext): string 
 			return String(value);
 		}
 
+		error = new Error(`Unresolved variable: {{${trimmed}}} — unknown variable pattern. Supported: ticket.title, ticket.id, ticket.laneId, ticket.body, ticket.metadata.KEY, outputs.NODE_ID`);
 		return "";
 	});
+	if (error) throw error;
+	return result;
 }
