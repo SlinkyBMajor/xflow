@@ -60,8 +60,19 @@ describe("evaluateCondition", () => {
 	});
 
 	it("can access outputs scope", () => {
-		const ctx = makeContext({}, { step1: "done" });
-		expect(evaluateCondition('outputs.step1 === "done"', ctx)).toBe(true);
+		const ctx = makeContext({}, { step1: { status: "success", output: "done" } });
+		expect(evaluateCondition('outputs.step1.output === "done"', ctx)).toBe(true);
+	});
+
+	it("can check node status via outputs", () => {
+		const ctx = makeContext({}, {
+			"node-abc": { status: "success", output: "done" },
+			"node-xyz": { status: "error", output: "failed" },
+		});
+		expect(evaluateCondition('outputs["node-abc"]?.status === "success"', ctx)).toBe(true);
+		expect(evaluateCondition('outputs["node-xyz"]?.status === "success"', ctx)).toBe(false);
+		expect(evaluateCondition('outputs["node-xyz"]?.status === "error"', ctx)).toBe(true);
+		expect(evaluateCondition('outputs["missing-node"]?.status === "success"', ctx)).toBe(false);
 	});
 
 	it("returns false for malformed expression", () => {
@@ -71,6 +82,7 @@ describe("evaluateCondition", () => {
 	it("returns false for empty expression", () => {
 		expect(evaluateCondition("", makeContext())).toBe(false);
 	});
+
 });
 
 describe("executeLog", () => {

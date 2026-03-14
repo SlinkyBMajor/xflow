@@ -94,6 +94,12 @@ export type ProjectOpenResult = {
 
 export type WorkflowOutputStatus = "success" | "error" | "timeout" | "partial";
 
+/** In-memory result stored in WorkflowContext.nodeOutputs for each completed node. */
+export interface NodeResult {
+	status: WorkflowOutputStatus;
+	output: unknown;
+}
+
 export interface WorkflowOutputEntry {
 	output: string;
 	runId: string;

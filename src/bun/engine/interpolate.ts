@@ -22,7 +22,12 @@ export function interpolate(template: string, context: WorkflowContext): string 
 		if (trimmed.startsWith("nodeOutputs.")) {
 			const outputKey = trimmed.slice("nodeOutputs.".length);
 			const value = context.nodeOutputs[outputKey];
-			return value !== undefined ? String(value) : "";
+			if (value === undefined) return "";
+			// Unwrap NodeResult to its output text for interpolation
+			if (value && typeof value === "object" && "output" in value) {
+				return String((value as any).output ?? "");
+			}
+			return String(value);
 		}
 
 		return "";

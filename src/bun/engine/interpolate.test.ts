@@ -43,9 +43,14 @@ describe("interpolate", () => {
 		expect(interpolate("{{ticketMetadata.missing}}", makeContext())).toBe("");
 	});
 
-	it("reads {{nodeOutputs.step1}}", () => {
+	it("reads {{nodeOutputs.step1}} from raw string", () => {
 		const ctx = makeContext({}, { step1: "result" });
 		expect(interpolate("{{nodeOutputs.step1}}", ctx)).toBe("result");
+	});
+
+	it("unwraps NodeResult for {{nodeOutputs.step1}}", () => {
+		const ctx = makeContext({}, { step1: { status: "success", output: "agent result" } });
+		expect(interpolate("{{nodeOutputs.step1}}", ctx)).toBe("agent result");
 	});
 
 	it("returns empty string for missing node output", () => {

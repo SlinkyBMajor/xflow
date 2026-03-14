@@ -59,7 +59,8 @@ interface IREdge {
 3. Set all positions to {x: 0, y: 0} — they will be auto-laid-out.
 4. For condition nodes, use "on": "TRUE" and "on": "FALSE" on outgoing edges.
    Condition expressions have access to: ticket, title, body, tags, metadata, outputs (nodeOutputs).
-   To check prior node outputs, use the outputs scope: outputs["node-id"]. Node IDs are UUIDs with hyphens, so always use bracket notation.
+   Each entry in outputs is a { status, output } object. To check if a prior node succeeded: outputs["node-id"]?.status === "success". Status is "success", "error", or "timeout".
+   To access the raw output text: outputs["node-id"]?.output. Node IDs are UUIDs with hyphens, so always use bracket notation.
 5. For waitForApproval nodes, use "on": "APPROVED" and "on": "REJECTED" on outgoing edges.
 6. Write helpful, specific prompts for Claude Agent nodes based on the user's description.
 7. NEVER ask clarifying questions. NEVER output explanations, markdown, or commentary. If the request is ambiguous, make reasonable assumptions and generate a valid workflow.

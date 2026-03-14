@@ -14,6 +14,7 @@ import type {
 	GitActionConfig,
 	RunEvent,
 	BoardSettings,
+	NodeResult,
 } from "../../shared/types";
 import { interpolate, type WorkflowContext } from "./interpolate";
 import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
@@ -65,6 +66,23 @@ export function compileWorkflow(
 		});
 	}
 
+	// On resume, hydrate nodeOutputs from the DB-persisted _workflowOutput
+	// so that conditions referencing prior node results still work.
+	const nodeOutputs: Record<string, NodeResult> = {};
+	if (initialNodeId) {
+		const rawOutput = ticket.metadata?._workflowOutput;
+		if (Array.isArray(rawOutput)) {
+			for (const entry of rawOutput) {
+				if (entry?.nodeId && entry.runId === runId) {
+					nodeOutputs[entry.nodeId] = {
+						status: entry.status ?? "success",
+						output: entry.output,
+					};
+				}
+			}
+		}
+	}
+
 	const machine = setup({
 		types: {
 			context: {} as WorkflowContext,
@@ -75,7 +93,7 @@ export function compileWorkflow(
 		initial: initialState,
 		context: {
 			ticket: { ...ticket },
-			nodeOutputs: {},
+			nodeOutputs,
 		},
 		states,
 	});
@@ -120,7 +138,7 @@ function buildState(
 			assign({
 				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => ({
 					...context.nodeOutputs,
-					[node.id]: event.output,
+					[node.id]: { status: "success", output: event.output } satisfies NodeResult,
 				}),
 				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
 					const metadata = persistNodeOutput(
@@ -138,6 +156,14 @@ function buildState(
 	function makeErrorActions(nodeLabel: string, label?: string) {
 		return [
 			assign({
+				nodeOutputs: ({ context, event }: { context: WorkflowContext; event: any }) => {
+					const errorMsg = event.error?.message ?? String(event.error ?? `Unknown ${nodeLabel} error`);
+					const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);
+					return {
+						...context.nodeOutputs,
+						[node.id]: { status: isTimeout ? "timeout" : "error", output: errorMsg } satisfies NodeResult,
+					};
+				},
 				ticket: ({ context, event }: { context: WorkflowContext; event: any }) => {
 					const errorMsg = event.error?.message ?? String(event.error ?? `Unknown ${nodeLabel} error`);
 					const isTimeout = /timed?\s*out|timeout/i.test(errorMsg);

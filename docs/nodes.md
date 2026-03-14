@@ -83,6 +83,12 @@ Routes the flow along one of two edges based on evaluating an expression against
 **Config:**
 - `expression` — expression evaluated at runtime
 
+**Available scope variables:**
+- `ticket` — full ticket object
+- `title`, `body`, `tags` — ticket fields
+- `metadata` — ticket metadata object
+- `outputs` — node results keyed by node ID, each a `{ status, output }` object. `status` is `"success"`, `"error"`, or `"timeout"`. Example: `outputs["node-id"]?.status === "success"`
+
 **Emits:** `TRUE` or `FALSE`
 
 ---

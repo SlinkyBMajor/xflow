@@ -34,7 +34,7 @@ actor "error"       → status: "aborted", nodeStatus: "interrupted", finishedAt
 abortRun()          → status: "aborted", nodeStatus: "interrupted", finishedAt set
 ```
 
-On resume (`resumeRun`), the run restarts from `currentNodeId` with a fresh XState actor.
+On resume (`resumeRun`), the run restarts from `currentNodeId` with a fresh XState actor. The `nodeOutputs` context is hydrated from `ticket.metadata._workflowOutput` entries matching the current `runId`, so condition nodes referencing prior node results continue to work after a pause or app restart.
 
 ## Worktree fields
 
@@ -71,6 +71,19 @@ interface MergeResult {
 ```
 
 The PR poller (`src/bun/git/pr-poller.ts`) watches for runs where `mergeResult.prUrl` exists and `prMerged` is falsy, checking the PR status every 60 seconds.
+
+## Node output data flow
+
+Each node's result is stored in two places that serve different purposes:
+
+| Store | Location | Lifetime | Used by |
+|-------|----------|----------|---------|
+| **In-memory** | `context.nodeOutputs[nodeId]` | Current XState actor | Condition expressions (`outputs["id"]?.status`), interpolation (`{{nodeOutputs.ID}}`) |
+| **DB-persisted** | `ticket.metadata._workflowOutput` array | Permanent (capped at 50 entries) | Ticket detail modal, agent prompts, resume hydration |
+
+Both are written together in the `assign()` block of `makeDoneActions` / `makeErrorActions` in `compiler.ts`. The in-memory store holds `NodeResult { status, output }` objects. The DB store holds `WorkflowOutputEntry` objects with additional fields (`runId`, `completedAt`, `label`, `nodeType`).
+
+On resume, `nodeOutputs` is rebuilt from `_workflowOutput` entries for the current `runId`, making the DB the single source of truth.
 
 ## Run events
 

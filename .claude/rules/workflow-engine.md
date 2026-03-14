@@ -17,19 +17,25 @@ The workflow engine compiles a `WorkflowIR` (directed graph of nodes and edges) 
 ```ts
 interface WorkflowContext {
   ticket: Ticket;
-  nodeOutputs: Record<string, unknown>;
+  nodeOutputs: Record<string, NodeResult>;
+}
+
+interface NodeResult {
+  status: "success" | "error" | "timeout" | "partial";
+  output: unknown;
 }
 ```
 
-- Each node's return value is stored in `nodeOutputs[nodeId]` via `assign()` in the `onDone` action
+- Each node's result is stored in `nodeOutputs[nodeId]` via `assign()` in both `onDone` (success) and `onError` (error/timeout) actions
 - Node outputs are also persisted to ticket metadata under `_workflowOutput` via `persistNodeOutput()`
+- See [data-storage.md](../../.claude/rules/data-storage.md) for the full data flow rules
 
 ### Interpolation
 
 Node configs support template variables resolved at runtime via `interpolate()`:
 - `{{ticketTitle}}`, `{{ticketId}}`, `{{ticketLaneId}}` — ticket fields
 - `{{ticketMetadata.KEY}}` — ticket metadata values (e.g. `{{ticketMetadata.prNumber}}`)
-- `{{nodeOutputs.NODE_ID}}` — output from a prior node (string only, single level)
+- `{{nodeOutputs.NODE_ID}}` — output text from a prior node (auto-unwraps `NodeResult.output`)
 
 ### Event pattern
 
