@@ -16,14 +16,17 @@ export function triggerWorkflowIfAttached(
 	notifyEvent?: (event: RunEvent) => void,
 	notifyBoardChanged?: () => void,
 	apiPort?: number,
+	/** Run ID to exclude from the abort sweep (the run that triggered this transition). */
+	excludeRunId?: string,
 ): void {
 	const lane = db.select().from(lanes).where(eq(lanes.id, targetLaneId)).get();
 	if (!lane?.workflowId) return;
 
-	// Abort any existing active run for this ticket
+	// Abort any existing active run for this ticket, but skip the run
+	// that caused this transition — it will finish naturally.
 	const existingRuns = runQueries.getRunsByTicket(db, ticketId);
 	for (const run of existingRuns) {
-		if (run.status === "active") {
+		if (run.status === "active" && run.id !== excludeRunId) {
 			abortRun(db, run.id, projectPath);
 		}
 	}

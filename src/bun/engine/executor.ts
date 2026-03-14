@@ -139,11 +139,3 @@ export function persistNodeOutput(
 	ticketQueries.updateTicket(db, ticketId, { metadata: updatedMetadata });
 	return updatedMetadata;
 }
-
-export function executeMoveToLane(
-	db: DB,
-	ticketId: string,
-	laneId: string,
-): void {
-	ticketQueries.moveTicket(db, ticketId, laneId, 0);
-}

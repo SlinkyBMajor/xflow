@@ -71,7 +71,11 @@ Pauses the workflow and surfaces an approve/reject action in the ticket detail U
 
 ## Move to Lane (`moveToLane`)
 
-Advances the ticket to a different lane on the board. If the destination lane has its own workflow, that workflow is triggered in turn.
+Advances the ticket to a different lane on the board. The node only moves the ticket — workflow triggering is the lane's responsibility. If the destination lane has an attached workflow, it starts automatically as a side effect of the lane transition.
+
+The calling workflow continues to its `end` node and finishes with status `"done"`. Both workflows can run concurrently.
+
+All lane transitions (drag-and-drop, `moveToLane` node, or any future mechanism) are routed through `transitionTicketToLane()` in `src/bun/engine/lane-transition.ts`.
 
 **Config:**
 - `laneId` — target lane ID

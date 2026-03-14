@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import type { DB } from "../db/connection";
 import type { Ticket, RunEvent, ClaudeModel, AllowedToolsPreset } from "../../shared/types";
-import { ALLOWED_TOOLS_PRESETS } from "../../shared/types";
+import { ALLOWED_TOOLS_PRESETS, DISALLOWED_TOOLS_PRESETS } from "../../shared/types";
 import type { WorkflowContext } from "./interpolate";
 import { interpolate } from "./interpolate";
 import * as runQueries from "../db/queries/runs";
@@ -279,8 +279,6 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 	}
 
 	// Resolve allowed tools from preset or custom list.
-	// This works alongside skipPermissions — skip auto-approves tool use,
-	// allowedTools restricts which tools are available.
 	let tools: string[] | undefined;
 	if (allowedToolsPreset === "custom" && allowedToolsCustom) {
 		tools = allowedToolsCustom.split(",").map((t) => t.trim()).filter(Boolean);
@@ -289,6 +287,13 @@ curl -X POST $XFLOW_API_URL/runs/$XFLOW_RUN_ID/comment \\
 	}
 	if (tools && tools.length > 0) {
 		cliArgs.push("--allowedTools", tools.join(","));
+	}
+
+	// --dangerously-skip-permissions overrides --allowedTools, so we also pass
+	// --disallowedTools as a hard deny-list for restricted presets.
+	const disallowed = allowedToolsPreset ? DISALLOWED_TOOLS_PRESETS[allowedToolsPreset] : undefined;
+	if (disallowed && disallowed.length > 0) {
+		cliArgs.push("--disallowedTools", disallowed.join(","));
 	}
 
 	const proc = Bun.spawn(cliArgs, {

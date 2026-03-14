@@ -18,11 +18,12 @@ import type {
 	WorkflowRun,
 } from "../../shared/types";
 import { interpolate, type WorkflowContext } from "./interpolate";
-import { executeLog, executeSetMetadata, executeMoveToLane, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
+import { executeLog, executeSetMetadata, executeNotify, evaluateCondition, persistNodeOutput } from "./executor";
+import { transitionTicketToLane } from "./lane-transition";
 import { executeClaudeAgent } from "./agent";
 import { executeCustomScript } from "./script";
 import { executeGitAction } from "./git-action";
-import { triggerWorkflowIfAttached } from "./trigger";
+
 
 export function compileWorkflow(
 	ir: WorkflowIR,
@@ -188,6 +189,18 @@ function buildState(
 		];
 	}
 
+	// Logs and persists an error for sync nodes (log, notify, setMetadata) whose
+	// entry actions fail — typically due to interpolation errors in config fields.
+	function handleSyncNodeError(err: unknown, context: WorkflowContext) {
+		const errorMsg = err instanceof Error ? err.message : String(err);
+		console.error(`[Workflow ${ctx.runId}] ${node.type} node ${node.id} failed:`, errorMsg);
+		persistNodeOutput(
+			ctx.db, ctx.ticket.id, node.id, ctx.runId,
+			`[Error] ${errorMsg}`, "error", node.label, node.type,
+		);
+		ctx.notifyBoardChanged?.();
+	}
+
 	// Nodes that already persist their own output via makeDoneActions/makeErrorActions
 	const SELF_PERSISTING = new Set(["claudeAgent", "customScript", "gitAction", "start", "end"]);
 
@@ -208,7 +221,11 @@ function buildState(
 			const config = node.config as LogConfig & { type: "log" };
 			stateConfig = {
 				entry: ({ context }: { context: WorkflowContext }) => {
-					executeLog(ctx.db, ctx.runId, config.message, context);
+					try {
+						executeLog(ctx.db, ctx.runId, config.message, context);
+					} catch (err) {
+						handleSyncNodeError(err, context);
+					}
 				},
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
@@ -221,14 +238,19 @@ function buildState(
 				entry: [
 					assign({
 						ticket: ({ context }: { context: WorkflowContext }) => {
-							const metadata = executeSetMetadata(
-								ctx.db,
-								ctx.ticket.id,
-								config.key,
-								config.value,
-								context,
-							);
-							return { ...context.ticket, metadata };
+							try {
+								const metadata = executeSetMetadata(
+									ctx.db,
+									ctx.ticket.id,
+									config.key,
+									config.value,
+									context,
+								);
+								return { ...context.ticket, metadata };
+							} catch (err) {
+								handleSyncNodeError(err, context);
+								return context.ticket;
+							}
 						},
 					}),
 				],
@@ -242,20 +264,19 @@ function buildState(
 			stateConfig = {
 				invoke: {
 					src: fromPromise(async () => {
-						executeMoveToLane(ctx.db, ctx.ticket.id, config.laneId);
-						ctx.notifyBoardChanged?.();
-						if (ctx.notifyRunUpdated) {
-							triggerWorkflowIfAttached(
-								ctx.db,
-								ctx.ticket.id,
-								config.laneId,
-								ctx.notifyRunUpdated,
-								ctx.projectPath,
-								ctx.notifyEvent,
-								ctx.notifyBoardChanged,
-								ctx.apiPort,
-							);
-						}
+						transitionTicketToLane({
+							db: ctx.db,
+							ticketId: ctx.ticket.id,
+							targetLaneId: config.laneId,
+							callingRunId: ctx.runId,
+							projectPath: ctx.projectPath,
+							apiPort: ctx.apiPort,
+							callbacks: {
+								notifyRunUpdated: ctx.notifyRunUpdated!,
+								notifyEvent: ctx.notifyEvent,
+								notifyBoardChanged: ctx.notifyBoardChanged,
+							},
+						});
 					}),
 					onDone: targets.length > 0 ? { target: targets[0] } : undefined,
 					onError: targets.length > 0 ? { target: targets[0] } : undefined,
@@ -278,8 +299,12 @@ function buildState(
 			const config = node.config as NotifyConfig & { type: "notify" };
 			stateConfig = {
 				entry: ({ context }: { context: WorkflowContext }) => {
-					executeNotify(ctx.db, ctx.runId, config.title, config.body, context);
-					ctx.notifyFrontend();
+					try {
+						executeNotify(ctx.db, ctx.runId, config.title, config.body, context);
+						ctx.notifyFrontend();
+					} catch (err) {
+						handleSyncNodeError(err, context);
+					}
 				},
 				always: targets.length > 0 ? { target: targets[0] } : undefined,
 			};
@@ -445,13 +470,19 @@ function buildState(
 			...(Array.isArray(existingExit) ? existingExit : existingExit ? [existingExit] : []),
 			assign({
 				ticket: ({ context }: { context: WorkflowContext }) => {
-					const summary = deriveSyncNodeOutput(node, context);
-					const metadata = persistNodeOutput(
-						ctx.db, ctx.ticket.id, node.id, ctx.runId,
-						summary, "success", node.label, node.type,
-					);
-					ctx.notifyBoardChanged?.();
-					return { ...context.ticket, metadata };
+					try {
+						const summary = deriveSyncNodeOutput(node, context);
+						const metadata = persistNodeOutput(
+							ctx.db, ctx.ticket.id, node.id, ctx.runId,
+							summary, "success", node.label, node.type,
+						);
+						ctx.notifyBoardChanged?.();
+						return { ...context.ticket, metadata };
+					} catch {
+						// Entry action already logged and persisted the error — just
+						// prevent the crash and return current ticket unchanged.
+						return context.ticket;
+					}
 				},
 			}),
 		];

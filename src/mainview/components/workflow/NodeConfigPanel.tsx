@@ -9,6 +9,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { getNodeLabel } from "../../lib/workflow-ir";
 import { Copy, Check, ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
 
+const SUPPORTS_INTERPOLATION = new Set<IRNodeType>([
+	"claudeAgent", "customScript", "notify", "waitForApproval", "setMetadata", "log", "gitAction",
+]);
+
 const NODE_DESCRIPTIONS: Record<IRNodeType, string> = {
 	start: "Entry point of the workflow",
 	end: "Terminal node — ends the workflow run",
@@ -155,10 +159,6 @@ const INTERPOLATION_VARS = [
 	{ variable: "{{outputs.NODE_ID}}", description: "Output from a prior node" },
 ];
 
-const SUPPORTS_INTERPOLATION = new Set<IRNodeType>([
-	"claudeAgent", "customScript", "notify", "waitForApproval", "setMetadata", "log", "gitAction",
-]);
-
 function InterpolationReference() {
 	return (
 		<ConfigSection title="Template Variables" defaultOpen>
@@ -264,7 +264,7 @@ function ClaudeAgentFields({ config, updateConfig }: {
 			</ConfigSection>
 
 			{/* Permissions section */}
-			<ConfigSection title={<span className="flex items-center gap-1">Permissions<Tooltip><TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-[#484f58] hover:text-[#8b949e] transition-colors cursor-default" /></TooltipTrigger><TooltipContent side="right" className="max-w-[260px]">Skip permissions auto-approves tool use. Allowed tools restricts which tools are available. Use both together to auto-approve a restricted set (e.g. skip + plan-only).</TooltipContent></Tooltip></span>}>
+			<ConfigSection title={<span className="flex items-center gap-1">Permissions<Tooltip><TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-[#484f58] hover:text-[#8b949e] transition-colors cursor-default" /></TooltipTrigger><TooltipContent side="right" className="max-w-[260px]">Skip permissions auto-approves tool use. Allowed tools restricts which tools are available via both an allow-list and a deny-list to ensure enforcement.</TooltipContent></Tooltip></span>}>
 				<div>
 					<label className="flex items-center gap-2 cursor-pointer">
 						<input
@@ -277,7 +277,7 @@ function ClaudeAgentFields({ config, updateConfig }: {
 							<TooltipTrigger asChild>
 								<span className="text-xs text-[#8b949e] border-b border-dotted border-[#30363d] cursor-default">Skip permission checks</span>
 							</TooltipTrigger>
-							<TooltipContent side="left" className="max-w-[220px]">Auto-approve all tool use without prompting. Can be combined with Allowed Tools to auto-approve a restricted set.</TooltipContent>
+							<TooltipContent side="left" className="max-w-[220px]">Auto-approve all tool use without prompting. When combined with a restricted preset, a deny-list is also applied to enforce tool restrictions.</TooltipContent>
 						</Tooltip>
 					</label>
 				</div>

@@ -4,7 +4,6 @@ import type { WorkflowIR, IRNode, Ticket } from "../../shared/types";
 vi.mock("./executor", () => ({
 	executeLog: vi.fn(),
 	executeSetMetadata: vi.fn(),
-	executeMoveToLane: vi.fn(),
 	executeNotify: vi.fn(),
 	evaluateCondition: vi.fn(),
 	persistNodeOutput: vi.fn(),
@@ -16,6 +15,10 @@ vi.mock("./agent", () => ({
 
 vi.mock("./script", () => ({
 	executeCustomScript: vi.fn(),
+}));
+
+vi.mock("./lane-transition", () => ({
+	transitionTicketToLane: vi.fn(),
 }));
 
 import { compileWorkflow } from "./compiler";

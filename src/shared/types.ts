@@ -152,6 +152,14 @@ export const ALLOWED_TOOLS_PRESETS: Record<Exclude<AllowedToolsPreset, "custom">
 	"full": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent"],
 };
 
+// Hard deny-list for restricted presets. --dangerously-skip-permissions overrides
+// --allowedTools, so we use --disallowedTools as a secondary enforcement layer.
+export const DISALLOWED_TOOLS_PRESETS: Partial<Record<AllowedToolsPreset, string[]>> = {
+	"plan-only": ["Write", "Edit", "NotebookEdit", "Bash"],
+	"read-only": ["Write", "Edit", "NotebookEdit", "Bash"],
+	"edit": ["Bash", "NotebookEdit"],
+};
+
 export interface ClaudeAgentConfig {
 	prompt: string;
 	timeoutMs?: number;

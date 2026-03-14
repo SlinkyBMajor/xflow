@@ -10,9 +10,7 @@ import * as workflowQueries from "./db/queries/workflows";
 import * as versionQueries from "./db/queries/workflow-versions";
 import * as runQueries from "./db/queries/runs";
 import * as commentQueries from "./db/queries/comments";
-import { lanes } from "./db/schema";
-import { eq } from "drizzle-orm";
-import { triggerWorkflowIfAttached } from "./engine/trigger";
+import { transitionTicketToLane } from "./engine/lane-transition";
 import * as templates from "./project/templates";
 import { getInterruptedRuns } from "./engine/recovery";
 import { resumeRun, abortRun, sendEventToRun } from "./engine/runner";
@@ -161,43 +159,25 @@ export const rpc = BrowserView.defineRPC<XFlowRPC>({
 
 			moveTicket: ({ ticketId, targetLaneId, targetIndex }) => {
 				const db = getDb();
-				// Get source lane before the move
-				const ticketBefore = ticketQueries.getTicket(db, ticketId);
-				const sourceLaneId = ticketBefore?.laneId;
-
-				ticketQueries.moveTicket(db, ticketId, targetLaneId, targetIndex);
-
-				// Emit lane events if lane changed and there's an active run
-				if (sourceLaneId && sourceLaneId !== targetLaneId) {
-					const activeRun = runQueries.getActiveRunForTicket(db, ticketId);
-					if (activeRun) {
-						const sourceLane = db.select().from(lanes).where(eq(lanes.id, sourceLaneId)).get();
-						const targetLane = db.select().from(lanes).where(eq(lanes.id, targetLaneId)).get();
-						const now = new Date().toISOString();
-						runQueries.insertRunEvent(db, {
-							id: crypto.randomUUID(),
-							runId: activeRun.id,
-							type: "LANE_EXITED",
-							payload: { laneId: sourceLaneId, laneName: sourceLane?.name ?? "", timestamp: now },
-							timestamp: now,
-						});
-						runQueries.insertRunEvent(db, {
-							id: crypto.randomUUID(),
-							runId: activeRun.id,
-							type: "LANE_ENTERED",
-							payload: { laneId: targetLaneId, laneName: targetLane?.name ?? "", timestamp: now },
-							timestamp: now,
-						});
-					}
-				}
-
-				triggerWorkflowIfAttached(db, ticketId, targetLaneId, (run) => {
-					mainWindow?.webview.rpc.send.workflowRunUpdated(run);
-				}, activeProjectPath ?? undefined, (event) => {
-					mainWindow?.webview.rpc.send.runEventAdded(event);
-				}, () => {
-					mainWindow?.webview.rpc.send.boardUpdated(getBoard());
-				}, getAgentApiPort());
+				transitionTicketToLane({
+					db,
+					ticketId,
+					targetLaneId,
+					targetIndex,
+					projectPath: activeProjectPath ?? undefined,
+					apiPort: getAgentApiPort(),
+					callbacks: {
+						notifyRunUpdated: (run) => {
+							mainWindow?.webview.rpc.send.workflowRunUpdated(run);
+						},
+						notifyEvent: (event) => {
+							mainWindow?.webview.rpc.send.runEventAdded(event);
+						},
+						notifyBoardChanged: () => {
+							mainWindow?.webview.rpc.send.boardUpdated(getBoard());
+						},
+					},
+				});
 			},
 
 			reorderTicketsInLane: ({ laneId, ticketIds }) => {
